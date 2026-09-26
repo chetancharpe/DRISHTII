@@ -1,0 +1,24 @@
+{
+  "name": "gowow-accessible-exam-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GoWow — Accessible Examination & Practice Learning Platform for visually impaired and low-vision candidates.",
+  "scripts": {
+    "dev": "npm --prefix client run dev",
+    "build": "npm --prefix client run build",
+    "preview": "npm --prefix client run preview",
+    "lint": "npm --prefix client run lint"
+  },
+  "keywords": [
+    "accessibility",
+    "a11y",
+    "screen-reader",
+    "examination-platform",
+    "practice-learning",
+    "react",
+    "typescript",
+    "vite"
+  ],
+  "author": "GoWow Team",
+  "license": "MIT"
+}

@@ -1,0 +1,113 @@
+import React, { useId } from 'react';
+import { AlertCircle, ChevronDown } from 'lucide-react';
+
+export interface SelectOption {
+  value: string;
+  label: string;
+  disabled?: boolean;
+}
+
+export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+  label?: string;
+  options: SelectOption[];
+  error?: string;
+  helperText?: string;
+  required?: boolean;
+}
+
+export const Select: React.FC<SelectProps> = ({
+  label,
+  options,
+  error,
+  helperText,
+  required = false,
+  id,
+  className = '',
+  disabled,
+  ...props
+}) => {
+  const generatedId = useId();
+  const selectId = id || generatedId;
+  const errorId = `${selectId}-error`;
+  const helperId = `${selectId}-helper`;
+
+  const hasError = Boolean(error);
+  const descriptionIds: string[] = [];
+  if (hasError) descriptionIds.push(errorId);
+  if (helperText) descriptionIds.push(helperId);
+  const ariaDescribedBy = descriptionIds.join(' ') || undefined;
+
+  return (
+    <div className="w-full flex flex-col gap-1.5">
+      {label && (
+        <label
+          htmlFor={selectId}
+          className="text-sm font-semibold text-foreground flex items-center justify-between"
+        >
+          <span className="flex items-center gap-1">
+            {label}
+            {required && (
+              <span className="text-status-error font-bold" aria-hidden="true">
+                *
+              </span>
+            )}
+          </span>
+          {required && (
+            <span className="text-xs font-normal text-foreground-muted">
+              Required
+            </span>
+          )}
+        </label>
+      )}
+
+      <div className="relative flex items-center">
+        <select
+          id={selectId}
+          required={required}
+          disabled={disabled}
+          aria-invalid={hasError ? 'true' : 'false'}
+          aria-describedby={ariaDescribedBy}
+          className={`
+            w-full appearance-none rounded-md border bg-surface text-foreground text-base
+            min-h-[44px] py-2 pl-3.5 pr-10 transition-colors duration-fast
+            disabled:opacity-50 disabled:cursor-not-allowed
+            ${hasError ? 'border-status-error focus-visible:!outline-status-error' : 'border-border'}
+            ${className}
+          `.trim()}
+          {...props}
+        >
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value} disabled={opt.disabled}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+
+        <span
+          className="absolute right-3 text-foreground-muted pointer-events-none flex items-center"
+          aria-hidden="true"
+        >
+          <ChevronDown className="w-4 h-4" />
+        </span>
+      </div>
+
+      {hasError && (
+        <div
+          id={errorId}
+          role="alert"
+          aria-live="polite"
+          className="text-xs font-semibold text-status-error flex items-center gap-1.5 mt-0.5"
+        >
+          <AlertCircle className="w-4 h-4 shrink-0 text-status-error" aria-hidden="true" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {!hasError && helperText && (
+        <div id={helperId} className="text-xs text-foreground-muted mt-0.5">
+          {helperText}
+        </div>
+      )}
+    </div>
+  );
+};

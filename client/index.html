@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-font-size="normal">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GoWow — Accessible Exams Without Barriers</title>
+    <meta
+      name="description"
+      content="An accessibility-first platform for learning, practice, mock tests, and independent online examinations."
+    />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>" />
+  </head>
+  <body class="bg-background text-foreground antialiased selection:bg-primary selection:text-primary-contrast min-h-screen">
+    <!-- Accessible Skip Link for Keyboard Users -->
+    <a href="#main-content" class="skip-link">
+      Skip to main content [Press Enter]
+    </a>
+
+    <!-- ARIA Live Regions for Non-Visual Screen Reader Announcements -->
+    <div id="sr-live-polite" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+    <div id="sr-live-assertive" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
+
+    <!-- Application Root Mount Point -->
+    <div id="root"></div>
+
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
