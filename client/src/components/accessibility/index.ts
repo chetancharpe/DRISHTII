@@ -14,3 +14,4 @@ export * from './AccessibilitySummary';
 export * from './ResetSettingsModal';
 export * from './ScreenReaderControl';
 export * from './KeyboardModeControl';
+export * from './AccessibilityHelpModal';

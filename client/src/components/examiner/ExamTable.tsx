@@ -25,7 +25,7 @@ export const ExamTable: React.FC<ExamTableProps> = ({ exams = [] }) => {
               <tr key={ex.id} className="border-b border-border hover:bg-surface-elevated/50">
                 <td className="px-4 py-3 font-mono text-xs">{ex.id}</td>
                 <td className="px-4 py-3 font-medium">{ex.title}</td>
-                <td className="px-4 py-3">{ex.duration}m</td>
+                <td className="px-4 py-3">{ex.duration || ex.durationMinutes}m</td>
                 <td className="px-4 py-3">{ex.totalQuestions}</td>
                 <td className="px-4 py-3 capitalize">
                   <span className="px-2 py-0.5 rounded text-xs bg-status-success/10 text-status-success border border-status-success/30 font-semibold">

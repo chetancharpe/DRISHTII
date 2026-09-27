@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Navbar } from './Navbar';
 import { Sidebar } from './Sidebar';
 import { Footer } from './Footer';
 import { Modal } from '../common/Modal';
 import { AccessibilityPanel } from '../accessibility/AccessibilityPanel';
+import { AccessibilityHelpModal } from '../accessibility/AccessibilityHelpModal';
 import { useKeyboardNavigation } from '../../hooks/useKeyboardNavigation';
 import { useAccessibility } from '../../hooks/useAccessibility';
 
@@ -19,8 +20,9 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
   fullWidth = false,
 }) => {
   const { isCalibrationOpen, openCalibration, closeCalibration } = useAccessibility();
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
-  // Global hotkey: Alt+A toggles Accessibility Calibration Center anywhere
+  // Global hotkeys: Alt+A toggles Accessibility Settings, Alt+H toggles Accessibility Help
   useKeyboardNavigation({
     'Alt+A': () => {
       if (isCalibrationOpen) {
@@ -28,6 +30,9 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
       } else {
         openCalibration();
       }
+    },
+    'Alt+H': () => {
+      setIsHelpOpen((prev) => !prev);
     },
   });
 
@@ -39,7 +44,10 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
       </a>
 
       {/* Global Application Navbar */}
-      <Navbar onOpenAccessibility={openCalibration} />
+      <Navbar
+        onOpenAccessibility={openCalibration}
+        onOpenHelp={() => setIsHelpOpen(true)}
+      />
 
       {/* Layout Content Body */}
       <div className={`flex-1 flex w-full mx-auto ${fullWidth ? '' : 'max-w-7xl'}`}>
@@ -57,7 +65,10 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
       </div>
 
       {/* Global Application Footer */}
-      <Footer onOpenAccessibility={openCalibration} />
+      <Footer
+        onOpenAccessibility={openCalibration}
+        onOpenHelp={() => setIsHelpOpen(true)}
+      />
 
       {/* Global Accessible Calibration Center Modal */}
       <Modal
@@ -69,6 +80,14 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
       >
         <AccessibilityPanel onClose={closeCalibration} />
       </Modal>
+
+      {/* Global Accessible Help & Keyboard Shortcuts Modal */}
+      <AccessibilityHelpModal
+        isOpen={isHelpOpen}
+        onClose={() => setIsHelpOpen(false)}
+        onOpenSettings={openCalibration}
+      />
     </div>
   );
 };
+

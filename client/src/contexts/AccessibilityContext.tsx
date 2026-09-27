@@ -8,6 +8,7 @@ import {
   SpeechRateOption,
   ReducedMotionOption,
 } from '../types/accessibility';
+import { accessibilityApi } from '../services/api/accessibilityApi';
 
 export interface AnnouncementItem {
   id: number;
@@ -255,12 +256,62 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
     [isSpeechSupported, preferences.language, preferences.speechRate]
   );
 
+  // Sync with backend profile on mount/authentication
+  useEffect(() => {
+    let isMounted = true;
+    async function syncBackendProfile() {
+      try {
+        const backendProfile = await accessibilityApi.getProfile();
+        if (backendProfile && isMounted) {
+          setPreferences((prev) => {
+            const merged = normalizePreferences({
+              ...prev,
+              fontSize: (backendProfile.text_scale as any) || prev.fontSize,
+              contrast: (backendProfile.contrast_mode as any) || prev.contrast,
+              theme: (backendProfile.theme as any) || prev.theme,
+              reducedMotion: backendProfile.reduced_motion ? 'on' : 'system',
+              simplifiedInterface: backendProfile.simplified_interface,
+              screenReaderOptimized: backendProfile.screen_reader_mode,
+              keyboardFirst: backendProfile.keyboard_navigation,
+              audioEnabled: backendProfile.audio_assistance,
+              language: backendProfile.preferred_language || prev.language,
+              timerAnnouncements: (backendProfile.timer_announcement_mode as any) || prev.timerAnnouncements,
+            });
+            persist(merged);
+            return merged;
+          });
+        }
+      } catch {
+        // Offline mode: localStorage preferences remain active
+      }
+    }
+    syncBackendProfile();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // 5. Preference Updating & Persistence
   const persist = (next: AccessibilityPreferences) => {
     try {
       localStorage.setItem(ACCESSIBILITY_STORAGE_KEY, JSON.stringify(next));
       // Keep legacy in sync for safety
       localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(next));
+      // Asynchronously sync with backend if online
+      accessibilityApi.updateProfile({
+        text_scale: next.fontSize,
+        contrast_mode: next.contrast,
+        theme: next.theme,
+        reduced_motion: next.reducedMotion === 'on',
+        simplified_interface: next.simplifiedInterface,
+        screen_reader_mode: next.screenReaderOptimized,
+        keyboard_navigation: next.keyboardFirst,
+        audio_assistance: next.audioEnabled,
+        preferred_language: next.language,
+        timer_announcement_mode: next.timerAnnouncements,
+      }).catch(() => {
+        // Safe offline fallback
+      });
     } catch {
       // Storage quota or restriction handled silently
     }

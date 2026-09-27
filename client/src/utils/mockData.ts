@@ -2,6 +2,7 @@ import { User } from '../types/user';
 import { Exam } from '../types/exam';
 import { Question } from '../types/question';
 import { Analytics } from '../types/analytics';
+import { DEMO_EXAMS } from '../data/examData';
 
 export const MOCK_CANDIDATE: User = {
   id: 'cand-001',
@@ -87,32 +88,7 @@ export const MOCK_ADMIN: User = {
   },
 };
 
-export const MOCK_EXAMS: Exam[] = [
-  {
-    id: 'exam-upsc-csat-01',
-    title: 'Civil Services CSAT Mock Examination 2026',
-    description: 'Accessible General Studies Paper II practice suite with sonified data interpretation questions.',
-    duration: 120,
-    language: 'English',
-    totalQuestions: 80,
-    status: 'published',
-    category: 'Competitive Public Service',
-    passingMarks: 66,
-    totalMarks: 200,
-  },
-  {
-    id: 'exam-stem-grade10-01',
-    title: 'Class 10 STEM Practice & Diagnostic Test',
-    description: 'Interactive mathematical formulas and physics mechanics with descriptive ClearSpeak transcripts.',
-    duration: 60,
-    language: 'English',
-    totalQuestions: 30,
-    status: 'published',
-    category: 'Secondary STEM',
-    passingMarks: 40,
-    totalMarks: 100,
-  },
-];
+export const MOCK_EXAMS: Exam[] = DEMO_EXAMS;
 
 export const MOCK_QUESTIONS: Question[] = [
   {

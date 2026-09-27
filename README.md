@@ -1,142 +1,235 @@
 # GoWow — Accessible Examination & Practice Learning Platform
 
-> **"This project is designed as an accessibility-first examination and practice platform for visually impaired and low-vision candidates."**
+[![Accessibility: WCAG 2.1 AA](https://img.shields.io/badge/Accessibility-WCAG%202.1%20AA-blue.svg)](docs/accessibility.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](backend/)
+[![Node: 20+](https://img.shields.io/badge/Node-20%2B-brightgreen.svg)](client/)
+
+> **"Enable visually impaired and low-vision candidates to independently learn, practice, and participate in digital examinations."**  
+> *GoWow is designed and tested against WCAG 2.1 AA requirements.*
 
 ---
 
-## 1. Project Purpose
-**GoWow** is an examination, mock testing, and interactive pedagogical learning ecosystem built from the ground up for visually impaired and low-vision candidates. It guarantees end-to-end independence—from registration and accessibility calibration to practice testing, live competitive exam completion, and in-depth weak area diagnostics.
+## 1. Project Overview
 
-Accessibility is the foundational core of the product architecture, not an auxiliary afterthought or cosmetic layer.
-
----
-
-## 2. Problem Being Solved
-Conventional digital examination platforms, testing portals, and school assessment portals are overwhelmingly visual-centric. They present insurmountable barriers:
-- Inaccessible visual graphs, complex mathematical formulas, and data tables that break screen-reader linear reading order.
-- Time-gated assessments without auditory sonification or clear countdown alerts.
-- Mouse-dependent UI components (modals, dropdowns, drag-and-drop questions) that trap or ignore keyboard navigation.
-- Inflexible contrast and typography that cause severe eye strain or render content unreadable for low-vision test takers.
-
-GoWow solves these systemic barriers with a deterministic, keyboard-first, screen-reader optimized, and auditory-enhanced examination environment.
+**GoWow** is an accessibility-first digital examination, preparation, and pedagogical evaluation platform engineered specifically for blind, low-vision, and keyboard-reliant test-takers. It provides complete candidate autonomy—from onboarding and personalized accessibility calibration to timed mock examinations, offline connection recovery, live competitive exam completion, and detailed diagnostic scorecards.
 
 ---
 
-## 3. Target Users
-1. **Blind & Screen-Reader Reliant Candidates**: Navigate through standard assistive technology (NVDA, JAWS, VoiceOver, Orca) using standard HTML5 landmarks, explicit ARIA live regions, and structured keyboard commands.
-2. **Low-Vision Candidates**: Require dynamic text scaling up to 200%, specialized high-contrast color themes (including pure black OLED and mellow cream), and prominent focus indicators.
-3. **Keyboard-Only Users**: Candidates with motor impairments or those who operate without pointing devices.
-4. **Examiners & Test Authors**: Create, verify, and monitor examination questions with accessible descriptions, math formulas, and empirical psychometric telemetry.
-5. **System Administrators**: Manage institutional candidates, organizations, and compliance auditing.
+## 2. Production Architecture
 
----
+GoWow enforces a reliable, maintainable 3-tier architecture with zero unnecessary microservices:
 
-## 4. Technology Stack
-- **Framework**: React 18 / modern TypeScript
-- **Build Tool**: Vite
-- **Styling**: Tailwind CSS & Vanilla CSS design token system
-- **Routing**: React Router v6
-- **Iconography**: Lucide React
-- **Assistive APIs**: Web Speech Synthesis API, Web Audio API foundation, ARIA Live Regions
-
----
-
-## 5. Folder Architecture
-The repository follows a clean, decoupled monorepo architecture:
-
-```text
-GoWow-Accessible-Exam-Platform/
-│
-├── client/                              # Modern React + TypeScript + Vite SPA
-│   ├── public/assets/                   # Static images, icons, and webfonts
-│   └── src/
-│       ├── assets/                      # Bundled media and SVG illustrations
-│       ├── components/                  # Layered component hierarchy
-│       │   ├── common/                  # Atomic primitives (Button, Input, Card, Modal, Loader, Tooltip)
-│       │   ├── layout/                  # Shell layout (Navbar, Sidebar, Footer, PageLayout)
-│       │   ├── accessibility/           # Contrast, Font scale, Speech & Reader panels
-│       │   ├── exam/                    # Test-runner widgets (QuestionCard, Palette, Timer)
-│       │   ├── dashboard/               # Metric cards, Progress charts, Weak area cards
-│       │   └── examiner/                # Test & question authoring forms, Candidate tables
-│       ├── pages/                       # Route views grouped by role & lifecycle
-│       │   ├── public/                  # Public landing, About, Features, Accessibility info
-│       │   ├── auth/                    # Login, Signup, Forgot password, A11y setup
-│       │   ├── candidate/               # Dashboard, Practice, Mock tests, Live exam, Results
-│       │   ├── examiner/                # Studio dashboard, Create exam, Question bank, Analytics
-│       │   └── admin/                   # Admin dashboard, Users, Organizations, Settings
-│       ├── routes/                      # Route config, ProtectedRoute & RoleRoute guards
-│       ├── contexts/                    # Global state (Auth, Accessibility, Theme)
-│       ├── hooks/                       # Custom hooks (useAuth, useAccessibility, useSpeech, etc.)
-│       ├── services/                    # API client layer ready for FastAPI backend
-│       ├── store/                       # Client state management directory
-│       ├── types/                       # Reusable TypeScript interfaces (User, Exam, Question, etc.)
-│       ├── utils/                       # Mock data generators and storage helpers
-│       ├── styles/                      # Tokenized CSS (accessibility.css, themes.css, globals.css)
-│       ├── App.tsx                      # Root application wrapper with context providers
-│       └── main.tsx                     # React DOM entry point
-│
-├── server/                              # Future Backend services (.gitkeep placeholder)
-├── shared/                              # Shared types, constants, and validation schemas
-├── docs/                                # Project documentation (UI/UX, A11Y, API, Architecture)
-├── .gitignore
-├── README.md
-└── LICENSE
+```
+┌────────────────────────────────────────────────────────┐
+│             Candidate / Examiner / Admin               │
+│         (Screen Reader, Keyboard, Zoom, Braille)       │
+└───────────────────────────┬────────────────────────────┘
+                            │ HTTPS / TLS 1.3
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│             Frontend Presentation Layer                │
+│             React 18 + TypeScript + Vite               │
+│        (WCAG 2.1 AA, POUR Framework, WAI-ARIA)         │
+└───────────────────────────┬────────────────────────────┘
+                            │ REST / JSON (HTTPS)
+                            │ X-Request-ID Correlation
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│               Backend Application Layer                │
+│                 FastAPI (Python 3.11)                  │
+│       - Security Middleware (HSTS, CSP, nosniff)       │
+│       - Accessibility-Aware Rate Limiting              │
+│       - Server-Authoritative Timer Engine              │
+│       - Idempotent Submission Processor                │
+└───────────────────────────┬────────────────────────────┘
+                            │ SQLAlchemy 2.0 (ORM)
+                            │ Parameterized Queries / SSL
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│               Persistent Storage Layer                 │
+│               PostgreSQL 15 (Relational)               │
+│       - Least Privilege User Separation                │
+│       - Strict Foreign Keys & Indexes                  │
+│       - Automated Backup & Checksum Verification       │
+└────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 6. Development Phases
-1. **Phase 1 (Current)**: Frontend Architecture, Design Tokens, Routing Foundation, Contexts, Hooks, Placeholder Pages & Common Accessible Components.
-2. **Phase 2**: Candidate Practice Portal, Accessibility Calibration & Audio Sonification Engine.
-3. **Phase 3**: Live Examination Interface, Server-Authoritative Secure Timer & Keyboard Navigation.
-4. **Phase 4**: Weak Area Diagnostic Engine, Remediation Tutor & Detailed Results Analytics.
-5. **Phase 5**: Examiner & Authoring Studio with Automated Accessibility Health Verification.
-6. **Phase 6**: Enterprise FastAPI Backend, PostgreSQL Integration & Certified WCAG 2.2 AAA Audit.
+## 3. Technology Stack
+
+- **Frontend:** React 18, TypeScript, Tailwind CSS, Vite, Lucide Icons
+- **Backend:** FastAPI (Python 3.11), Uvicorn, Pydantic v2, Python-Jose (JWT), Passlib (Bcrypt)
+- **Database:** PostgreSQL 15 (Relational persistence), SQLAlchemy 2.0 ORM, Alembic (Migrations)
+- **Quality & Accessibility:** Axe-Core, Playwright (`@axe-core/playwright`), Vitest, Pytest
+- **Containers & Orchestration:** Docker, Multi-Stage Dockerfiles, Docker Compose
 
 ---
 
-## 7. Accessibility-First Philosophy
-* **Zero Disabling of Focus**: Focus rings are mandatory, distinct, and visible in all themes.
-* **Semantic Native HTML**: Buttons are `<button>`, links are `<a>`, labels are `<label for="...">`.
-* **Reduced Motion Guarantee**: `prefers-reduced-motion: reduce` unconditionally silences non-essential animations.
-* **No Color-Only Information**: Status indicators always combine shape, text, and audible sonification.
-* **User-Controlled Speech**: Speech synthesis is non-intrusive and never speaks without explicit user intent.
-* **Local Persistence**: Candidate visual contrast, font scale, and language selections persist across reloads.
+## 4. Key Platform Features
+
+### Candidate Experience
+- **Accessibility Onboarding & Calibration:** Step-by-step sensory onboarding; font scaling up to 200%, high-contrast AAA mode (7:1), theme cycles, and speech rate adjustments (`Alt+A`).
+- **Keyboard Map & Help Center:** Instant access to shortcut references (`Alt+H`) for screen readers and keyboard navigation.
+- **Learning & Practice:** Self-paced pedagogical modules with spoken formula transcripts and keyboard-operable choices.
+- **Live Examination Engine:** Server-authoritative timer with audible warnings (15m, 5m, 1m), auto-saving answer synchronization, offline recovery caching, and confirmation modals protecting against accidental submission (`Alt+S`).
+- **Diagnostic Results:** Accessible score breakdowns with tabular summaries, non-color status indicators, and subject analytics.
+
+### Examiner Studio
+- **Accessible Question Authoring:** Question creator with automated quality engine validating image alternative text, table headers, and mathematical speech transcripts before publishing.
+- **Candidate Scheduling & Management:** Candidate roster assignment, accommodations configuration (1.5x, 2.0x extra time), and exam scheduling.
+- **Real-Time Monitoring:** Real-time candidate progress monitoring with sortable accessible tables.
+
+### Administrator Console
+- **User & Role Management:** Strict RBAC management with audit trails.
+- **System Health & Audit Logs:** Chronological compliance tracking and readiness checks.
 
 ---
 
-## 8. How to Run the Frontend Locally
+## 5. Accessibility Invariants & POUR Conformance
 
-### Prerequisites
-- Node.js (v18+ or higher, v25 supported)
-- npm (v9+ or higher)
+- **Perceivable:** All visual diagrams require alternative text; complex charts require long descriptions. Standard contrast ratio $\ge 4.5:1$; High-contrast mode $\ge 7:1$.
+- **Operable:** 100% of candidate journeys operable without a mouse. Skip link (`.skip-link`) jumps directly to `#main-content`. Modals trap focus and close via `Escape`.
+- **Understandable:** Consistent landmarks, predictable navigation, and non-color dependent status indicators (Passed ✓ / Needs Review ✕).
+- **Robust:** Complies with WAI-ARIA Authoring Practices 1.2; audited with NVDA, JAWS, and VoiceOver.
 
-### Setup & Launch
+### Global Keyboard Shortcuts
+- `Alt + H`: Accessibility Help & Shortcuts Guide
+- `Alt + A`: Accessibility Calibration Center (Display, Contrast, Audio)
+- `Alt + N`: Next Question (Auto-saves current response)
+- `Alt + P`: Previous Question
+- `Alt + M`: Mark / Unmark Question for Review
+- `Alt + C`: Clear Selected Answer
+- `Alt + L`: Read Question Aloud via Text-to-Speech
+- `Alt + S`: Submit Examination Confirmation Dialog
+
+---
+
+## 6. Quick Start & Local Setup
+
+### Option A: Using Docker Compose (Recommended)
 ```bash
-# 1. Navigate to the client directory
+# Clone the repository
+git clone https://github.com/gowow/gowow-platform.git
+cd gowow-platform
+
+# Start development stack (PostgreSQL + FastAPI Backend + React Client)
+docker compose up -d
+
+# Seed isolated demo data
+docker compose exec backend python scripts/seed_demo_data.py
+```
+Access the application:
+- Frontend: `http://localhost:5173`
+- Backend API Docs: `http://localhost:8000/api/v1/docs`
+- Health Endpoint: `http://localhost:8000/health/ready`
+
+### Option B: Native Local Setup
+
+#### 1. Backend Setup (FastAPI)
+```bash
+cd backend
+python -m venv venv
+# Windows:
+.\venv\Scripts\activate
+# Linux/macOS:
+source venv/bin/activate
+
+pip install -r requirements.txt
+cp .env.development.example .env
+
+# Run database migrations
+alembic upgrade head
+
+# Seed demo data
+python scripts/seed_demo_data.py
+
+# Start API server
+uvicorn app.main:app --reload --port 8000
+```
+
+#### 2. Frontend Setup (React + Vite)
+```bash
 cd client
-
-# 2. Install dependencies
 npm install
-
-# 3. Start local development server
-npm run dev
-```
-
-The application will be live at `http://localhost:5173`.
-
-Alternatively, from the project root:
-```bash
+cp .env.development.example .env.local
 npm run dev
 ```
 
 ---
 
-## 9. Future Backend Integration
-All API operations are decoupled into `client/src/services/`:
-- `api.ts`: Base HTTP client with authorization interceptors and timeout guards.
-- `authService.ts`: Maps to FastAPI OAuth2 / JWT authentication endpoints.
-- `examService.ts`: Maps to test suite loading, question fetching, and session submission.
-- `analyticsService.ts`: Delivers candidate weak topic analysis and test attempt scoring.
+## 7. Environment Configuration
 
-Transitioning from Phase 1 mock providers to the real backend simply requires pointing `VITE_API_BASE_URL` in `.env` to the FastAPI gateway.
+GoWow separates configuration cleanly across deployment environments:
+
+- `.env.development.example`: Local development defaults (SQLite or local PostgreSQL).
+- `.env.test.example`: Automated testing configuration with relaxed rate limiting.
+- `.env.production.example`: Hardened production template (enforced strong keys, restricted CORS, SSL database connection).
+
+*Never commit `.env` files with real credentials to version control.*
+
+---
+
+## 8. Automated Testing Suite
+
+```bash
+# Frontend Lint & Strict Type Check
+cd client && npm run lint
+
+# Client Production Bundle Build
+cd client && npm run build
+
+# Automated Axe-Core & WCAG 2.1 AA Tests (Playwright)
+npx playwright test tests/accessibility/
+
+# High Contrast Mode Emulation Test
+npx playwright test tests/accessibility/ --project=high-contrast-mode
+
+# Backend Pytest Suite
+cd backend && python -m pytest -v
+```
+
+---
+
+## 9. Production Deployment & Security
+
+- **Containerization:** Multi-stage `backend/Dockerfile` runs as unprivileged `appuser`. `client/Dockerfile` serves static bundles via optimized Nginx with gzip and security headers.
+- **Security Headers:** Strict CSP, HSTS, X-Content-Type-Options: nosniff, X-Frame-Options: DENY, Referrer-Policy.
+- **Rate Limiting:** Protects `/login`, `/register`, `/forgot-password`, and exam submissions without throttling accessibility audio streams.
+- **Authoritative Timing:** Server computes and enforces `server_started_at` and `server_expires_at`. Client clock tampering has no effect.
+- **Full Deployment Guide:** See [docs/deployment.md](docs/deployment.md).
+
+---
+
+## 10. Database Backups & Recovery
+
+- **Automated Backup:**
+  ```bash
+  python backend/scripts/backup.py
+  ```
+  Generates gzip-compressed archives with companion `.sha256` checksums and prunes archives older than 30 days.
+- **Restoration & Verification Drill:**
+  ```bash
+  python backend/scripts/restore.py backend/backups/<backup_file>.sql.gz
+  ```
+- **Disaster Recovery Playbook:** See [docs/incident-response.md](docs/incident-response.md).
+
+---
+
+## 11. Documentation Directory
+
+- [Architecture Specification](docs/architecture.md)
+- [Accessibility & WCAG Standards](docs/accessibility.md)
+- [Security & Threat Defense Guide](docs/security.md)
+- [Production Deployment Playbook](docs/deployment.md)
+- [Database Schema & Migrations](docs/database.md)
+- [Comprehensive Testing Strategy](docs/testing.md)
+- [Incident Response & SRE Playbook](docs/incident-response.md)
+- [Operational Troubleshooting Guide](docs/troubleshooting.md)
+- [Contributor Guide](CONTRIBUTING.md)
+
+---
+
+## 12. License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

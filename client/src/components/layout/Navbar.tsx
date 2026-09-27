@@ -3,13 +3,14 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAccessibility } from '../../hooks/useAccessibility';
-import { Sliders, Sun, Moon, Sparkles, Menu, X } from 'lucide-react';
+import { Sliders, Sun, Moon, Sparkles, Menu, X, HelpCircle } from 'lucide-react';
 
 export interface NavbarProps {
   onOpenAccessibility?: () => void;
+  onOpenHelp?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility }) => {
+export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp }) => {
   const { user, isAuthenticated, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { preferences, setHighContrast } = useAccessibility();
@@ -89,6 +90,20 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility }) => {
 
         {/* Right Side Controls & Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Help & Keyboard Shortcuts Action */}
+          {onOpenHelp && (
+            <button
+              type="button"
+              onClick={onOpenHelp}
+              aria-label="Open Accessibility Help and Keyboard Shortcuts (Shortcut: Alt+H)"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-md border border-border bg-surface hover:bg-surface-elevated text-foreground cursor-pointer min-h-[44px]"
+            >
+              <HelpCircle className="w-4 h-4 text-primary" aria-hidden="true" />
+              <span className="hidden md:inline">Help</span>
+              <span className="keyboard-indicator text-[10px]">Alt+H</span>
+            </button>
+          )}
+
           {/* Accessibility Quick Action */}
           {onOpenAccessibility && (
             <button
@@ -102,6 +117,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility }) => {
               <span className="keyboard-indicator text-[10px]">Alt+A</span>
             </button>
           )}
+
 
           {/* Quick Theme Cycle */}
           <button

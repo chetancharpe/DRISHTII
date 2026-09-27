@@ -13,7 +13,7 @@ export const ExamCard: React.FC<ExamCardProps> = ({ exam }) => {
       <div>
         <div className="flex items-center justify-between text-xs text-foreground-muted mb-2">
           <span className="font-semibold text-primary">{exam.category || 'Standard Assessment'}</span>
-          <span>⏱️ {exam.duration} mins</span>
+          <span>⏱️ {exam.durationMinutes || exam.duration} mins</span>
         </div>
         <h4 className="text-base font-bold text-foreground mb-1">{exam.title}</h4>
         <p className="text-xs text-foreground-muted line-clamp-2">{exam.description}</p>

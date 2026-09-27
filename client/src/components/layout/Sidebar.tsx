@@ -19,6 +19,7 @@ import {
   Users,
   CheckSquare,
   Shield,
+  History,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -42,20 +43,25 @@ export const Sidebar: React.FC = () => {
 
   const examinerLinks = [
     { to: '/examiner/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" aria-hidden="true" /> },
-    { to: '/examiner/create-exam', label: 'Create Exam', icon: <PlusCircle className="w-4 h-4" aria-hidden="true" /> },
+    { to: '/examiner/exams', label: 'Examinations', icon: <Calendar className="w-4 h-4" aria-hidden="true" /> },
+    { to: '/examiner/exams/create', label: 'Create Exam', icon: <PlusCircle className="w-4 h-4" aria-hidden="true" /> },
     { to: '/examiner/question-bank', label: 'Question Bank', icon: <FileQuestion className="w-4 h-4" aria-hidden="true" /> },
     { to: '/examiner/candidates', label: 'Candidates', icon: <Users className="w-4 h-4" aria-hidden="true" /> },
-    { to: '/examiner/conduct-exam', label: 'Conduct Exam', icon: <CheckSquare className="w-4 h-4" aria-hidden="true" /> },
-    { to: '/examiner/results', label: 'Results', icon: <BarChart3 className="w-4 h-4" aria-hidden="true" /> },
+    { to: '/examiner/results', label: 'Results & Eval', icon: <BarChart3 className="w-4 h-4" aria-hidden="true" /> },
     { to: '/examiner/analytics', label: 'Analytics', icon: <TrendingUp className="w-4 h-4" aria-hidden="true" /> },
   ];
 
   const adminLinks = [
     { to: '/admin/dashboard', label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" aria-hidden="true" /> },
     { to: '/admin/users', label: 'User Directory', icon: <Users className="w-4 h-4" aria-hidden="true" /> },
-    { to: '/admin/organizations', label: 'Organizations', icon: <Shield className="w-4 h-4" aria-hidden="true" /> },
-    { to: '/admin/settings', label: 'System Configuration', icon: <Settings className="w-4 h-4" aria-hidden="true" /> },
+    { to: '/admin/examiners', label: 'Examiners', icon: <Shield className="w-4 h-4" aria-hidden="true" /> },
+    { to: '/admin/candidates', label: 'Candidates', icon: <Users className="w-4 h-4" aria-hidden="true" /> },
+    { to: '/admin/exams', label: 'Global Exams', icon: <Calendar className="w-4 h-4" aria-hidden="true" /> },
+    { to: '/admin/organizations', label: 'Organizations', icon: <CheckSquare className="w-4 h-4" aria-hidden="true" /> },
+    { to: '/admin/audit-logs', label: 'Audit Trail', icon: <History className="w-4 h-4" aria-hidden="true" /> },
+    { to: '/admin/settings', label: 'System Settings', icon: <Settings className="w-4 h-4" aria-hidden="true" /> },
   ];
+
 
   const isCandidate = role === 'candidate';
 
@@ -90,28 +96,28 @@ export const Sidebar: React.FC = () => {
           ))}
         </nav>
 
-        {/* Secondary Links for Candidate */}
-        {isCandidate && (
-          <div className="flex flex-col gap-2 pt-3 border-t border-border">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-foreground-muted px-2">
-              Preferences
-            </span>
+        {/* Preferences & Quick Tools for All Roles */}
+        <div className="flex flex-col gap-2 pt-3 border-t border-border">
+          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-foreground-muted px-2">
+            Tools &amp; Preferences
+          </span>
 
-            {/* Accessibility Quick Calibration Button */}
-            <button
-              type="button"
-              onClick={openCalibration}
-              aria-label="Open Accessibility Calibration Center (Alt+A)"
-              className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold text-foreground hover:bg-surface-elevated hover:text-primary transition-colors text-left min-h-[40px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              <div className="flex items-center gap-3">
-                <Sliders className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
-                <span>Accessibility</span>
-              </div>
-              <span className="keyboard-indicator text-[10px]">Alt+A</span>
-            </button>
+          {/* Accessibility Quick Calibration Button */}
+          <button
+            type="button"
+            onClick={openCalibration}
+            aria-label="Open Accessibility Calibration Center (Alt+A)"
+            className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold text-foreground hover:bg-surface-elevated hover:text-primary transition-colors text-left min-h-[40px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <div className="flex items-center gap-3">
+              <Sliders className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
+              <span>Accessibility</span>
+            </div>
+            <span className="keyboard-indicator text-[10px]">Alt+A</span>
+          </button>
 
-            {candidateSecondaryLinks.map((link) => (
+          {isCandidate &&
+            candidateSecondaryLinks.map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to}
@@ -127,9 +133,9 @@ export const Sidebar: React.FC = () => {
                 <span>{link.label}</span>
               </NavLink>
             ))}
-          </div>
-        )}
+        </div>
       </div>
+
 
       {/* Bottom Profile and Sign Out */}
       <div className="pt-4 border-t border-border flex flex-col gap-2">

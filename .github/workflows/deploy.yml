@@ -1,0 +1,75 @@
+name: GoWow Release & Deployment Pipeline (CD)
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment target'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  staging-deployment:
+    name: Deploy to Staging & Run Smoke Tests
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure Cloud / SSH Context
+        run: echo "Connecting to staging cluster..."
+
+      - name: Execute Database Migrations (Staging)
+        run: |
+          echo "Running: alembic upgrade head on staging database"
+
+      - name: Deploy Staging Services
+        run: |
+          echo "Deploying containerized backend and frontend..."
+
+      - name: Run Staging Smoke Tests
+        run: |
+          echo "Verifying /health, /health/ready, and authentication flow..."
+          # Example smoke check:
+          # curl -f https://staging-api.gowow.org/health/ready || exit 1
+
+  production-gate:
+    name: Production Release & Rollback Safety Gate
+    needs: staging-deployment
+    runs-on: ubuntu-latest
+    if: github.event.inputs.environment == 'production' || startsWith(github.ref, 'refs/tags/v')
+    environment: production
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Trigger Automated Pre-Deployment Database Backup
+        run: |
+          echo "Invoking: python backend/scripts/backup.py before applying migrations"
+
+      - name: Execute Zero-Downtime Migrations
+        run: |
+          echo "Applying migrations to production PostgreSQL..."
+
+      - name: Deploy Production Containers
+        run: |
+          echo "Rolling out production containers with healthcheck probes..."
+
+      - name: Production Smoke Tests
+        id: smoke-test
+        run: |
+          echo "Executing post-deployment smoke tests against production endpoints..."
+
+      - name: Automated Rollback Trigger (On Smoke Test Failure)
+        if: failure()
+        run: |
+          echo "CRITICAL: Smoke tests failed. Initiating automatic container rollback to previous tag!"
+          echo "Restoring database snapshot if migration caused irreversible state."

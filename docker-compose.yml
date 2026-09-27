@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: gowow-postgres-dev
+    environment:
+      POSTGRES_DB: gowow_dev_db
+      POSTGRES_USER: gowow_dev_user
+      POSTGRES_PASSWORD: gowow_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - gowow_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gowow_dev_user -d gowow_dev_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: gowow-backend-dev
+    environment:
+      ENVIRONMENT: development
+      DEBUG: "True"
+      LOG_LEVEL: DEBUG
+      DATABASE_URL: postgresql://gowow_dev_user:gowow_dev_password@postgres:5432/gowow_dev_db
+      JWT_SECRET_KEY: dev_insecure_jwt_secret_key_minimum_64_characters_long_for_gowow_local_testing_only
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 120
+      CORS_ORIGINS: http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    image: node:20-alpine
+    container_name: gowow-frontend-dev
+    working_dir: /app
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000/api/v1
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  gowow_postgres_data:
+    driver: local

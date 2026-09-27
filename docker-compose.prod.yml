@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: gowow-postgres-prod
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gowow_prod_db}
+      POSTGRES_USER: ${POSTGRES_USER:-gowow_app_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - gowow_prod_pgdata:/var/lib/postgresql/data
+      - ./backend/backups:/backups
+    # Security: Database port is NOT bound to the host, only reachable on internal container network (Section 83)
+    expose:
+      - "5432"
+    networks:
+      - gowow_internal_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gowow_app_user} -d ${POSTGRES_DB:-gowow_prod_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: gowow-backend-prod
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "False"
+      LOG_LEVEL: INFO
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gowow_app_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gowow_prod_db}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://app.gowow.org}
+      BACKUP_RETENTION_DAYS: 30
+      RATE_LIMIT_PER_MINUTE: 60
+      AUTH_RATE_LIMIT_PER_MINUTE: 10
+    expose:
+      - "8000"
+    networks:
+      - gowow_internal_net
+      - gowow_public_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
+    container_name: gowow-frontend-prod
+    ports:
+      - "80:80"
+    networks:
+      - gowow_public_net
+    depends_on:
+      - backend
+    restart: always
+
+networks:
+  gowow_internal_net:
+    driver: bridge
+    internal: true # Isolated internal network with no external routing
+  gowow_public_net:
+    driver: bridge
+
+volumes:
+  gowow_prod_pgdata:
+    driver: local
