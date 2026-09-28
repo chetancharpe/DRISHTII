@@ -278,8 +278,62 @@ This log tracks the progress of the multi-phase upgrade plan for GoWow (accessib
   - Integrated `VoiceCommandBar` across `TopicPage.tsx`, `PracticeSessionPage.tsx`, and `LiveExamSessionPage.tsx`.
 
 ### 3. What Remains
-- **Phase 5:** Examiner & Admin improvements (AI alt-text gate, candidate roster CSV import, psychometric analytics).
+- **Phase 5:** Examiner & Admin improvements (AI alt-text gate, candidate roster CSV import, psychometric analytics) — **COMPLETED**
 - **Phase 6:** Internationalization (i18n layer, en/hi key parity script, dynamic html lang, voice selection).
 - **Phase 7:** UI/UX redesign according to accessible design system tokens (light/dark/high-contrast, 44x44 touch targets, WCAG 2.2 AA).
 - **Phase 8:** Testing, CI, and honest documentation (Playwright E2E, axe-core scans, revised README and manuals).
+
+---
+
+## Phase 5: Examiner & Admin Improvements
+
+- **Date:** 2026-09-28
+- **Git Branch:** `upgrade/master-plan`
+
+### 1. Verification Results
+- **TypeScript & Linting:** `cd client && npm run lint` (`tsc --noEmit`)
+  - Status: **PASSED (0 errors)**
+- **Client Build:** `cd client && npm run build` (`tsc -b && vite build`)
+  - Status: **PASSED (built in 8.12s)**
+  - Chunks generated: `dist/index.html` (1.65 kB), KaTeX font assets, `dist/assets/index-*.css` (85.48 kB), `dist/assets/index-*.js` (1,389.92 kB)
+- **Backend Test Suite:** `pytest tests/`
+  - Status: **48 PASSED (0 failed) in 11.48s**
+  - Includes 6 comprehensive integration tests in `tests/integration/test_phase5_examiner_admin.py` covering:
+    - Alt-text validator placeholder rejection and quality scoring
+    - AI alt-text evaluation endpoint (`POST /api/v1/question-bank/alt-text/evaluate`)
+    - Candidate roster CSV bulk import with account provisioning and accommodations
+    - Duplicate enrollment and malformed row error handling
+    - Item difficulty ($p$), item discrimination ($D$), point-biserial ($r_{pbis}$), Cronbach's alpha ($\alpha$), accommodation equity, and CSV export.
+
+### 2. Changes Made
+- **AI Alt-Text Verification Gate (Authoring Section 48):**
+  - Added strict rejection of generic placeholder alt texts (`image`, `diagram`, `photo`, `chart`, `graph`, `figure`) in `validators.py` and `validate_question_accessibility`.
+  - Implemented `evaluate_alt_text_quality` with domain classification (`Data Chart / Graph`, `Geometric Figure`, `Electrical Schematic`, `Process Flowchart`, `Geographic Map`, `Educational Diagram`), quality scoring (0-100), WCAG compliance tier assignment (`PASS_AAA`, `PASS_AA`, `NEEDS_REVISION`, `FAIL`), diagnostic issues list, actionable suggestions, and auto-generated contextual alt text & long descriptions.
+  - Exposed `POST /api/v1/question-bank/alt-text/evaluate` endpoint.
+  - Created interactive `AiAltTextGate.tsx` component with real-time score gauge, WCAG tier badges, issue breakdown, and one-click "Apply AI Recommendation" button.
+  - Integrated `AiAltTextGate` into `CreateQuestionPage.tsx` inside the media attachment section.
+- **Candidate Roster CSV Bulk Import & Account Provisioning:**
+  - Added Pydantic schemas: `RosterCsvImportRequest`, `RosterImportResultItem`, `RosterCsvImportResponse`.
+  - Implemented `import_candidate_roster_csv` service in `exam_service.py` and endpoint `POST /api/v1/examiner/exams/{exam_id}/candidates/csv-import`.
+  - Automatically provisions candidate `User` accounts with hashed credentials, maps individual accommodations (`screen_reader`, `high_contrast`, `large_text`, `keyboard_navigation`, `audio_assistance`, `extra_time_*`) directly into their `AccessibilityProfile`, enrolls them into `ExamCandidate`, and records an audit log event.
+  - Upgraded `candidateManagementService.ts` and `ExamCandidatesPage.tsx` with sample CSV template download (`candidate_roster_template.csv`), file picker (`.csv`), drag/paste textarea, cohort assignment, and import summary report cards.
+- **Psychometric Analytics & Real CSV Export (Sections 52–54):**
+  - Extended `QuestionPerformanceItem` with `item_difficulty_p`, `difficulty_tier`, `discrimination_index_d`, `discrimination_tier`, `point_biserial_r`, and `distractor_distribution`.
+  - Extended `ExamAnalyticsResponse` with `cronbach_alpha`, `reliability_tier`, `equity_accommodated_avg_score`, `equity_standard_avg_score`, and `equity_difference_pct`.
+  - Implemented rigorous psychometric statistical calculations in `analytics_service.py`:
+    - Item Difficulty index ($p$-value with `EASY`, `OPTIMAL`, `DIFFICULT` tiers)
+    - Item Discrimination index ($D$, Upper 27% vs Lower 27% difference with `EXCELLENT`, `GOOD`, `MARGINAL`, `POOR` tiers)
+    - Point-Biserial correlation ($r_{pbis}$ measuring item discrimination against total test score)
+    - Test Reliability index using Cronbach's Alpha ($\alpha$ measuring internal test consistency)
+    - Distractor attraction distribution tracking
+    - Candidate Accommodation Equity metrics (comparing accommodated candidates vs standard cohort performance to ensure zero systemic accessibility penalty)
+  - Implemented streaming CSV export route `GET /api/v1/examiner/exams/{exam_id}/analytics/export?format=csv`.
+  - Upgraded frontend `ExamAnalyticsPage.tsx` with dedicated Psychometric Reliability & Equity parity section, and enhanced Item Psychometrics table with visual status badges and distractor breakdowns.
+  - Connected "CSV Export" button to trigger genuine browser file downloads.
+
+### 3. What Remains
+- **Phase 6:** Internationalization (i18n layer, en/hi key parity script, dynamic html lang, voice selection).
+- **Phase 7:** UI/UX redesign according to accessible design system tokens (light/dark/high-contrast, 44x44 touch targets, WCAG 2.2 AA).
+- **Phase 8:** Testing, CI, and honest documentation (Playwright E2E, axe-core scans, revised README and manuals).
+
 

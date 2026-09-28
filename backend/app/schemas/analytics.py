@@ -29,6 +29,13 @@ class QuestionPerformanceItem(BaseModel):
     correct_attempts: int
     total_attempts: int
     accuracy_percentage: float
+    # Psychometric item indicators
+    item_difficulty_p: float = 0.0
+    difficulty_tier: str = "OPTIMAL"  # "EASY", "OPTIMAL", "DIFFICULT"
+    discrimination_index_d: float = 0.0
+    discrimination_tier: str = "GOOD"  # "EXCELLENT", "GOOD", "MARGINAL", "POOR"
+    point_biserial_r: float = 0.0
+    distractor_distribution: Dict[str, int] = Field(default_factory=dict)
 
 
 class ExamAnalyticsResponse(BaseModel):
@@ -42,3 +49,9 @@ class ExamAnalyticsResponse(BaseModel):
     average_percentage: float
     pass_rate_percentage: float
     question_performance: List[QuestionPerformanceItem] = Field(default_factory=list)
+    # Psychometric test-level reliability & equity metrics
+    cronbach_alpha: float = 0.0
+    reliability_tier: str = "ACCEPTABLE"  # "EXCELLENT", "GOOD", "ACCEPTABLE", "QUESTIONABLE"
+    equity_accommodated_avg_score: Optional[float] = None
+    equity_standard_avg_score: Optional[float] = None
+    equity_difference_pct: Optional[float] = None

@@ -1,8 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ExaminerExam, CandidateGroup, ExamCandidateRecord } from '../../../types/examiner';
 import { examinerService } from '../../../services/examinerService';
-import { candidateManagementService } from '../../../services/candidateManagementService';
+import {
+  candidateManagementService,
+  RosterCsvImportResponse,
+} from '../../../services/candidateManagementService';
 import { Card } from '../../../components/common/Card';
 import { Button } from '../../../components/common/Button';
 import {
@@ -12,8 +15,11 @@ import {
   FileSpreadsheet,
   Shield,
   Search,
+  Download,
+  CheckCircle2,
+  AlertCircle,
+  UserCheck,
 } from 'lucide-react';
-
 
 export const ExamCandidatesPage: React.FC = () => {
   const { examId = 'exam-01' } = useParams<{ examId: string }>();
@@ -23,8 +29,16 @@ export const ExamCandidatesPage: React.FC = () => {
   const [selectedGroup, setSelectedGroup] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
   const [showCsvModal, setShowCsvModal] = useState<boolean>(false);
+  const [isImporting, setIsImporting] = useState<boolean>(false);
+  const [importResult, setImportResult] = useState<RosterCsvImportResponse | null>(null);
+  const [targetCohort, setTargetCohort] = useState<string>('Main Cohort');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [csvContent, setCsvContent] = useState<string>(
-    'Rohan Deshmukh, rohan.d@example.edu, GW-2026-10520\nFatima Zahra, fatima.z@example.edu, GW-2026-10521'
+    'Name,Email,CandidateID,Accommodations\n' +
+    'Aarav Sharma,aarav.sharma@example.edu,CAND-2026-101,screen_reader;extra_time_30;audio_assistance\n' +
+    'Priya Patel,priya.patel@example.edu,CAND-2026-102,high_contrast;keyboard_navigation\n' +
+    'Rohan Deshmukh,rohan.d@example.edu,CAND-2026-103,standard\n' +
+    'Fatima Zahra,fatima.z@example.edu,CAND-2026-104,large_text;extra_time_15'
   );
 
   useEffect(() => {
@@ -54,12 +68,41 @@ export const ExamCandidatesPage: React.FC = () => {
     return matchesSearch && matchesGroup;
   });
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      if (content) {
+        setCsvContent(content);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleDownloadTemplate = () => {
+    candidateManagementService.downloadSampleCsvTemplate();
+  };
+
   const handleImportCsv = async () => {
-    const targetGroup = candidateGroups[0]?.id || 'grp-01';
-    await candidateManagementService.bulkImportSimulated(targetGroup, csvContent);
-    const updated = await candidateManagementService.getCandidateRecords();
-    setRecords(updated);
-    setShowCsvModal(false);
+    if (!csvContent.trim()) return;
+    setIsImporting(true);
+    setImportResult(null);
+    try {
+      const result = await candidateManagementService.importCandidateRosterCsv(
+        examId,
+        csvContent,
+        targetCohort
+      );
+      setImportResult(result);
+      const updated = await candidateManagementService.getCandidateRecords();
+      setRecords(updated);
+    } catch (err: unknown) {
+      console.error('Failed to import CSV:', err);
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   return (
@@ -207,26 +250,197 @@ export const ExamCandidatesPage: React.FC = () => {
       {/* CSV Import Modal */}
       {showCsvModal && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-surface border border-border rounded-2xl max-w-lg w-full p-6 shadow-2xl flex flex-col gap-4">
-            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-              <FileSpreadsheet className="w-5 h-5 text-primary" aria-hidden="true" />
-              Simulated Bulk CSV Candidate Upload
-            </h2>
-            <p className="text-xs text-foreground-muted">
-              Paste comma-separated rows: <code>Candidate Name, Email, Roll Number</code>
-            </p>
-            <textarea
-              rows={5}
-              value={csvContent}
-              onChange={(e) => setCsvContent(e.target.value)}
-              className="w-full p-3 font-mono text-xs border border-border rounded-lg bg-surface-elevated text-foreground"
-            />
+          <div className="bg-surface border border-border rounded-2xl max-w-2xl w-full p-6 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                  <FileSpreadsheet className="w-5 h-5" aria-hidden="true" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-foreground">
+                    Candidate Roster CSV Bulk Import & Provisioning
+                  </h2>
+                  <p className="text-xs text-foreground-muted">
+                    Auto-provisions candidate accounts, assigns individual accommodations, and enrolls into roster.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowCsvModal(false);
+                  setImportResult(null);
+                }}
+                className="text-foreground-muted hover:text-foreground text-sm font-bold"
+                aria-label="Close modal"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Quick Actions & Format Hints */}
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-surface-elevated border border-border">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadTemplate}
+                  className="flex items-center gap-1.5 text-xs"
+                >
+                  <Download className="w-3.5 h-3.5" aria-hidden="true" />
+                  Download CSV Template
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1.5 text-xs"
+                >
+                  <UploadCloud className="w-3.5 h-3.5" aria-hidden="true" />
+                  Browse .CSV File
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label htmlFor="modal-cohort" className="text-xs font-semibold text-foreground-muted">
+                  Assign To Cohort:
+                </label>
+                <input
+                  id="modal-cohort"
+                  type="text"
+                  value={targetCohort}
+                  onChange={(e) => setTargetCohort(e.target.value)}
+                  className="px-2.5 py-1 text-xs bg-surface border border-border rounded-lg text-foreground font-semibold"
+                  placeholder="e.g. Main Cohort"
+                />
+              </div>
+            </div>
+
+            {/* Format Instructions */}
+            <div className="text-[11px] text-foreground-muted bg-surface/50 p-2.5 rounded-lg border border-border/60">
+              <span className="font-bold text-foreground">Header Schema: </span>
+              <code>Name, Email, CandidateID, Accommodations</code>
+              <br />
+              <span className="font-medium">Supported Accommodations (semicolon-separated): </span>
+              <code className="text-primary">screen_reader</code>, <code className="text-primary">high_contrast</code>, <code className="text-primary">large_text</code>, <code className="text-primary">keyboard_navigation</code>, <code className="text-primary">audio_assistance</code>, <code className="text-primary">extra_time_15|30|45|60</code>.
+            </div>
+
+            {/* CSV Content Input */}
+            <div>
+              <label htmlFor="csv-textarea" className="text-xs font-bold text-foreground block mb-1">
+                CSV Payload Editor:
+              </label>
+              <textarea
+                id="csv-textarea"
+                rows={6}
+                value={csvContent}
+                onChange={(e) => setCsvContent(e.target.value)}
+                placeholder="Name,Email,CandidateID,Accommodations..."
+                className="w-full p-3 font-mono text-xs border border-border rounded-lg bg-surface-elevated text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
+              />
+            </div>
+
+            {/* Import Summary Results */}
+            {importResult && (
+              <div className="p-4 rounded-xl border border-border bg-surface-elevated space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-status-success font-bold text-sm">
+                    <CheckCircle2 className="w-5 h-5" aria-hidden="true" />
+                    <span>Import Processing Completed</span>
+                  </div>
+                  <span className="text-xs font-mono text-foreground-muted">
+                    Total Rows: {importResult.total_rows}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p-2.5 rounded-lg bg-status-success/10 border border-status-success/20 text-center">
+                    <span className="block text-xs text-foreground-muted">Successfully Enrolled</span>
+                    <span className="text-lg font-bold text-status-success">{importResult.success_count}</span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-primary/10 border border-primary/20 text-center">
+                    <span className="block text-xs text-foreground-muted">Accounts Provisioned</span>
+                    <span className="text-lg font-bold text-primary">{importResult.new_users_provisioned}</span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-status-error/10 border border-status-error/20 text-center">
+                    <span className="block text-xs text-foreground-muted">Row Errors</span>
+                    <span className="text-lg font-bold text-status-error">{importResult.error_count}</span>
+                  </div>
+                </div>
+
+                {importResult.results.length > 0 && (
+                  <div className="max-h-36 overflow-y-auto rounded-lg border border-border bg-surface divide-y divide-border text-xs">
+                    {importResult.results.map((item, idx) => (
+                      <div key={idx} className="p-2 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {item.status === 'ERROR' ? (
+                            <AlertCircle className="w-4 h-4 text-status-error shrink-0" aria-hidden="true" />
+                          ) : (
+                            <UserCheck className="w-4 h-4 text-status-success shrink-0" aria-hidden="true" />
+                          )}
+                          <span className="font-semibold text-foreground">{item.name || item.email}</span>
+                          <span className="font-mono text-foreground-muted text-[11px]">({item.candidate_id})</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {item.accommodations_applied.map((a, aIdx) => (
+                            <span
+                              key={aIdx}
+                              className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono text-[10px] font-bold"
+                            >
+                              {a}
+                            </span>
+                          ))}
+                          <span
+                            className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold uppercase ${
+                              item.status === 'ERROR'
+                                ? 'bg-status-error/15 text-status-error'
+                                : 'bg-status-success/15 text-status-success'
+                            }`}
+                          >
+                            {item.status.replace('_', ' ')}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Footer Buttons */}
             <div className="flex items-center justify-between pt-3 border-t border-border">
-              <Button variant="secondary" onClick={() => setShowCsvModal(false)}>
-                Cancel
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setShowCsvModal(false);
+                  setImportResult(null);
+                }}
+              >
+                {importResult ? 'Close' : 'Cancel'}
               </Button>
-              <Button variant="primary" onClick={handleImportCsv}>
-                Import Candidates
+              <Button
+                variant="primary"
+                onClick={handleImportCsv}
+                disabled={isImporting || !csvContent.trim()}
+                className="flex items-center gap-2"
+              >
+                {isImporting ? (
+                  <>
+                    <span className="animate-spin mr-1">⏳</span>
+                    Provisioning Accounts...
+                  </>
+                ) : (
+                  <>
+                    <UploadCloud className="w-4 h-4" aria-hidden="true" />
+                    Process Bulk Import
+                  </>
+                )}
               </Button>
             </div>
           </div>

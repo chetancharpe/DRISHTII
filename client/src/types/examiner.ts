@@ -326,6 +326,13 @@ export interface QuestionAnalyticsItem {
   averageTimeSeconds: number;
   difficultyIndicator: 'appropriate' | 'too_easy' | 'too_hard' | 'confusing_distractor';
   accessibilityNote?: string;
+  // Psychometric metrics
+  itemDifficultyP?: number;
+  difficultyTier?: 'EASY' | 'OPTIMAL' | 'DIFFICULT';
+  discriminationIndexD?: number;
+  discriminationTier?: 'EXCELLENT' | 'GOOD' | 'MARGINAL' | 'POOR';
+  pointBiserialR?: number;
+  distractorDistribution?: Record<string, number>;
 }
 
 export interface ExamAnalyticsSummary {
@@ -354,6 +361,12 @@ export interface ExamAnalyticsSummary {
     highContrastModeUsageCount: number;
     textScalingUsageCount: number;
   };
+  // Test-level psychometrics and equity analysis
+  cronbachAlpha?: number;
+  reliabilityTier?: 'EXCELLENT' | 'GOOD' | 'ACCEPTABLE' | 'QUESTIONABLE';
+  equityAccommodatedAvgScore?: number | null;
+  equityStandardAvgScore?: number | null;
+  equityDifferencePct?: number | null;
 }
 
 export interface AuditLogItem {

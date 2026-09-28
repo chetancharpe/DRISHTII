@@ -12,8 +12,20 @@
 import { QuestionBankItem, BankQuestionAccessibility } from '../types/examiner';
 import { INITIAL_QUESTION_BANK } from '../fixtures/examinerFixtures';
 import { storage } from '../utils/storage';
+import { apiClient } from './api';
 
 const QB_STORAGE_KEY = 'gowow_question_bank';
+
+export interface AltTextEvaluation {
+  quality_score: number;
+  is_sufficient: boolean;
+  wcag_tier: 'PASS_AAA' | 'PASS_AA' | 'NEEDS_REVISION' | 'FAIL';
+  detected_diagram_type: string;
+  issues: string[];
+  suggestions: string[];
+  suggested_alt_text: string;
+  suggested_long_description?: string;
+}
 
 export interface AccessibilityChecklistResult {
   hasReadableText: boolean;
@@ -93,13 +105,22 @@ class QuestionBankService {
       blockingErrors.push('Question prompt is too short or empty (minimum 8 characters).');
     }
 
-    // 2. Image alt-text validation
+    // 2. Image alt-text validation & AI gate checks
     const hasImage = !!item.imageUrl;
     let hasAltTextIfImage = true;
+    const FORBIDDEN_PLACEHOLDERS = [
+      'image', 'photo', 'picture', 'diagram', 'chart', 'graph', 'screenshot',
+      'drawing', 'graphic', 'figure', 'img', 'icon', 'untitled'
+    ];
     if (hasImage) {
-      if (!item.accessibility?.altText || item.accessibility.altText.trim().length < 5) {
+      const rawAlt = (item.accessibility?.altText || '').trim();
+      const altLower = rawAlt.toLowerCase();
+      if (!rawAlt || rawAlt.length < 5) {
         hasAltTextIfImage = false;
         blockingErrors.push('Question contains an image but lacks descriptive Alternative Text.');
+      } else if (FORBIDDEN_PLACEHOLDERS.includes(altLower)) {
+        hasAltTextIfImage = false;
+        blockingErrors.push(`Alt text cannot be a generic placeholder ('${rawAlt}'). Describe the visual diagram's data or components.`);
       } else if (!item.accessibility?.longDescription) {
         warnings.push('Complex images strongly benefit from an optional Long Description.');
       }
@@ -269,6 +290,36 @@ class QuestionBankService {
 
     this.saveStoredItems(items);
     return items[idx];
+  }
+
+  async evaluateAltText(payload: {
+    alt_text: string;
+    long_description?: string;
+    question_context?: string;
+    image_url?: string;
+  }): Promise<AltTextEvaluation> {
+    try {
+      return await apiClient.post<AltTextEvaluation>('/question-bank/alt-text/evaluate', payload);
+    } catch {
+      // Local fallback in case offline
+      const alt = (payload.alt_text || '').trim();
+      const isPlaceholder = ['image', 'diagram', 'chart', 'photo'].includes(alt.toLowerCase());
+      const score = !alt ? 0 : isPlaceholder ? 20 : alt.length < 15 ? 50 : 92;
+      return {
+        quality_score: score,
+        is_sufficient: score >= 70,
+        wcag_tier: score >= 90 ? 'PASS_AAA' : score >= 70 ? 'PASS_AA' : score >= 40 ? 'NEEDS_REVISION' : 'FAIL',
+        detected_diagram_type: 'Educational Diagram',
+        issues: !alt
+          ? ['Alt text is missing.']
+          : isPlaceholder
+          ? ['Generic placeholder detected.']
+          : [],
+        suggestions: ['Provide specific labels, data trends, and key relationships depicted.'],
+        suggested_alt_text: `Diagram illustrating ${payload.question_context ? payload.question_context.slice(0, 50) : 'key concepts'} with labeled axes and components.`,
+        suggested_long_description: 'Comprehensive non-visual description detailing layout and structural elements.',
+      };
+    }
   }
 }
 

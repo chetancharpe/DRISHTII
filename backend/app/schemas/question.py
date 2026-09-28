@@ -102,3 +102,22 @@ class QuestionCandidateResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class AltTextEvaluationRequest(BaseModel):
+    alt_text: str = ""
+    long_description: Optional[str] = None
+    question_context: str = ""
+    image_url: Optional[str] = None
+
+
+class AltTextEvaluationResponse(BaseModel):
+    quality_score: int
+    is_sufficient: bool
+    wcag_tier: str
+    detected_diagram_type: str
+    issues: List[str] = Field(default_factory=list)
+    suggestions: List[str] = Field(default_factory=list)
+    suggested_alt_text: str
+    suggested_long_description: Optional[str] = None
+

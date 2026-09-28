@@ -4,10 +4,13 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db, require_examiner_access
 from app.models.user import User
 from app.schemas.question import (
+    AltTextEvaluationRequest,
+    AltTextEvaluationResponse,
     QuestionCreate,
     QuestionExaminerResponse,
     QuestionVersionCreate,
 )
+from app.utils.validators import evaluate_alt_text_quality
 from app.services.question_service import (
     create_question,
     create_question_version,
@@ -65,3 +68,23 @@ def add_question_version(
 ):
     """Create a new version revision for an existing question with re-validated accessibility."""
     return create_question_version(db, question_id, data, current_user.id)
+
+
+@router.post("/alt-text/evaluate", response_model=AltTextEvaluationResponse)
+def evaluate_question_alt_text(
+    data: AltTextEvaluationRequest,
+    current_user: User = Depends(require_examiner_access),
+):
+    """
+    AI Alt-Text Verification Gate.
+    Analyzes alt-text quality, flags forbidden placeholders, identifies diagram domains,
+    and returns automated WCAG 2.2 AA compliant suggestions.
+    """
+    res = evaluate_alt_text_quality(
+        alt_text=data.alt_text,
+        long_description=data.long_description or "",
+        question_context=data.question_context or "",
+        image_url=data.image_url or "",
+    )
+    return AltTextEvaluationResponse(**res)
+

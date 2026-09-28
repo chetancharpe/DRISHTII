@@ -5,6 +5,7 @@ import { Button } from '../../../components/common/Button';
 import { questionBankService } from '../../../services/questionBankService';
 import { QuestionAccessibilityChecklist } from '../../../components/examiner/QuestionAccessibilityChecklist';
 import { CandidatePreviewModal } from '../../../components/examiner/CandidatePreviewModal';
+import { AiAltTextGate } from '../../../components/examiner/AiAltTextGate';
 import { BankQuestionType, BankQuestionDifficulty, BankQuestionOption, QuestionBankItem } from '../../../types/examiner';
 import {
   Plus,
@@ -494,6 +495,19 @@ export const CreateQuestionPage: React.FC = () => {
                         className="w-full px-3 py-1.5 rounded-lg border border-border bg-surface text-foreground text-sm"
                       />
                     </div>
+
+                    {/* AI Alt-Text Verification & Assistance Gate */}
+                    <AiAltTextGate
+                      altText={altText}
+                      longDescription={longDescription}
+                      questionContext={text}
+                      imageUrl={imageUrl}
+                      onApplySuggestion={(suggestedAlt, suggestedLong) => {
+                        setAltText(suggestedAlt);
+                        if (suggestedLong) setLongDescription(suggestedLong);
+                      }}
+                      className="mt-3"
+                    />
                   </div>
                 )}
               </div>

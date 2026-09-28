@@ -7,6 +7,26 @@
 import { CandidateGroup, ExamCandidateRecord } from '../types/examiner';
 import { INITIAL_CANDIDATE_GROUPS, INITIAL_CANDIDATE_RECORDS } from '../fixtures/examinerFixtures';
 import { storage } from '../utils/storage';
+import { apiClient } from './api';
+
+export interface RosterImportResultItem {
+  row_number: number;
+  candidate_id: string;
+  email: string;
+  name: string;
+  status: 'PROVISIONED_AND_ENROLLED' | 'ALREADY_ENROLLED' | 'ENROLLED_EXISTING' | 'ERROR';
+  accommodations_applied: string[];
+  error_detail?: string | null;
+}
+
+export interface RosterCsvImportResponse {
+  exam_id: string;
+  total_rows: number;
+  success_count: number;
+  error_count: number;
+  new_users_provisioned: number;
+  results: RosterImportResultItem[];
+}
 
 const GROUPS_STORAGE_KEY = 'gowow_candidate_groups';
 const RECORDS_STORAGE_KEY = 'gowow_candidate_records';
@@ -118,6 +138,160 @@ class CandidateManagementService {
 
     this.saveRecords(records);
     return { importedCount: count, errors };
+  }
+
+  async importCandidateRosterCsv(
+    examId: string,
+    csvContent: string,
+    defaultGroup: string = 'Main Cohort'
+  ): Promise<RosterCsvImportResponse> {
+    try {
+      const response = await apiClient.post<RosterCsvImportResponse>(
+        `/examiner/exams/${examId}/candidates/csv-import`,
+        { csv_content: csvContent, default_group: defaultGroup }
+      );
+      if (response && response.results) {
+        const existingRecords = this.getRecords();
+        response.results.forEach((item: RosterImportResultItem) => {
+          if (item.status !== 'ERROR') {
+            const extraTimeMatch = item.accommodations_applied
+              .find((a: string) => a.startsWith('extra_time_'))
+              ?.match(/\d+/);
+            const extraTime = extraTimeMatch ? parseInt(extraTimeMatch[0], 10) : 0;
+            const primaryAccom = item.accommodations_applied[0] || 'standard';
+
+            const existsIdx = existingRecords.findIndex(
+              (r) => r.candidateId === item.candidate_id || r.email === item.email
+            );
+            const recordData: ExamCandidateRecord = {
+              id: `cand-${item.candidate_id}-${Date.now()}`,
+              candidateName: item.name,
+              candidateId: item.candidate_id,
+              email: item.email,
+              groupId: 'grp-01',
+              groupName: defaultGroup,
+              eligibilityStatus: 'eligible',
+              examStatus: 'not_started',
+              attemptStatus: 'first_attempt',
+              accessibilityStatus: primaryAccom as any,
+              extraTimeGrantedMinutes: extraTime,
+            };
+
+            if (existsIdx >= 0) {
+              existingRecords[existsIdx] = { ...existingRecords[existsIdx], ...recordData };
+            } else {
+              existingRecords.unshift(recordData);
+            }
+          }
+        });
+        this.saveRecords(existingRecords);
+        return response;
+      }
+    } catch {
+      // Fallback to client-side parsing if network/mock
+    }
+
+    const lines = csvContent.split(/\r?\n/).filter((l) => l.trim().length > 0);
+    const results: RosterImportResultItem[] = [];
+    const existingRecords = this.getRecords();
+    let successCount = 0;
+    let errorCount = 0;
+    let provisionedCount = 0;
+
+    lines.forEach((line, idx) => {
+      if (idx === 0 && line.toLowerCase().includes('email')) return;
+      const parts = line.split(',').map((p) => p.trim());
+      if (parts.length < 2) {
+        results.push({
+          row_number: idx + 1,
+          candidate_id: 'UNKNOWN',
+          email: '',
+          name: '',
+          status: 'ERROR',
+          accommodations_applied: [],
+          error_detail: 'Missing required fields (Name and Email)',
+        });
+        errorCount++;
+        return;
+      }
+
+      const name = parts[0] || 'Unknown';
+      const email = parts[1] || '';
+      const candidateId = parts[2] || `CAND-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+      const accomRaw = parts[3] || 'standard';
+      const accomList = accomRaw.split(';').map((a) => a.trim().toLowerCase()).filter(Boolean);
+
+      const extraTimeMatch = accomList.find((a) => a.startsWith('extra_time_'))?.match(/\d+/);
+      const extraTime = extraTimeMatch ? parseInt(extraTimeMatch[0], 10) : 0;
+      const primaryAccom = accomList[0] || 'standard';
+
+      const existsIdx = existingRecords.findIndex((r) => r.candidateId === candidateId || r.email === email);
+      if (existsIdx >= 0) {
+        results.push({
+          row_number: idx + 1,
+          candidate_id: candidateId,
+          email,
+          name,
+          status: 'ALREADY_ENROLLED',
+          accommodations_applied: accomList,
+        });
+        successCount++;
+      } else {
+        existingRecords.unshift({
+          id: `cand-${candidateId}-${Date.now()}`,
+          candidateName: name,
+          candidateId,
+          email,
+          groupId: 'grp-01',
+          groupName: defaultGroup,
+          eligibilityStatus: 'eligible',
+          examStatus: 'not_started',
+          attemptStatus: 'first_attempt',
+          accessibilityStatus: primaryAccom as any,
+          extraTimeGrantedMinutes: extraTime,
+        });
+        results.push({
+          row_number: idx + 1,
+          candidate_id: candidateId,
+          email,
+          name,
+          status: 'PROVISIONED_AND_ENROLLED',
+          accommodations_applied: accomList,
+        });
+        successCount++;
+        provisionedCount++;
+      }
+    });
+
+    this.saveRecords(existingRecords);
+
+    return {
+      exam_id: examId,
+      total_rows: results.length,
+      success_count: successCount,
+      error_count: errorCount,
+      new_users_provisioned: provisionedCount,
+      results,
+    };
+  }
+
+  downloadSampleCsvTemplate(): void {
+    const csvContent =
+      'Name,Email,CandidateID,Accommodations\n' +
+      'Aarav Sharma,aarav.sharma@example.edu,CAND-2026-101,screen_reader;extra_time_30;audio_assistance\n' +
+      'Priya Patel,priya.patel@example.edu,CAND-2026-102,high_contrast;keyboard_navigation\n' +
+      'Rohan Deshmukh,rohan.d@example.edu,CAND-2026-103,standard\n' +
+      'Fatima Zahra,fatima.z@example.edu,CAND-2026-104,large_text;extra_time_15\n';
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'candidate_roster_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 }
 

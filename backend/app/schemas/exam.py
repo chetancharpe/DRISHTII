@@ -107,3 +107,31 @@ class ExamExaminerResponse(ExamBase):
 
     class Config:
         from_attributes = True
+
+
+class RosterCsvImportRequest(BaseModel):
+    csv_content: str
+    default_group: Optional[str] = "Main Cohort"
+
+
+class RosterImportResultItem(BaseModel):
+    name: str
+    email: str
+    candidate_id: str
+    status: str  # ENROLLED, NEW_USER_ENROLLED, ALREADY_ENROLLED, ERROR
+    accommodations_applied: List[str] = Field(default_factory=list)
+    error_message: Optional[str] = None
+
+
+class RosterCsvImportResponse(BaseModel):
+    exam_id: str
+    total_rows: int = 0
+    total_rows_processed: int = 0
+    success_count: int = 0
+    successfully_enrolled: int = 0
+    new_users_provisioned: int = 0
+    new_users_created: int = 0
+    error_count: int = 0
+    skipped_or_errored: int = 0
+    results: List[RosterImportResultItem] = Field(default_factory=list)
+

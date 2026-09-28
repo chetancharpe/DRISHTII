@@ -10,6 +10,8 @@ from app.schemas.exam import (
     ExamExaminerResponse,
     ExamScheduleRequest,
     ExamUpdate,
+    RosterCsvImportRequest,
+    RosterCsvImportResponse,
     SectionCreate,
     SectionResponse,
 )
@@ -20,6 +22,7 @@ from app.services.exam_service import (
     create_exam,
     get_candidate_exam_details,
     get_examiner_exam,
+    import_candidate_roster_csv,
     list_candidate_exams,
     list_examiner_exams,
     publish_exam,
@@ -145,6 +148,27 @@ def assign_candidates(
     """Assign candidate users to an examination."""
     assigned_count = assign_candidates_to_exam(db, exam_id, data.candidate_ids, current_user.id)
     return {"message": f"Successfully assigned {assigned_count} candidates.", "assigned_count": assigned_count}
+
+
+@router.post("/examiner/exams/{exam_id}/candidates/csv-import", response_model=RosterCsvImportResponse)
+def import_exam_candidates_csv(
+    exam_id: str,
+    data: RosterCsvImportRequest,
+    current_user: User = Depends(require_examiner_access),
+    db: Session = Depends(get_db),
+):
+    """
+    Bulk import candidate roster from CSV data.
+    Auto-provisions candidate accounts, assigns individual accessibility profiles,
+    and enrolls them into the examination roster.
+    """
+    return import_candidate_roster_csv(
+        db=db,
+        exam_id=exam_id,
+        csv_content=data.csv_content,
+        user_id=current_user.id,
+        default_group=data.default_group or "Main Cohort",
+    )
 
 
 @router.post("/examiner/exams/{exam_id}/publish", response_model=ExamExaminerResponse)

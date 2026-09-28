@@ -1,5 +1,8 @@
+import csv
 from datetime import datetime
+import io
 from typing import List, Optional
+import uuid
 from sqlalchemy.orm import Session
 from app.core.exceptions import (
     AccessibilityGateException,
@@ -7,10 +10,13 @@ from app.core.exceptions import (
     ForbiddenException,
     ValidationConflictException,
 )
+from app.core.security import get_password_hash
+from app.models.accessibility_profile import AccessibilityProfile
 from app.models.exam import Exam, ExamStatus
 from app.models.exam_candidate import AttemptStatus, EligibilityStatus, ExamCandidate
 from app.models.question import Question
 from app.models.question_version import QuestionVersion
+from app.models.role import Role, UserRole
 from app.models.section import ExamSection, SectionQuestion
 from app.models.user import User
 from app.schemas.exam import (
@@ -19,6 +25,8 @@ from app.schemas.exam import (
     ExamExaminerResponse,
     ExamScheduleRequest,
     ExamUpdate,
+    RosterCsvImportResponse,
+    RosterImportResultItem,
     SectionCandidateDetailResponse,
     SectionCreate,
     SectionExaminerDetailResponse,
@@ -462,4 +470,185 @@ def list_examiner_exams(
     for ex in exams:
         results.append(get_examiner_exam(db, ex.id))
     return results
+
+
+def import_candidate_roster_csv(
+    db: Session,
+    exam_id: str,
+    csv_content: str,
+    user_id: str,
+    default_group: str = "Main Cohort",
+) -> RosterCsvImportResponse:
+    """
+    Candidate Roster CSV Bulk Import.
+    Enrolls candidates into the exam.
+    Auto-provisions accounts for new candidates and applies accessibility accommodations.
+    """
+    exam = db.query(Exam).filter(Exam.id == exam_id).first()
+    if not exam:
+        raise EntityNotFoundException("Exam", exam_id)
+
+    # Find Candidate Role
+    candidate_role = db.query(Role).filter(Role.name == "CANDIDATE").first()
+    if not candidate_role:
+        candidate_role = Role(name="CANDIDATE", description="Candidate role")
+        db.add(candidate_role)
+        db.flush()
+
+    reader = csv.reader(io.StringIO(csv_content.strip()))
+    results: List[RosterImportResultItem] = []
+    total_rows = 0
+    enrolled_count = 0
+    new_users_count = 0
+    skipped_count = 0
+
+    header_skipped = False
+    for row in reader:
+        if not row or not any(field.strip() for field in row):
+            continue
+
+        first_val = row[0].strip().lower()
+        if not header_skipped and ("name" in first_val or "email" in first_val or "roll" in first_val):
+            header_skipped = True
+            continue
+
+        total_rows += 1
+        name = row[0].strip() if len(row) > 0 else ""
+        email = row[1].strip() if len(row) > 1 else ""
+        cid_or_roll = row[2].strip() if len(row) > 2 else ""
+        accommodations_raw = row[3].strip() if len(row) > 3 else ""
+
+        if not email or "@" not in email:
+            results.append(
+                RosterImportResultItem(
+                    name=name or "Unknown",
+                    email=email or "N/A",
+                    candidate_id=cid_or_roll or "N/A",
+                    status="ERROR",
+                    error_message="Invalid email address format.",
+                )
+            )
+            skipped_count += 1
+            continue
+
+        # Split Name into first & last
+        name_parts = name.split(None, 1)
+        first_name = name_parts[0] if name_parts else "Candidate"
+        last_name = name_parts[1] if len(name_parts) > 1 else "Student"
+
+        # Check existing user
+        user = db.query(User).filter(User.email.ilike(email)).first()
+        is_new = False
+        if not user:
+            user_id_gen = (
+                cid_or_roll
+                if (cid_or_roll and len(cid_or_roll) <= 36 and not db.query(User).filter(User.id == cid_or_roll).first())
+                else str(uuid.uuid4())
+            )
+            user = User(
+                id=user_id_gen,
+                email=email.lower(),
+                first_name=first_name,
+                last_name=last_name,
+                password_hash=get_password_hash("Privis@2026"),
+                is_active=True,
+            )
+            db.add(user)
+            db.flush()
+            user_role = UserRole(user_id=user.id, role_id=candidate_role.id)
+            db.add(user_role)
+            new_users_count += 1
+            is_new = True
+
+        # Process Accommodations
+        applied_accommodations: List[str] = []
+        if accommodations_raw:
+            acc_clean = accommodations_raw.lower().replace("_", " ")
+            prof = db.query(AccessibilityProfile).filter(AccessibilityProfile.user_id == user.id).first()
+            if not prof:
+                prof = AccessibilityProfile(user_id=user.id)
+                db.add(prof)
+
+            if "extra time" in acc_clean or "50%" in acc_clean or "time" in acc_clean:
+                applied_accommodations.append("Extra Time Accommodation")
+            if "screen reader" in acc_clean or "blind" in acc_clean:
+                prof.screen_reader_mode = True
+                prof.audio_assistance = True
+                applied_accommodations.append("Screen Reader & Audio Assistance")
+            if "high contrast" in acc_clean or "contrast" in acc_clean:
+                prof.contrast_mode = "high_contrast"
+                applied_accommodations.append("High Contrast Theme")
+            if "large text" in acc_clean or "magnif" in acc_clean:
+                prof.text_scale = "large"
+                applied_accommodations.append("Large Text Scaling")
+            if "keyboard" in acc_clean:
+                prof.keyboard_navigation = True
+                applied_accommodations.append("Keyboard Navigation")
+            if "audio" in acc_clean:
+                prof.audio_assistance = True
+                if "Screen Reader & Audio Assistance" not in applied_accommodations:
+                    applied_accommodations.append("Audio Assistance")
+
+        # Check Enrollment
+        existing_enrollment = (
+            db.query(ExamCandidate)
+            .filter(ExamCandidate.exam_id == exam_id, ExamCandidate.candidate_id == user.id)
+            .first()
+        )
+        if existing_enrollment:
+            results.append(
+                RosterImportResultItem(
+                    name=f"{user.first_name} {user.last_name}",
+                    email=user.email,
+                    candidate_id=user.id,
+                    status="ALREADY_ENROLLED",
+                    accommodations_applied=applied_accommodations,
+                )
+            )
+        else:
+            enrollment = ExamCandidate(
+                exam_id=exam_id,
+                candidate_id=user.id,
+                eligibility_status=EligibilityStatus.ELIGIBLE.value,
+                attempt_status=AttemptStatus.NOT_ATTEMPTED.value,
+            )
+            db.add(enrollment)
+            enrolled_count += 1
+            results.append(
+                RosterImportResultItem(
+                    name=f"{user.first_name} {user.last_name}",
+                    email=user.email,
+                    candidate_id=user.id,
+                    status="NEW_USER_ENROLLED" if is_new else "ENROLLED",
+                    accommodations_applied=applied_accommodations,
+                )
+            )
+
+    db.commit()
+    log_audit_event(
+        db,
+        action="EXAM_ROSTER_CSV_IMPORT",
+        resource_type="Exam",
+        resource_id=exam_id,
+        actor_id=user_id,
+        metadata={
+            "total_rows": total_rows,
+            "enrolled_count": enrolled_count,
+            "new_users_count": new_users_count,
+        },
+    )
+
+    return RosterCsvImportResponse(
+        exam_id=exam_id,
+        total_rows=total_rows,
+        total_rows_processed=total_rows,
+        success_count=enrolled_count,
+        successfully_enrolled=enrolled_count,
+        new_users_provisioned=new_users_count,
+        new_users_created=new_users_count,
+        error_count=skipped_count,
+        skipped_or_errored=skipped_count,
+        results=results,
+    )
+
 
