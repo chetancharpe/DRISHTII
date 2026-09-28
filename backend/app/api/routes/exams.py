@@ -18,6 +18,7 @@ from app.services.exam_service import (
     add_section_to_exam,
     assign_candidates_to_exam,
     create_exam,
+    get_candidate_exam_details,
     get_examiner_exam,
     list_candidate_exams,
     list_examiner_exams,
@@ -42,6 +43,16 @@ def get_candidate_exams(
     """List accessible examinations for candidate with eligibility status."""
     exams, _, _ = list_candidate_exams(db, current_user.id, page, limit)
     return exams
+
+
+@router.get("/exams/{exam_id}", response_model=ExamCandidateResponse)
+def get_single_candidate_exam(
+    exam_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Retrieve details and candidate eligibility for a single examination."""
+    return get_candidate_exam_details(db, exam_id, current_user.id)
 
 
 @router.post("/exams/{exam_id}/sessions", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)

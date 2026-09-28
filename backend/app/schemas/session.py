@@ -29,8 +29,15 @@ class CandidateAnswerResponse(BaseModel):
     is_saved: bool = True
 
 
+class SyncAnswerItem(BaseModel):
+    question_id: str
+    selected_answer: Any
+    version: int = 1
+    client_timestamp: Optional[datetime] = None
+
+
 class SyncAnswersRequest(BaseModel):
-    answers: List[CandidateAnswerUpdate] = Field(default_factory=list)
+    answers: List[SyncAnswerItem] = Field(default_factory=list)
 
 
 class SyncStatusResponse(BaseModel):

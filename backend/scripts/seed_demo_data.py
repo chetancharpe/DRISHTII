@@ -28,6 +28,7 @@ from app.models.exam_session import ExamSession, SessionStatus
 from app.models.exam_answer import ExamAnswer
 from app.models.result import Result, ResultStatus
 from app.models.accessibility_profile import AccessibilityProfile
+from app.models.section import ExamSection, SectionQuestion
 
 
 def seed_demo_data(force: bool = False):
@@ -200,7 +201,222 @@ def seed_demo_data(force: bool = False):
             else:
                 question_entities.append(existing_q)
 
-        # 5. Seed Demo Exam
+        # 5. Seed Questions with Accessibility Metadata
+        more_questions = [
+            {
+                "text": "Select the word that is most nearly OPPOSITE in meaning to 'CANDID':",
+                "options": [
+                    {"id": "opt-1-a", "text": "Outspoken and straightforward"},
+                    {"id": "opt-1-b", "text": "Evasive and guarded"},
+                    {"id": "opt-1-c", "text": "Impartial and objective"},
+                    {"id": "opt-1-d", "text": "Genuine and sincere"},
+                ],
+                "correct": ["opt-1-b"],
+                "subject": "English",
+                "topic": "Vocabulary & Antonyms",
+                "meta": {"has_alt_text": True, "has_accessible_formula": False, "language": "en"},
+            },
+            {
+                "text": "Identify the grammatically complete and accurate sentence from the options below:",
+                "options": [
+                    {"id": "opt-2-a", "text": "Neither the candidate nor the invigilators was aware of the delay."},
+                    {"id": "opt-2-b", "text": "Neither the candidate nor the invigilators were aware of the delay."},
+                    {"id": "opt-2-c", "text": "Neither the candidate or the invigilators were aware of the delay."},
+                    {"id": "opt-2-d", "text": "Neither the candidate nor the invigilators had been unaware about the delay."},
+                ],
+                "correct": ["opt-2-b"],
+                "subject": "English",
+                "topic": "Grammar & Subject-Verb Agreement",
+                "meta": {"has_alt_text": True, "has_accessible_formula": False, "language": "en"},
+            },
+            {
+                "text": "If the price of an essential commodity increases by 25%, by what percentage must consumption decrease to keep expenditure constant?",
+                "options": [
+                    {"id": "opt-3-a", "text": "15%"},
+                    {"id": "opt-3-b", "text": "20%"},
+                    {"id": "opt-3-c", "text": "25%"},
+                    {"id": "opt-3-d", "text": "33.33%"},
+                ],
+                "correct": ["opt-3-b"],
+                "subject": "Mathematics",
+                "topic": "Percentages",
+                "meta": {
+                    "has_alt_text": True,
+                    "has_accessible_formula": True,
+                    "formula_speech": "Reduction percentage equals r divided by open parenthesis 100 plus r close parenthesis multiplied by 100",
+                    "language": "en",
+                },
+            },
+            {
+                "text": "Two pipes A and B can independently fill a water reservoir in 20 minutes and 30 minutes respectively. In how many minutes will both fill it together?",
+                "options": [
+                    {"id": "opt-4-a", "text": "10 minutes"},
+                    {"id": "opt-4-b", "text": "12 minutes"},
+                    {"id": "opt-4-c", "text": "15 minutes"},
+                    {"id": "opt-4-d", "text": "25 minutes"},
+                ],
+                "correct": ["opt-4-b"],
+                "subject": "Mathematics",
+                "topic": "Time and Work",
+                "meta": {"has_alt_text": True, "has_accessible_formula": False, "language": "en"},
+            },
+            {
+                "text": "Which Article of the Constitution of India guarantees the Right to Constitutional Remedies (empowering citizens to approach the Supreme Court)?",
+                "options": [
+                    {"id": "opt-5-a", "text": "Article 19"},
+                    {"id": "opt-5-b", "text": "Article 21"},
+                    {"id": "opt-5-c", "text": "Article 32"},
+                    {"id": "opt-5-d", "text": "Article 44"},
+                ],
+                "correct": ["opt-5-c"],
+                "subject": "General Knowledge",
+                "topic": "Indian Polity & Constitution",
+                "meta": {"has_alt_text": True, "has_accessible_formula": False, "language": "en"},
+            },
+            {
+                "text": "Which statutory body in India is constitutionally mandated to superintend, direct, and control elections to Parliament and State Legislatures?",
+                "options": [
+                    {"id": "opt-6-a", "text": "Union Public Service Commission"},
+                    {"id": "opt-6-b", "text": "Election Commission of India"},
+                    {"id": "opt-6-c", "text": "National Human Rights Commission"},
+                    {"id": "opt-6-d", "text": "Law Commission of India"},
+                ],
+                "correct": ["opt-6-b"],
+                "subject": "General Knowledge",
+                "topic": "Constitutional Bodies",
+                "meta": {"has_alt_text": True, "has_accessible_formula": False, "language": "en"},
+            },
+        ]
+
+        all_seeded_questions = []
+        for q_data in demo_questions + more_questions:
+            existing_q = db.query(Question).filter(Question.subject == q_data["subject"], Question.topic == q_data["topic"]).first()
+            if not existing_q:
+                q = Question(
+                    question_type=QuestionType.MULTIPLE_CHOICE.value,
+                    subject=q_data["subject"],
+                    topic=q_data["topic"],
+                    difficulty=QuestionDifficulty.MEDIUM.value,
+                    language="en",
+                    created_by=examiner_user.id,
+                )
+                db.add(q)
+                db.flush()
+
+                qv = QuestionVersion(
+                    question_id=q.id,
+                    version_number=1,
+                    question_text=q_data["text"],
+                    options=q_data["options"],
+                    correct_answer=q_data["correct"],
+                    explanation="Authoritative accessible explanation for candidate review.",
+                    marks=2.0,
+                    negative_marks=0.66,
+                    accessibility_metadata=q_data["meta"],
+                    created_by=examiner_user.id,
+                )
+                db.add(qv)
+                db.flush()
+                all_seeded_questions.append((q, qv))
+            else:
+                latest_qv = db.query(QuestionVersion).filter(QuestionVersion.question_id == existing_q.id).order_by(QuestionVersion.version_number.desc()).first()
+                all_seeded_questions.append((existing_q, latest_qv))
+
+        # 6. Seed Active Live Examination with Sections
+        live_exam = db.query(Exam).filter(Exam.title.like("%Accessible Aptitude Examination%")).first()
+        if not live_exam:
+            live_exam = Exam(
+                id="demo-exam-01",
+                organization_id=demo_org.id,
+                title="GoWow Accessible Aptitude Examination — 2026",
+                description="Standardized institutional demonstration examination evaluating verbal reasoning, numerical competence, and civic knowledge under strict candidate-first accessibility standards.",
+                instructions="Total duration is 45 minutes across 3 sections. Marking scheme: +2.0 marks for correct answers, -0.66 marks penalty for incorrect answers. Unanswered questions receive 0 marks. Use keyboard shortcuts (N for next, P for prev, 1-4 for options, M for review, S for submit).",
+                status=ExamStatus.LIVE.value,
+                duration_seconds=2700,  # 45 mins
+                extra_time_seconds=900,  # 15 mins extra
+                start_at=now - timedelta(hours=2),
+                end_at=now + timedelta(days=14),
+                language="en",
+                created_by=examiner_user.id,
+                published_at=now - timedelta(hours=2),
+            )
+            db.add(live_exam)
+            db.flush()
+
+            # Assign candidate as ELIGIBLE and NOT_ATTEMPTED
+            cand_live_assign = ExamCandidate(
+                exam_id=live_exam.id,
+                candidate_id=candidate_user.id,
+                eligibility_status=EligibilityStatus.ELIGIBLE.value,
+                attempt_status=AttemptStatus.NOT_ATTEMPTED.value,
+            )
+            db.add(cand_live_assign)
+            db.flush()
+
+            # Create 3 sections
+            sec_vrc = ExamSection(
+                id="sec-vrc",
+                exam_id=live_exam.id,
+                title="Verbal Reasoning & Comprehension",
+                description="Critical analysis of textual passages, vocabulary discernment, and logical deduction.",
+                display_order=1,
+                duration_seconds=900,
+                navigation_policy="FREE",
+                question_count=2,
+            )
+            sec_qps = ExamSection(
+                id="sec-qps",
+                exam_id=live_exam.id,
+                title="Quantitative Problem Solving",
+                description="Mathematical problem solving, percentage distributions, ratios, and algebraic logic.",
+                display_order=2,
+                duration_seconds=900,
+                navigation_policy="FREE",
+                question_count=2,
+            )
+            sec_gia = ExamSection(
+                id="sec-gia",
+                exam_id=live_exam.id,
+                title="General & Institutional Awareness",
+                description="Constitutional law, democratic institutions, science and technology, and public policy.",
+                display_order=3,
+                duration_seconds=900,
+                navigation_policy="FREE",
+                question_count=2,
+            )
+            db.add_all([sec_vrc, sec_qps, sec_gia])
+            db.flush()
+
+            # Map questions to sections
+            for idx, (q, qv) in enumerate(all_seeded_questions[:2]):
+                sq = SectionQuestion(
+                    section_id=sec_vrc.id,
+                    question_id=q.id,
+                    question_version_id=qv.id,
+                    display_order=idx + 1,
+                )
+                db.add(sq)
+
+            for idx, (q, qv) in enumerate(all_seeded_questions[2:4]):
+                sq = SectionQuestion(
+                    section_id=sec_qps.id,
+                    question_id=q.id,
+                    question_version_id=qv.id,
+                    display_order=idx + 1,
+                )
+                db.add(sq)
+
+            for idx, (q, qv) in enumerate(all_seeded_questions[4:6]):
+                sq = SectionQuestion(
+                    section_id=sec_gia.id,
+                    question_id=q.id,
+                    question_version_id=qv.id,
+                    display_order=idx + 1,
+                )
+                db.add(sq)
+            db.flush()
+
+        # 7. Seed Past Completed Exam
         demo_exam = db.query(Exam).filter(Exam.title.like("%General Aptitude & Science%")).first()
         if not demo_exam:
             demo_exam = Exam(
@@ -210,7 +426,7 @@ def seed_demo_data(force: bool = False):
                 instructions="Use Alt+N for next question, Alt+P for previous, Alt+M to mark for review, and Alt+S to submit.",
                 status=ExamStatus.LIVE.value,
                 duration_seconds=3600,
-                extra_time_seconds=1800, # Compensatory time
+                extra_time_seconds=1800,
                 start_at=now - timedelta(hours=1),
                 end_at=now + timedelta(days=7),
                 language="en",
@@ -243,7 +459,7 @@ def seed_demo_data(force: bool = False):
             db.flush()
 
             # Create Answers
-            for q in question_entities:
+            for q, _ in all_seeded_questions[:3]:
                 ans = ExamAnswer(
                     session_id=session.id,
                     question_id=q.id,
@@ -267,6 +483,7 @@ def seed_demo_data(force: bool = False):
                 published_at=now,
             )
             db.add(result)
+            db.flush()
 
         # 6. Seed Topic Progress for Candidate
         from app.models.learning_profile import TopicProgress, LearningActivity

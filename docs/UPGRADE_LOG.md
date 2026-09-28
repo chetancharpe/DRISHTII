@@ -186,7 +186,55 @@ This log tracks the progress of the multi-phase upgrade plan for GoWow (accessib
   - Rewrote `candidateService.ts`, `learningService.ts`, `practiceService.ts`, `mockTestService.ts`, and `adminService.ts` to call backend endpoints.
 
 ### 3. What Remains
-- **Phase 3:** Authoritative examination engine (backend + client exam flow, offline recovery queue, server offset sync, accessible shortcuts).
+- **Phase 3:** Authoritative examination engine (backend + client exam flow, offline recovery queue, server offset sync, accessible shortcuts) — **COMPLETED**
+- **Phase 4:** Blind-first learning features (Audio player, KaTeX math formulas, data tables, voice commands).
+- **Phase 5:** Examiner & Admin improvements (AI alt-text gate, candidate roster CSV import, psychometric analytics).
+- **Phase 6:** Internationalization (i18n layer, en/hi key parity script, dynamic html lang, voice selection).
+- **Phase 7:** UI/UX redesign according to accessible design system tokens (light/dark/high-contrast, 44x44 touch targets, WCAG 2.2 AA).
+- **Phase 8:** Testing, CI, and honest documentation (Playwright E2E, axe-core scans, revised README and manuals).
+
+---
+
+## Phase 3: Authoritative Examination Engine (Backend + Client Exam Flow)
+
+- **Date:** 2026-09-28
+- **Git Branch:** `upgrade/master-plan`
+
+### 1. Verification Results
+- **TypeScript & Linting:** `cd client && npm run lint` (`tsc --noEmit`)
+  - Status: **PASSED (0 errors)**
+- **Client Build:** `cd client && npm run build` (`tsc -b && vite build`)
+  - Status: **PASSED (built in 17.33s)**
+  - Chunks generated: `dist/index.html` (1.65 kB), `dist/assets/index-*.css` (54.81 kB), `dist/assets/index-*.js` (1,078.60 kB)
+- **Backend Test Suite:** `python -m pytest tests/ -v`
+  - Status: **41 PASSED (0 failed) in 12.82s**
+  - Includes 7 new integration tests in `tests/integration/test_candidate_exam_engine.py` testing candidate exam discovery, timer calculations, question sanitization, optimistic concurrency versioning, batch offline sync, idempotent submission, and server timer expiration.
+
+### 2. Changes Made
+- **Candidate Examination Endpoints & Data Model:**
+  - Added candidate exam lookup `GET /api/v1/exams/{exam_id}` returning `ExamCandidateResponse` enriched with organization name, exam code, and eligibility status.
+  - Implemented `POST /api/v1/exams/{exam_id}/sessions` providing server-authoritative timer bounds (`server_started_at`, `server_expires_at`, and `remaining_seconds`).
+  - Added `GET /api/v1/exam-sessions/{session_id}` returning session state, current server time, and candidate-sanitized question structures.
+  - Fixed `SyncAnswersRequest` schema with `SyncAnswerItem(question_id, selected_answer, version, client_timestamp)` to support seamless batch synchronization.
+  - Implemented `PATCH /api/v1/exam-sessions/{session_id}/answers/{question_id}` with optimistic concurrency versioning, rejecting out-of-order stale network packets.
+  - Implemented `POST /api/v1/exam-sessions/{session_id}/sync` for batch syncing queued offline answers and returning updated authoritative server clock timestamps.
+  - Implemented `POST /api/v1/exam-sessions/{session_id}/submit` with idempotency token guarantees, atomic scoring, and anti-tamper receipt references (`GW-...`).
+- **Strict Question Sanitization & Security Boundary:**
+  - Guaranteed candidate-facing schemas (`QuestionCandidateResponse`, `SectionCandidateDetailResponse`) strictly omit `correct_answer`, `explanation`, and examiner grading notes.
+  - Seeded 6 comprehensive accessible examination questions with LaTeX formulas, phonetic formula speech transcripts, and structured sections in `seed_demo_data.py`.
+- **Client Exam Service Integration:**
+  - Rewrote `client/src/services/examService.ts` to call real FastAPI backend endpoints.
+  - Server clock is strictly authoritative: local clock drift cannot alter examination duration or grant extra time.
+  - Implemented persistent offline answer queue in `localStorage` (`gowow_exam_session_{examId}`) with automatic batch synchronization on network reconnect.
+- **Accessible Candidate Cockpit & Controls (`LiveExamSessionPage.tsx`):**
+  - Implemented single-key keyboard shortcuts (`N` for Next, `P` for Previous, `1-4` for Options A-D, `M` for Mark for Review, `C` for Clear Answer, `S` for Submit Dialog, `?` for Shortcuts Reference, `R` for Re-read Question Stem, `O` for Read Options). Shortcuts safely deactivate when typing inside form inputs or when modal dialogs are active.
+  - Created `ExamShortcutsModal.tsx`: an accessible dialog with ARIA dialog semantics, focus trap, and keyboard navigation reference.
+  - Implemented polite ARIA live region announcements on question navigation (`Question X of Y: [Section Title]`).
+  - Implemented section navigation policy enforcement (`sectionLocked` blocks switching until all questions in the section are attempted; `forwardOnly` disables backward navigation).
+  - Added non-flashing, high-contrast low-time warning banner at 15m, 5m, and 1m milestones with polite screen reader announcements.
+  - Integrated audio question reader for stems and options via Web Speech API synthesis.
+
+### 3. What Remains
 - **Phase 4:** Blind-first learning features (Audio player, KaTeX math formulas, data tables, voice commands).
 - **Phase 5:** Examiner & Admin improvements (AI alt-text gate, candidate roster CSV import, psychometric analytics).
 - **Phase 6:** Internationalization (i18n layer, en/hi key parity script, dynamic html lang, voice selection).

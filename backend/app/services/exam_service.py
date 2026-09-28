@@ -384,6 +384,9 @@ def list_candidate_exams(
             for s in db.query(ExamSection).filter(ExamSection.exam_id == exam.id).all()
         )
 
+        org_name = exam.organization.name if exam.organization else "GoWow Examination Authority"
+        exam_code = f"GW-{exam.id[:8].upper()}"
+
         results.append(
             ExamCandidateResponse(
                 id=exam.id,
@@ -400,10 +403,54 @@ def list_candidate_exams(
                 total_questions=total_q,
                 is_eligible=is_eligible or True,  # Eligible if open or assigned
                 attempt_status=attempt_status,
+                organization_name=org_name,
+                exam_code=exam_code,
             )
         )
 
     return results, total, total_pages
+
+
+def get_candidate_exam_details(db: Session, exam_id: str, candidate_id: str) -> ExamCandidateResponse:
+    """Retrieve detailed candidate view for a specific examination."""
+    exam = db.query(Exam).filter(Exam.id == exam_id).first()
+    if not exam:
+        raise EntityNotFoundException("Exam", exam_id)
+
+    cand_assignment = (
+        db.query(ExamCandidate)
+        .filter(ExamCandidate.exam_id == exam.id, ExamCandidate.candidate_id == candidate_id)
+        .first()
+    )
+    is_eligible = cand_assignment is not None and cand_assignment.eligibility_status == EligibilityStatus.ELIGIBLE.value
+    attempt_status = cand_assignment.attempt_status if cand_assignment else AttemptStatus.NOT_ATTEMPTED.value
+
+    sec_count = db.query(ExamSection).filter(ExamSection.exam_id == exam.id).count()
+    total_q = sum(
+        s.question_count
+        for s in db.query(ExamSection).filter(ExamSection.exam_id == exam.id).all()
+    )
+    org_name = exam.organization.name if exam.organization else "GoWow Examination Authority"
+    exam_code = f"GW-{exam.id[:8].upper()}"
+
+    return ExamCandidateResponse(
+        id=exam.id,
+        title=exam.title,
+        description=exam.description,
+        instructions=exam.instructions,
+        duration_seconds=exam.duration_seconds,
+        extra_time_seconds=exam.extra_time_seconds,
+        language=exam.language,
+        status=exam.status,
+        start_at=exam.start_at,
+        end_at=exam.end_at,
+        section_count=sec_count,
+        total_questions=total_q,
+        is_eligible=is_eligible or True,
+        attempt_status=attempt_status,
+        organization_name=org_name,
+        exam_code=exam_code,
+    )
 
 
 def list_examiner_exams(

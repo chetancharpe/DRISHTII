@@ -42,6 +42,7 @@ export const ExamTimer: React.FC<ExamTimerProps> = ({
 
         const isWarningMilestone =
           minutesRemaining === 30 ||
+          minutesRemaining === 15 ||
           minutesRemaining === 10 ||
           minutesRemaining === 5 ||
           minutesRemaining === 1;

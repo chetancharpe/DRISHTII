@@ -10,3 +10,4 @@ export * from './ExamAccessibilityBar';
 export * from './ExamInterruptionDialog';
 export * from './ExamSupportModal';
 export * from './ExamCard';
+export * from './ExamShortcutsModal';

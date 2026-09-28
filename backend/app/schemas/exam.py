@@ -75,7 +75,6 @@ class ExamCandidateAssignRequest(BaseModel):
     candidate_ids: List[str]
 
 
-# CANDIDATE VIEW: Sanitized metadata for exam listing and registration
 class ExamCandidateResponse(ExamBase):
     id: str
     status: str
@@ -85,6 +84,8 @@ class ExamCandidateResponse(ExamBase):
     total_questions: int = 0
     is_eligible: bool = True
     attempt_status: str = "NOT_ATTEMPTED"
+    organization_name: Optional[str] = None
+    exam_code: Optional[str] = None
 
     class Config:
         from_attributes = True

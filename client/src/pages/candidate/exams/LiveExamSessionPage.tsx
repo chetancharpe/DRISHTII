@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Exam,
@@ -14,14 +14,15 @@ import { ExamQuestionNavigator } from '../../../components/exam/ExamQuestionNavi
 import { ExamSubmissionDialog } from '../../../components/exam/ExamSubmissionDialog';
 import { ExamAccessibilityBar } from '../../../components/exam/ExamAccessibilityBar';
 import { ExamSupportModal } from '../../../components/exam/ExamSupportModal';
+import { ExamShortcutsModal } from '../../../components/exam/ExamShortcutsModal';
 import { ExamInterruptionDialog } from '../../../components/exam/ExamInterruptionDialog';
-import { LayoutGrid, Loader2 } from 'lucide-react';
+import { LayoutGrid, Loader2, AlertTriangle, Keyboard } from 'lucide-react';
 import { useAccessibility } from '../../../contexts/AccessibilityContext';
 
 export const LiveExamSessionPage: React.FC = () => {
   const { examId } = useParams<{ examId: string }>();
   const navigate = useNavigate();
-  const { announce } = useAccessibility();
+  const { announce, speak } = useAccessibility();
 
   // Core examination state
   const [exam, setExam] = useState<Exam | null>(null);
@@ -39,9 +40,14 @@ export const LiveExamSessionPage: React.FC = () => {
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isA11yModalOpen, setIsA11yModalOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isInterruptionModalOpen, setIsInterruptionModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Time remaining tracking for low-time warning banner (15m, 5m, 1m)
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  const [dismissedWarningMilestone, setDismissedWarningMilestone] = useState<number | null>(null);
 
   // Initialize or resume examination session
   useEffect(() => {
@@ -97,7 +103,19 @@ export const LiveExamSessionPage: React.FC = () => {
     initSession();
   }, [examId, navigate]);
 
-  // Warn if navigating away during active exam (Section 30)
+  // Track remaining seconds from authoritative server timer
+  useEffect(() => {
+    if (!session || sessionStatus !== 'ACTIVE') return;
+
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, Math.floor((session.serverEndTime - Date.now()) / 1000));
+      setRemainingSeconds(remaining);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [session, sessionStatus]);
+
+  // Warn if navigating away during active exam
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (sessionStatus === 'ACTIVE') {
@@ -125,9 +143,18 @@ export const LiveExamSessionPage: React.FC = () => {
     return allQuestions.findIndex((q) => q.id === currentQuestionId);
   }, [allQuestions, currentQuestionId]);
 
+  // Screen reader announcement on question change (Polite Live Region)
+  useEffect(() => {
+    if (currentQuestion && currentQuestionIndex >= 0) {
+      announce(
+        `Question ${currentQuestionIndex + 1} of ${allQuestions.length}: ${currentQuestion.sectionTitle}. ${currentQuestion.prompt}`,
+        'polite'
+      );
+    }
+  }, [currentQuestionId, announce]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle option selection / change
-  const handleAnswerChange = async (selectedOptions: string[]) => {
+  const handleAnswerChange = useCallback(async (selectedOptions: string[]) => {
     if (!exam || !session || !currentQuestion) return;
 
     setSyncState('SAVING');
@@ -148,15 +175,16 @@ export const LiveExamSessionPage: React.FC = () => {
       console.error('Error saving answer', err);
       setSyncState('SYNC_ERROR');
     }
-  };
+  }, [exam, session, currentQuestion]);
 
   // Clear answer
-  const handleClearAnswer = async () => {
+  const handleClearAnswer = useCallback(async () => {
     await handleAnswerChange([]);
-  };
+    announce('Answer cleared.', 'polite');
+  }, [handleAnswerChange, announce]);
 
   // Toggle Mark for Review
-  const handleToggleReview = async () => {
+  const handleToggleReview = useCallback(async () => {
     if (!exam || !session || !currentQuestion) return;
 
     const currentAns = session.answers[currentQuestion.id];
@@ -169,34 +197,48 @@ export const LiveExamSessionPage: React.FC = () => {
         newMarkedState
       );
       setSession(updatedSession);
-      announce(newMarkedState ? 'Question marked for review.' : 'Review mark removed.');
+      announce(newMarkedState ? 'Question marked for review.' : 'Review mark removed.', 'polite');
     } catch (err) {
       console.error('Error marking question for review', err);
     }
-  };
+  }, [exam, session, currentQuestion, announce]);
 
   // Question Navigation: Next
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (currentQuestionIndex < allQuestions.length - 1) {
       const nextQ = allQuestions[currentQuestionIndex + 1];
       setCurrentQuestionId(nextQ.id);
       setCurrentSectionId(nextQ.sectionId);
     }
-  };
+  }, [currentQuestionIndex, allQuestions]);
 
   // Question Navigation: Previous
-  const handlePrevious = () => {
+  const handlePrevious = useCallback(() => {
+    // Check forwardOnly policy
+    if (exam?.config.navigationPolicy.forwardOnly) {
+      announce('Backward navigation is not permitted for this examination section.', 'assertive');
+      return;
+    }
     if (currentQuestionIndex > 0) {
       const prevQ = allQuestions[currentQuestionIndex - 1];
       setCurrentQuestionId(prevQ.id);
       setCurrentSectionId(prevQ.sectionId);
     }
-  };
+  }, [currentQuestionIndex, allQuestions, exam, announce]);
 
   // Jump to specific question
   const handleSelectQuestion = (qId: string) => {
     const targetQ = allQuestions.find((q) => q.id === qId);
     if (targetQ) {
+      // Check section locked policy if jumping to a different section
+      if (exam?.config.navigationPolicy.sectionLocked && targetQ.sectionId !== currentSectionId) {
+        const currentSecQuestions = allQuestions.filter((q) => q.sectionId === currentSectionId);
+        const unansweredInSec = currentSecQuestions.some((q) => !session?.answers[q.id]?.selectedOptions?.length);
+        if (unansweredInSec) {
+          announce('Section Locked: You must answer all questions in this section before jumping sections.', 'assertive');
+          return;
+        }
+      }
       setCurrentQuestionId(targetQ.id);
       setCurrentSectionId(targetQ.sectionId);
     }
@@ -204,6 +246,18 @@ export const LiveExamSessionPage: React.FC = () => {
 
   // Switch section tab
   const handleSelectSection = (secId: string) => {
+    if (secId === currentSectionId) return;
+
+    // Check sectionLocked policy
+    if (exam?.config.navigationPolicy.sectionLocked) {
+      const currentSecQuestions = allQuestions.filter((q) => q.sectionId === currentSectionId);
+      const unansweredInSec = currentSecQuestions.some((q) => !session?.answers[q.id]?.selectedOptions?.length);
+      if (unansweredInSec) {
+        announce('Section Locked: Complete all questions in this section before moving to the next section.', 'assertive');
+        return;
+      }
+    }
+
     const targetSec = exam?.config.sections.find((s) => s.id === secId);
     if (targetSec && targetSec.questions.length > 0) {
       setCurrentSectionId(secId);
@@ -220,7 +274,7 @@ export const LiveExamSessionPage: React.FC = () => {
       setSession(updatedSession);
       setSyncState(success ? 'SYNCED' : 'SYNC_ERROR');
       if (success) {
-        announce('Answers synchronized with examination server.');
+        announce('All answers synchronized with examination server.', 'polite');
       }
     } catch (e) {
       console.error(e);
@@ -230,10 +284,10 @@ export const LiveExamSessionPage: React.FC = () => {
     }
   };
 
-  // Auto-submit when timer expires
+  // Auto-submit when authoritative timer expires
   const handleTimerExpired = async () => {
     if (!exam) return;
-    announce('Official examination time has expired. Submitting your examination.');
+    announce('Official examination time has expired. Submitting your examination.', 'assertive');
     setSessionStatus('EXPIRED');
     try {
       await examService.submitExam(exam.id);
@@ -257,16 +311,128 @@ export const LiveExamSessionPage: React.FC = () => {
       console.error('Submission failed', err);
       setIsSubmitting(false);
       setSessionStatus('ACTIVE');
-      announce('Submission could not be completed. Please retry.');
+      announce('Submission could not be completed. Please retry.', 'assertive');
     }
   };
+
+  // Audio assistance: speak question stem
+  const handleListenQuestion = useCallback(() => {
+    if (!currentQuestion) return;
+    let textToSpeak = `Question ${currentQuestionIndex + 1} of ${allQuestions.length}. Section: ${currentQuestion.sectionTitle}. ${currentQuestion.prompt}`;
+    if (currentQuestion.formulaAriaLabel) {
+      textToSpeak += ` Formula: ${currentQuestion.formulaAriaLabel}.`;
+    }
+    speak(textToSpeak);
+  }, [currentQuestion, currentQuestionIndex, allQuestions.length, speak]);
+
+  // Audio assistance: speak all options
+  const handleListenOptions = useCallback(() => {
+    if (!currentQuestion) return;
+    const optionsText = currentQuestion.options
+      .map((opt) => `Option ${opt.label}: ${opt.text}`)
+      .join('. ');
+    speak(`Available answer choices: ${optionsText}`);
+  }, [currentQuestion, speak]);
+
+  // Global Keyboard Shortcuts (N, P, 1-4, M, C, S, ?, R, O)
+  useEffect(() => {
+    const anyModalOpen =
+      isNavigatorOpen ||
+      isSubmitModalOpen ||
+      isA11yModalOpen ||
+      isHelpModalOpen ||
+      isShortcutsModalOpen ||
+      isInterruptionModalOpen;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Do not trigger shortcuts when typing in inputs, textareas, or if a modal is active
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable ||
+        anyModalOpen
+      ) {
+        return;
+      }
+
+      // Check shortcuts
+      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+        e.preventDefault();
+        setIsShortcutsModalOpen(true);
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+
+      if (key === 'n') {
+        e.preventDefault();
+        handleNext();
+      } else if (key === 'p') {
+        e.preventDefault();
+        handlePrevious();
+      } else if (key === 'm') {
+        e.preventDefault();
+        handleToggleReview();
+      } else if (key === 'c') {
+        e.preventDefault();
+        handleClearAnswer();
+      } else if (key === 's') {
+        e.preventDefault();
+        setIsSubmitModalOpen(true);
+      } else if (key === 'r') {
+        e.preventDefault();
+        handleListenQuestion();
+      } else if (key === 'o') {
+        e.preventDefault();
+        handleListenOptions();
+      } else if (['1', '2', '3', '4'].includes(e.key)) {
+        e.preventDefault();
+        const optIndex = parseInt(e.key, 10) - 1;
+        if (currentQuestion && currentQuestion.options[optIndex]) {
+          const optId = currentQuestion.options[optIndex].id;
+          const currentAns = session?.answers[currentQuestion.id]?.selectedOptions || [];
+          if (currentQuestion.type === 'multiple_choice') {
+            const nextOpts = currentAns.includes(optId)
+              ? currentAns.filter((id) => id !== optId)
+              : [...currentAns, optId];
+            handleAnswerChange(nextOpts);
+          } else {
+            handleAnswerChange([optId]);
+          }
+          announce(`Selected option ${currentQuestion.options[optIndex].label}`, 'polite');
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    isNavigatorOpen,
+    isSubmitModalOpen,
+    isA11yModalOpen,
+    isHelpModalOpen,
+    isShortcutsModalOpen,
+    isInterruptionModalOpen,
+    handleNext,
+    handlePrevious,
+    handleToggleReview,
+    handleClearAnswer,
+    handleListenQuestion,
+    handleListenOptions,
+    handleAnswerChange,
+    currentQuestion,
+    session,
+    announce,
+  ]);
 
   if (isLoading || !exam || !session || !currentQuestion) {
     return (
       <div className="flex flex-col items-center justify-center p-20 gap-3 min-h-[60vh]" role="status">
         <Loader2 className="w-8 h-8 animate-spin text-primary" aria-hidden="true" />
         <p className="text-xs font-semibold text-foreground-secondary">
-          Initializing examination cockpit...
+          Initializing authoritative examination cockpit...
         </p>
       </div>
     );
@@ -284,6 +450,22 @@ export const LiveExamSessionPage: React.FC = () => {
 
   const unansweredCount = exam.config.totalQuestions - answeredCount;
   const unsyncedCount = session.unsyncedQuestionIds.length;
+
+  // Determine low-time warning banner text
+  let lowTimeMessage: string | null = null;
+  let isUrgentTime = false;
+  if (remainingSeconds !== null && remainingSeconds > 0) {
+    if (remainingSeconds <= 60 && dismissedWarningMilestone !== 1) {
+      lowTimeMessage = 'Final 60 Seconds: Your examination will be submitted automatically when the server timer expires.';
+      isUrgentTime = true;
+    } else if (remainingSeconds <= 300 && dismissedWarningMilestone !== 5) {
+      lowTimeMessage = 'Attention: Less than 5 minutes remaining. Please finalize and confirm your answers.';
+      isUrgentTime = true;
+    } else if (remainingSeconds <= 900 && dismissedWarningMilestone !== 15) {
+      lowTimeMessage = 'Notice: 15 minutes remaining in this examination session.';
+      isUrgentTime = false;
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -304,7 +486,37 @@ export const LiveExamSessionPage: React.FC = () => {
         onSubmitClick={() => setIsSubmitModalOpen(true)}
       />
 
-      {/* Sub-Header: Section Navigation & Navigator button */}
+      {/* Low-Time Non-Flashing Warning Banner */}
+      {lowTimeMessage && (
+        <div
+          role="alert"
+          aria-live="polite"
+          className={`px-4 py-2 text-xs font-bold flex items-center justify-between gap-3 border-b ${
+            isUrgentTime
+              ? 'bg-danger/10 border-danger/30 text-danger'
+              : 'bg-warning/10 border-warning/30 text-warning'
+          }`}
+        >
+          <div className="flex items-center gap-2 max-w-5xl mx-auto w-full">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+            <span>{lowTimeMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (remainingSeconds && remainingSeconds <= 60) setDismissedWarningMilestone(1);
+              else if (remainingSeconds && remainingSeconds <= 300) setDismissedWarningMilestone(5);
+              else if (remainingSeconds && remainingSeconds <= 900) setDismissedWarningMilestone(15);
+            }}
+            className="text-[11px] underline hover:no-underline font-semibold flex-shrink-0 focus:outline-none focus-visible:ring-1 focus-visible:ring-current rounded"
+            aria-label="Dismiss time warning banner"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Sub-Header: Section Navigation, Question Navigator, & Shortcuts Button */}
       <div className="bg-surface border-b border-border px-4 py-1.5 shadow-2xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           <div className="flex-1 overflow-hidden">
@@ -317,16 +529,30 @@ export const LiveExamSessionPage: React.FC = () => {
             />
           </div>
 
-          {/* Question Navigator Drawer Trigger */}
-          <button
-            type="button"
-            onClick={() => setIsNavigatorOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated/80 border border-border text-foreground text-xs font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[40px] flex-shrink-0 transition-colors"
-            aria-label="Open question navigator grid"
-          >
-            <LayoutGrid className="w-4 h-4 text-primary" aria-hidden="true" />
-            <span className="hidden sm:inline">Question Navigator</span>
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Keyboard Shortcuts Trigger Button */}
+            <button
+              type="button"
+              onClick={() => setIsShortcutsModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated/80 border border-border text-foreground text-xs font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[40px] transition-colors"
+              aria-label="Open accessible keyboard shortcuts reference (Press ?)"
+              title="Keyboard Shortcuts (?)"
+            >
+              <Keyboard className="w-4 h-4 text-primary" aria-hidden="true" />
+              <span className="hidden sm:inline">Shortcuts (?)</span>
+            </button>
+
+            {/* Question Navigator Drawer Trigger */}
+            <button
+              type="button"
+              onClick={() => setIsNavigatorOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated/80 border border-border text-foreground text-xs font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[40px] transition-colors"
+              aria-label="Open question navigator grid"
+            >
+              <LayoutGrid className="w-4 h-4 text-primary" aria-hidden="true" />
+              <span className="hidden sm:inline">Navigator</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -382,6 +608,11 @@ export const LiveExamSessionPage: React.FC = () => {
         isOpen={isHelpModalOpen}
         onClose={() => setIsHelpModalOpen(false)}
         organization={exam.organization}
+      />
+
+      <ExamShortcutsModal
+        isOpen={isShortcutsModalOpen}
+        onClose={() => setIsShortcutsModalOpen(false)}
       />
 
       <ExamInterruptionDialog
