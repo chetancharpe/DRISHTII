@@ -80,6 +80,7 @@ export const DEFAULT_PREFERENCES: AccessibilityPreferences = {
   reducedMotion: 'system',
   simplifiedInterface: false,
   language: 'en',
+  voiceURI: '',
 
   // Backward compatibility mirrors
   highContrast: false,
@@ -246,6 +247,23 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
       if (preferences.speechRate === 'slow') utterance.rate = 0.8;
       else if (preferences.speechRate === 'fast') utterance.rate = 1.3;
       else utterance.rate = 1.0;
+
+      // Dynamic voice selection matching language and user preference
+      const voices = window.speechSynthesis.getVoices();
+      if (preferences.voiceURI) {
+        const matchingVoice = voices.find((v) => v.voiceURI === preferences.voiceURI);
+        if (matchingVoice) utterance.voice = matchingVoice;
+      }
+      if (!utterance.voice && voices.length > 0) {
+        const isHindi = preferences.language === 'hi';
+        const languageMatch = voices.find((v) => {
+          if (isHindi) {
+            return v.lang.toLowerCase().startsWith('hi') || v.name.toLowerCase().includes('hindi');
+          }
+          return v.lang.toLowerCase().startsWith('en');
+        });
+        if (languageMatch) utterance.voice = languageMatch;
+      }
 
       utterance.onstart = () => setIsSpeaking(true);
       utterance.onend = () => setIsSpeaking(false);
@@ -421,10 +439,11 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const setPreferredLanguage = useCallback((language: string) => {
     updatePreference('language', language);
-    announce(`Language changed to ${language === 'hi' ? 'Hindi' : 'English'}.`);
+    const msg = language === 'hi' ? 'भाषा बदलकर हिन्दी कर दी गई है।' : 'Language changed to English.';
+    announce(msg);
   }, [updatePreference, announce]);
 
-  // 8. Synchronize Document Root Attributes for Global CSS Styling
+  // 8. Synchronize Document Root Attributes for Global CSS Styling & Accessibility
   useEffect(() => {
     const root = document.documentElement;
 
@@ -434,7 +453,8 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
     root.setAttribute('data-reduced-motion', preferences.reducedMotion);
     root.setAttribute('data-simplified', String(preferences.simplifiedInterface));
     root.setAttribute('data-keyboard-mode', String(preferences.keyboardFirst));
-    root.setAttribute('lang', preferences.language);
+    root.setAttribute('lang', preferences.language || 'en');
+    root.setAttribute('dir', 'ltr');
 
     // High contrast class support for Tailwind variants
     if (preferences.contrast === 'high') {

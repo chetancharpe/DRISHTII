@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAccessibility } from '../../hooks/useAccessibility';
+import { useTranslation } from '../../i18n';
 import { FontSizeControl } from './FontSizeControl';
 import { ContrastControl } from './ContrastControl';
 import { ThemeToggle } from './ThemeToggle';
@@ -26,6 +27,7 @@ export const AccessibilityPanel: React.FC<AccessibilityPanelProps> = ({
     confirmReset,
     savePreferences,
   } = useAccessibility();
+  const { t } = useTranslation();
 
   const handleApplyAndClose = () => {
     savePreferences();
@@ -43,11 +45,11 @@ export const AccessibilityPanel: React.FC<AccessibilityPanelProps> = ({
           <div className="flex items-center gap-2">
             <Sliders className="w-5 h-5 text-primary" aria-hidden="true" />
             <h2 id="a11y-panel-title" className="text-lg sm:text-xl font-black text-foreground">
-              Accessibility Calibration Center
+              {t('accessibility.calibrationCenter')}
             </h2>
           </div>
           <p className="text-xs text-foreground-muted mt-1 leading-relaxed max-w-xl">
-            Fine-tune visual magnification, contrast, acoustic feedback, and navigation modes anytime. Preferences save automatically.
+            {t('accessibility.calibrationDesc')}
           </p>
         </div>
 
@@ -57,17 +59,17 @@ export const AccessibilityPanel: React.FC<AccessibilityPanelProps> = ({
             size="sm"
             onClick={resetPreferences}
             icon={<RotateCcw className="w-3.5 h-3.5 text-foreground-muted" />}
-            aria-label="Reset all accessibility preferences to factory defaults"
+            aria-label={t('accessibility.resetDefaults')}
           >
-            Reset Defaults
+            {t('accessibility.resetDefaults')}
           </Button>
 
           {onClose && (
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-lg border border-border bg-surface hover:bg-surface-elevated text-foreground-muted hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              aria-label="Close accessibility calibration panel"
+              className="p-2 rounded-lg border border-border bg-surface hover:bg-surface-elevated text-foreground-muted hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
+              aria-label={t('common.close')}
             >
               <X className="w-4 h-4" aria-hidden="true" />
             </button>
@@ -92,9 +94,9 @@ export const AccessibilityPanel: React.FC<AccessibilityPanelProps> = ({
             variant="primary"
             onClick={handleApplyAndClose}
             icon={<Check className="w-4 h-4" aria-hidden="true" />}
-            aria-label="Apply accessibility settings and close panel"
+            aria-label={t('common.saveAndClose')}
           >
-            Save & Close
+            {t('common.saveAndClose')}
           </Button>
         </div>
       )}

@@ -40,10 +40,26 @@ export function useSpeech(): UseSpeechReturn {
       // Stop previous queued utterance
       window.speechSynthesis.cancel();
 
+      const targetLang = (preferences.language === 'hi' || preferences.preferredLanguage === 'hi') ? 'hi-IN' : 'en-US';
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = preferences.preferredLanguage || 'en-US';
-      utterance.rate = 1.0;
+      utterance.lang = targetLang;
+      utterance.rate = preferences.speechRate === 'slow' ? 0.8 : preferences.speechRate === 'fast' ? 1.3 : 1.0;
       utterance.pitch = 1.0;
+
+      // Select matching voice
+      const voices = window.speechSynthesis.getVoices();
+      if (preferences.voiceURI) {
+        const found = voices.find((v) => v.voiceURI === preferences.voiceURI);
+        if (found) utterance.voice = found;
+      }
+      if (!utterance.voice && voices.length > 0) {
+        const isHindi = targetLang.startsWith('hi');
+        const match = voices.find((v) => {
+          if (isHindi) return v.lang.toLowerCase().startsWith('hi') || v.name.toLowerCase().includes('hindi');
+          return v.lang.toLowerCase().startsWith('en');
+        });
+        if (match) utterance.voice = match;
+      }
 
       utterance.onstart = () => {
         setIsSpeaking(true);

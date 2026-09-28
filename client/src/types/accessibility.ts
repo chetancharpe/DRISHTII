@@ -52,6 +52,7 @@ export interface AccessibilityPreferences {
 
   // Internationalization
   language: string;
+  voiceURI?: string;
 
   // Backward compatibility aliases
   highContrast?: boolean;

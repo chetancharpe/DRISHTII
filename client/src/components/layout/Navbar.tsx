@@ -3,7 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAccessibility } from '../../hooks/useAccessibility';
-import { Sliders, Sun, Moon, Sparkles, Menu, X, HelpCircle } from 'lucide-react';
+import { useTranslation } from '../../i18n';
+import { Sliders, Sun, Moon, Sparkles, Menu, X, HelpCircle, Languages } from 'lucide-react';
 
 export interface NavbarProps {
   onOpenAccessibility?: () => void;
@@ -14,6 +15,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
   const { user, isAuthenticated, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { preferences, setHighContrast } = useAccessibility();
+  const { t, language, setLanguage } = useTranslation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
 
@@ -109,15 +111,25 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
             <button
               type="button"
               onClick={onOpenAccessibility}
-              aria-label="Open Accessibility Calibration Center (Shortcut: Alt+A)"
+              aria-label={t('nav.accessibilitySettings')}
               className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-md border border-border-strong bg-surface-elevated hover:bg-surface text-foreground cursor-pointer min-h-[44px]"
             >
               <Sliders className="w-4 h-4 text-primary" aria-hidden="true" />
-              <span className="hidden sm:inline">Accessibility</span>
+              <span className="hidden sm:inline">{t('accessibility.title')}</span>
               <span className="keyboard-indicator text-[10px]">Alt+A</span>
             </button>
           )}
 
+          {/* Quick Language Toggle */}
+          <button
+            type="button"
+            onClick={() => setLanguage(language === 'hi' ? 'en' : 'hi')}
+            aria-label={language === 'hi' ? 'Switch interface language to English' : 'इंटरफ़ेस भाषा हिन्दी में बदलें'}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-md border border-border bg-surface hover:bg-surface-elevated text-foreground cursor-pointer min-h-[44px]"
+          >
+            <Languages className="w-4 h-4 text-primary" aria-hidden="true" />
+            <span className="font-bold">{language === 'hi' ? 'हिन्दी' : 'EN'}</span>
+          </button>
 
           {/* Quick Theme Cycle */}
           <button
@@ -169,7 +181,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
                 onClick={logout}
                 className="px-3 py-2 text-xs font-semibold rounded-md bg-surface hover:bg-surface-elevated text-status-error border border-border cursor-pointer min-h-[44px]"
               >
-                Sign Out
+                {t('nav.logout')}
               </button>
             </div>
           ) : (
@@ -178,7 +190,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
                 to="/auth/login"
                 className="hidden sm:inline-flex items-center justify-center px-3.5 py-2 text-xs font-semibold rounded-md border border-border bg-surface hover:bg-surface-elevated text-foreground min-h-[44px]"
               >
-                Login
+                {t('nav.login')}
               </Link>
               <Link
                 to="/auth/role-selection"

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
+import { useTranslation } from '../../i18n';
 import { RotateCcw, AlertTriangle } from 'lucide-react';
 
 export interface ResetSettingsModalProps {
@@ -14,29 +15,31 @@ export const ResetSettingsModal: React.FC<ResetSettingsModalProps> = ({
   onClose,
   onConfirm,
 }) => {
+  const { t } = useTranslation();
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Reset Accessibility Settings"
-      description="Restore all accessibility configurations to default state"
+      title={t('accessibility.resetConfirmTitle')}
+      description={t('accessibility.resetConfirmDesc')}
       maxWidth="md"
       footer={
         <div className="flex items-center justify-end gap-3 w-full">
           <Button
             variant="ghost"
             onClick={onClose}
-            aria-label="Cancel reset and keep current settings"
+            aria-label={t('common.cancel')}
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             variant="danger"
             onClick={onConfirm}
             icon={<RotateCcw className="w-4 h-4" aria-hidden="true" />}
-            aria-label="Confirm reset all settings to defaults"
+            aria-label={t('accessibility.resetDefaults')}
           >
-            Reset to Defaults
+            {t('accessibility.resetDefaults')}
           </Button>
         </div>
       }
@@ -47,10 +50,10 @@ export const ResetSettingsModal: React.FC<ResetSettingsModalProps> = ({
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-sm font-semibold text-foreground">
-            Reset all accessibility preferences to the default settings?
+            {t('accessibility.resetConfirmTitle')}
           </p>
           <p className="text-xs text-foreground-secondary leading-relaxed">
-            This action will restore default text scaling (100%), standard contrast, system theme, and turn off audio assistance. You can reconfigure or adjust your preferences at any time.
+            {t('accessibility.resetConfirmDesc')}
           </p>
         </div>
       </div>

@@ -332,8 +332,64 @@ This log tracks the progress of the multi-phase upgrade plan for GoWow (accessib
   - Connected "CSV Export" button to trigger genuine browser file downloads.
 
 ### 3. What Remains
-- **Phase 6:** Internationalization (i18n layer, en/hi key parity script, dynamic html lang, voice selection).
+- **Phase 6:** Internationalization (i18n layer, en/hi key parity script, dynamic html lang, voice selection) — **COMPLETED**
 - **Phase 7:** UI/UX redesign according to accessible design system tokens (light/dark/high-contrast, 44x44 touch targets, WCAG 2.2 AA).
 - **Phase 8:** Testing, CI, and honest documentation (Playwright E2E, axe-core scans, revised README and manuals).
+
+---
+
+## Phase 6: Internationalization (i18n) & Multilingual Support
+
+- **Date:** 2026-09-28
+- **Git Branch:** `upgrade/master-plan`
+
+### 1. Verification Results
+- **TypeScript & Linting:** `cd client && npm run lint` (`tsc --noEmit`)
+  - Status: **PASSED (0 errors)**
+- **Client Build:** `cd client && npm run build` (`tsc -b && vite build`)
+  - Status: **PASSED (built in 8.02s)**
+  - Chunks generated: `dist/index.html` (1.65 kB), KaTeX font assets, `dist/assets/index-*.css` (85.48 kB), `dist/assets/index-*.js` (1,416.12 kB)
+- **i18n Key Parity Script:** `npm run test:i18n` (`node scripts/verify-i18n-parity.cjs`)
+  - Status: **PASSED (184 / 184 keys matching with 100% 1:1 parity across 9 namespaces)**
+- **Backend Test Suite:** `pytest tests/`
+  - Status: **53 PASSED (0 failed) in 15.14s**
+  - Includes 5 new comprehensive unit tests in `tests/unit/test_i18n_parity.py` covering:
+    - Translation dictionary file presence
+    - Automated Node parity script execution with 100% key parity
+    - Python recursive dictionary structural integrity & non-empty string checks across 9 namespaces
+    - Dynamic `<html lang="...">` and `<html dir="...">` root synchronization and localized screen reader confirmations
+    - Speech synthesis voice discovery, language-aware filtering, and interactive voice sample triggers.
+
+### 2. Changes Made
+- **Comprehensive Multilingual Translation Layer (184 Tokens across 9 Namespaces):**
+  - Structured `client/src/i18n/en/common.ts` and `client/src/i18n/hi/common.ts` with strict TypeScript typing (`hiCommon: TranslationDictionary`), enforcing 100% key parity at compile time.
+  - Namespaces covered:
+    1. `common` (29 keys): lifecycle actions, dialogs, loading, search, filter, retry, pagination, save and close.
+    2. `nav` (16 keys): landmarks, skip links, main navbar, role links, auth controls, accessibility shortcut triggers.
+    3. `accessibility` (35 keys): calibration center, visual sizing, contrast modes, sonification, screen reader linearization, speech rate, synthesizer voices, sample playback.
+    4. `languages` (14 keys): native script rendering for English and हिन्दी, active statuses, expanding regional languages (Marathi, Bengali, Tamil, Telugu, Gujarati, Kannada, Malayalam, Punjabi).
+    5. `exam` (29 keys): live server countdown, question palettes, marks, formula spoken representations, section navigation, synchronization alerts, submission confirmations.
+    6. `learning` (16 keys): topics, audio player state, speed controls, spoken math representations, table data.
+    7. `practice` (16 keys): filters, topic mastery, accuracy analytics, step-by-step explanations, attempt reviews.
+    8. `examiner` (17 keys): portal, question bank, AI alt-text gate, roster CSV import, psychometric analytics ($p$, $D$, $\alpha$, $r_{pbis}$, distractor distribution, accommodation parity).
+    9. `auth` (12 keys): multi-role authentication prompts, form labels, switch options.
+- **Automated Parity Verification Engine:**
+  - Built `client/scripts/verify-i18n-parity.cjs` which parses both dictionaries, validates 1:1 matching keys, ensures zero empty strings, and outputs a detailed namespace breakdown.
+  - Added `"test:i18n": "node scripts/verify-i18n-parity.cjs"` to `client/package.json`.
+  - Added `tests/unit/test_i18n_parity.py` to ensure CI automated pytest execution validates translation parity on every commit.
+- **Dynamic `<html lang="...">` & `<html dir="...">` Switching:**
+  - Synchronized `document.documentElement` attributes `lang` and `dir` dynamically on every language change in `client/src/contexts/AccessibilityContext.tsx`.
+  - Added localized polite screen-reader announcements when toggling languages (`"भाषा बदलकर हिन्दी कर दी गई है।"` / `"Language changed to English."`).
+- **Language-Aware Speech Synthesis Voice Discovery & Selection:**
+  - Upgraded `client/src/services/speechService.ts` with cached voice discovery, `onVoicesChanged` subscription, and `getVoicesForLanguage()` filtering.
+  - Automatically matches Hindi voices (e.g. `hi-IN` / "Google हिन्दी" / "Microsoft Swara") when Hindi is selected, and English voices (`en-US`, `en-IN`, `en-GB`) when English is selected.
+  - Added `voiceURI` to `AccessibilityPreferences` in `client/src/types/accessibility.ts` for persistent synthesizer voice selection across user sessions.
+  - Upgraded `client/src/components/accessibility/LanguageSelector.tsx` with a live synthesizer voice selector dropdown and an interactive "Listen to Voice Sample" (`t('accessibility.testSampleSpeech')`) button.
+  - Localized `AccessibilityPanel.tsx`, `ResetSettingsModal.tsx`, and `Navbar.tsx` with `useTranslation()` and added a quick language toggle in the header.
+
+### 3. What Remains
+- **Phase 7:** UI/UX redesign according to accessible design system tokens (light/dark/high-contrast, 44x44 touch targets, WCAG 2.2 AA).
+- **Phase 8:** Testing, CI, and honest documentation (Playwright E2E, axe-core scans, revised README and manuals).
+
 
 
