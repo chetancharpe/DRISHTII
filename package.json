@@ -7,7 +7,14 @@
     "dev": "npm --prefix client run dev",
     "build": "npm --prefix client run build",
     "preview": "npm --prefix client run preview",
-    "lint": "npm --prefix client run lint"
+    "lint": "npm --prefix client run lint",
+    "test:i18n": "npm --prefix client run test:i18n",
+    "test:e2e": "playwright test",
+    "test:a11y": "playwright test tests/accessibility/"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.1",
+    "@playwright/test": "^1.49.1"
   },
   "keywords": [
     "accessibility",

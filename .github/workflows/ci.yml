@@ -31,6 +31,11 @@ jobs:
           cd client
           npm run lint
 
+      - name: Verify i18n Translation Parity (EN/HI)
+        run: |
+          cd client
+          npm run test:i18n
+
       - name: Production Bundle Build
         run: |
           cd client
@@ -67,9 +72,9 @@ jobs:
           ENVIRONMENT: test
           DATABASE_URL: sqlite:///./gowow_test.db
           JWT_SECRET_KEY: test_insecure_jwt_secret_key_minimum_64_characters_long_for_test_suite_runs_only
+          PYTHONPATH: backend
         run: |
-          cd backend
-          python -m pytest -v
+          python -m pytest tests/ -v
 
   accessibility-audit:
     name: Automated Axe-Core & WCAG 2.1 AA Test Suite
@@ -88,6 +93,10 @@ jobs:
         run: |
           cd client
           npm ci
+
+      - name: Install Root Dependencies
+        run: |
+          npm install
 
       - name: Install Playwright Browsers
         run: |

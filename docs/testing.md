@@ -37,6 +37,9 @@ cd client
 # TypeScript Strict Type Checking
 npm run lint
 
+# Multilingual i18n Key Parity Check (184 tokens, 100% 1:1 EN/HI)
+npm run test:i18n
+
 # Production Bundle Build Verification
 npm run build
 ```
@@ -53,15 +56,19 @@ npx playwright test tests/accessibility/ --project=high-contrast-mode
 npx playwright test tests/accessibility/ --project=zoomed-viewport
 ```
 
-### C. Backend Unit & API Route Tests
+### C. Backend Unit, Integration, Security & E2E Tests
 ```bash
-cd backend
+# Execute full backend test suite from repository root
+pytest tests/ -v
 
-# Execute pytest suite with coverage
-python -m pytest -v --cov=app
+# Run specific test suites
+pytest tests/unit/ -v            # Unit tests (i18n, design system, auth, CI)
+pytest tests/integration/ -v     # Integration workflows (exam engine, examiner, learning)
+pytest tests/security/ -v        # Security tests (IDOR, role escalation, token rotation)
+pytest tests/e2e/ -v             # End-to-end critical journey flows
 
 # Verify Alembic migration schema synchronization
-alembic check
+cd backend && alembic check
 ```
 
 ---

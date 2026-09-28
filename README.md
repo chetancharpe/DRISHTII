@@ -69,40 +69,57 @@ GoWow enforces a reliable, maintainable 3-tier architecture with zero unnecessar
 
 ## 4. Key Platform Features
 
+### Accessible Landing Page & Role Portals
+- **Public Showcase & Discovery:** Comprehensive landing page detailing platform capabilities, POUR accessibility pillars, live feature demos, and role-specific journeys.
+- **Dedicated Portals:** Direct entry points for Candidates, Examiners, and Administrators with role selection modals and single-click access.
+
 ### Candidate Experience
-- **Accessibility Onboarding & Calibration:** Step-by-step sensory onboarding; font scaling up to 200%, high-contrast AAA mode (7:1), theme cycles, and speech rate adjustments (`Alt+A`).
-- **Keyboard Map & Help Center:** Instant access to shortcut references (`Alt+H`) for screen readers and keyboard navigation.
-- **Learning & Practice:** Self-paced pedagogical modules with spoken formula transcripts and keyboard-operable choices.
-- **Live Examination Engine:** Server-authoritative timer with audible warnings (15m, 5m, 1m), auto-saving answer synchronization, offline recovery caching, and confirmation modals protecting against accidental submission (`Alt+S`).
-- **Diagnostic Results:** Accessible score breakdowns with tabular summaries, non-color status indicators, and subject analytics.
+- **Multilingual Support (English & हिन्दी):** Complete bilingual support across 184 translation keys and 9 namespaces with dynamic `<html lang="...">` and `<html dir="...">` switching.
+- **Language-Aware Speech Synthesis:** Native voice discovery matching Hindi (`hi-IN`) and English (`en-US`/`en-IN`) with pitch/rate controls and interactive sample testing (`Alt+A`).
+- **Blind-First Learning & Practice:** Pedagogical audio player with playback speed controls, KaTeX mathematical equations with spoken text representations, accessible data tables with cell coordinates, and voice command navigation.
+- **Live Server-Authoritative Exam Engine:** Centralized countdown timer with audible alerts, auto-saving answer synchronization, resilient offline recovery queue, and confirmation modals protecting against accidental submission (`Alt+S`).
+- **Accessible Design System:** Strict 44×44px minimum touch targets across all controls (WCAG 2.5.5 / 2.5.8), global 3px focus ring with high-contrast cyan `#00ffff` indicators, and AAA OLED high-contrast mode (21:1 contrast).
 
 ### Examiner Studio
-- **Accessible Question Authoring:** Question creator with automated quality engine validating image alternative text, table headers, and mathematical speech transcripts before publishing.
-- **Candidate Scheduling & Management:** Candidate roster assignment, accommodations configuration (1.5x, 2.0x extra time), and exam scheduling.
-- **Real-Time Monitoring:** Real-time candidate progress monitoring with sortable accessible tables.
+- **Accessible Question Authoring & AI Alt-Text Gate:** Interactive question creator with automated quality engine validating image alternative text, table headers, and spoken mathematical transcripts before publishing.
+- **Candidate Roster CSV Bulk Import:** Fast bulk provisioning of candidate accounts with automated password hashing and accommodation multipliers (1.0x, 1.5x, 2.0x extra time).
+- **Psychometric Item Analytics:** Real-time item difficulty index ($p$), discrimination index ($D$), test reliability (Cronbach's $\alpha$), item-total correlation ($r_{pbis}$), distractor choice distribution, and accommodation equity analytics.
+- **Streaming Report Export:** Immediate, accessible CSV candidate performance downloads.
 
 ### Administrator Console
-- **User & Role Management:** Strict RBAC management with audit trails.
-- **System Health & Audit Logs:** Chronological compliance tracking and readiness checks.
+- **Strict Role-Based Access Control:** Secure account provisioning guarded against role escalation.
+- **System Health & Audit Logs:** Live telemetry, readiness health probes (`/health/ready`), and chronological audit logs.
 
 ---
 
 ## 5. Accessibility Invariants & POUR Conformance
 
-- **Perceivable:** All visual diagrams require alternative text; complex charts require long descriptions. Standard contrast ratio $\ge 4.5:1$; High-contrast mode $\ge 7:1$.
-- **Operable:** 100% of candidate journeys operable without a mouse. Skip link (`.skip-link`) jumps directly to `#main-content`. Modals trap focus and close via `Escape`.
-- **Understandable:** Consistent landmarks, predictable navigation, and non-color dependent status indicators (Passed ✓ / Needs Review ✕).
-- **Robust:** Complies with WAI-ARIA Authoring Practices 1.2; audited with NVDA, JAWS, and VoiceOver.
+- **Perceivable:**
+  - All visual diagrams require alternative text; complex charts require long descriptions.
+  - Standard contrast ratio $\ge 4.5:1$; High-contrast mode $\ge 21:1$ (pure OLED black `#000000`, white `#ffffff`, neon yellow `#ffff00`).
+  - Text scales seamlessly up to 200% zoom without truncation or horizontal scrolling.
+- **Operable:**
+  - 100% of candidate journeys operable without a mouse.
+  - Interactive targets satisfy 44×44px minimum sizing per WCAG 2.5.5 and 2.5.8.
+  - Skip link (`.skip-link`) jumps directly to `#main-content`.
+  - Accessible modals trap focus with `aria-modal="true"` and restore focus on `Escape`.
+- **Understandable:**
+  - Consistent semantic landmarks (`header`, `nav`, `main`, `footer`).
+  - Dual-modality status indicators pairing dedicated icons with text (never color alone).
+- **Robust:**
+  - Complies with WAI-ARIA Authoring Practices 1.2; audited with NVDA, JAWS, and VoiceOver.
+  - Automated `@axe-core/playwright` audits integrated directly into CI.
 
 ### Global Keyboard Shortcuts
 - `Alt + H`: Accessibility Help & Shortcuts Guide
-- `Alt + A`: Accessibility Calibration Center (Display, Contrast, Audio)
+- `Alt + A`: Accessibility Calibration Center (Display, Contrast, Audio, Voice)
 - `Alt + N`: Next Question (Auto-saves current response)
 - `Alt + P`: Previous Question
 - `Alt + M`: Mark / Unmark Question for Review
 - `Alt + C`: Clear Selected Answer
 - `Alt + L`: Read Question Aloud via Text-to-Speech
 - `Alt + S`: Submit Examination Confirmation Dialog
+- `1, 2, 3, 4`: Select Multiple Choice Options A, B, C, D
 
 ---
 
@@ -174,20 +191,23 @@ GoWow separates configuration cleanly across deployment environments:
 ## 8. Automated Testing Suite
 
 ```bash
-# Frontend Lint & Strict Type Check
+# 1. Frontend Lint & Strict Type Check
 cd client && npm run lint
 
-# Client Production Bundle Build
+# 2. Multilingual i18n Parity Check (184 keys, 100% 1:1 EN/HI)
+cd client && npm run test:i18n
+
+# 3. Client Production Bundle Build
 cd client && npm run build
 
-# Automated Axe-Core & WCAG 2.1 AA Tests (Playwright)
+# 4. Automated Axe-Core & WCAG 2.1 AA Tests (Playwright)
 npx playwright test tests/accessibility/
 
 # High Contrast Mode Emulation Test
 npx playwright test tests/accessibility/ --project=high-contrast-mode
 
-# Backend Pytest Suite
-cd backend && python -m pytest -v
+# 5. Full Backend & End-to-End Test Suite (run from project root)
+pytest tests/ -v
 ```
 
 ---
