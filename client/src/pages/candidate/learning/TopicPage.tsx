@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { LearningSubject, LearningTopic } from '../../../types/learning';
 import { learningService } from '../../../services/learningService';
 import { LearningBreadcrumbs } from '../../../components/learning/LearningBreadcrumbs';
@@ -7,6 +7,10 @@ import { FormulaBlock } from '../../../components/learning/FormulaBlock';
 import { ExampleBlock } from '../../../components/learning/ExampleBlock';
 import { AudioLearningPlayer } from '../../../components/learning/AudioLearningPlayer';
 import { TopicNavigationFooter } from '../../../components/learning/TopicNavigationFooter';
+import { AccessibleDataTable } from '../../../components/common/AccessibleDataTable';
+import { KaTeXMath } from '../../../components/common/KaTeXMath';
+import { VoiceCommandBar } from '../../../components/common/VoiceCommandBar';
+import { useVoiceCommands } from '../../../hooks/useVoiceCommands';
 import {
   BookOpen,
   CheckCircle2,
@@ -15,10 +19,12 @@ import {
   ArrowLeft,
   ListChecks,
   Loader2,
+  Table as TableIcon,
 } from 'lucide-react';
 
 export const TopicPage: React.FC = () => {
   const { subjectId, topicId } = useParams<{ subjectId: string; topicId: string }>();
+  const navigate = useNavigate();
   const [subject, setSubject] = useState<LearningSubject | null>(null);
   const [topic, setTopic] = useState<LearningTopic | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,6 +55,25 @@ export const TopicPage: React.FC = () => {
     loadTopicData();
   }, [subjectId, topicId]);
 
+  // Find previous and next topics for non-linear navigation
+  const currentIndex = subject && topic ? subject.topics.findIndex((t) => t.id === topic.id) : -1;
+  const previousTopic = subject && currentIndex > 0 ? subject.topics[currentIndex - 1] : null;
+  const nextTopic = subject && currentIndex < subject.topics.length - 1 ? subject.topics[currentIndex + 1] : null;
+
+  // Hands-free Voice Commands for Topic Study
+  const voice = useVoiceCommands({
+    onNext: () => {
+      if (nextTopic && subject) {
+        navigate(`/candidate/learn/${subject.id}/${nextTopic.id}`);
+      }
+    },
+    onPrevious: () => {
+      if (previousTopic && subject) {
+        navigate(`/candidate/learn/${subject.id}/${previousTopic.id}`);
+      }
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center p-12 gap-3" role="status">
@@ -75,15 +100,18 @@ export const TopicPage: React.FC = () => {
     );
   }
 
-  // Find previous and next topics for non-linear navigation
-  const currentIndex = subject.topics.findIndex((t) => t.id === topic.id);
-  const previousTopic = currentIndex > 0 ? subject.topics[currentIndex - 1] : null;
-  const nextTopic = currentIndex < subject.topics.length - 1 ? subject.topics[currentIndex + 1] : null;
-
   // Prepare full speech transcript
   const narrativeText =
     topic.audioNarrative ||
     `${topic.name}. ${topic.overview}. ${topic.sections.map((s) => `${s.title}. ${s.paragraphs.join(' ')}`).join(' ')}`;
+
+  // Extract all formulas for the accessible tabular matrix
+  const allFormulas = topic.sections.flatMap((s) =>
+    (s.formulas || []).map((f) => ({
+      ...f,
+      sectionTitle: s.title,
+    }))
+  );
 
   return (
     <article className="flex flex-col gap-8 max-w-4xl mx-auto">
@@ -124,8 +152,21 @@ export const TopicPage: React.FC = () => {
           {topic.overview}
         </p>
 
-        {/* Audio Narration Bar */}
-        <AudioLearningPlayer textToRead={narrativeText} sectionTitle={topic.name} />
+        {/* Hands-Free Voice Control Bar */}
+        <VoiceCommandBar
+          isListening={voice.isListening}
+          isSupported={voice.isSupported}
+          lastCommand={voice.lastCommand}
+          errorNotice={voice.errorNotice}
+          onToggle={voice.toggleListening}
+        />
+
+        {/* Upgraded Sleep-Safe Audio Narration Bar */}
+        <AudioLearningPlayer
+          topicId={topic.id}
+          textToRead={narrativeText}
+          sectionTitle={topic.name}
+        />
       </header>
 
       {/* Learning Objectives */}
@@ -220,8 +261,53 @@ export const TopicPage: React.FC = () => {
         )}
       </div>
 
+      {/* Accessible Formula & Concept Reference Matrix */}
+      {allFormulas.length > 0 && (
+        <section aria-labelledby="formula-table-heading" className="flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <TableIcon className="w-4 h-4 text-primary" aria-hidden="true" />
+            <h2 id="formula-table-heading" className="text-sm font-bold text-foreground">
+              Mathematical Formula Reference Matrix
+            </h2>
+          </div>
+          <AccessibleDataTable
+            caption={`Formulas & Notation in ${topic.name}`}
+            description="Comprehensive mathematical table comparing visual formulas with accessible phonetic spoken transcripts."
+            searchable
+            searchPlaceholder="Search formulas or concepts..."
+            data={allFormulas}
+            columns={[
+              {
+                key: 'sectionTitle',
+                header: 'Section / Concept',
+                render: (f) => <span className="font-semibold text-foreground">{f.sectionTitle}</span>,
+              },
+              {
+                key: 'visualText',
+                header: 'Formula (KaTeX)',
+                render: (f) => (
+                  <KaTeXMath math={f.visualText} accessibleText={f.accessibleText} />
+                ),
+              },
+              {
+                key: 'accessibleText',
+                header: 'Phonetic Spoken Transcript',
+                render: (f) => (
+                  <span className="italic text-foreground-secondary">{f.accessibleText}</span>
+                ),
+              },
+              {
+                key: 'explanation',
+                header: 'Application Notes',
+                render: (f) => f.explanation || 'Standard formula application.',
+              },
+            ]}
+          />
+        </section>
+      )}
+
       {/* Quick Recap */}
-      {topic.quickRecap.length > 0 && (
+      {topic.quickRecap && topic.quickRecap.length > 0 && (
         <section
           aria-labelledby="quick-recap-heading"
           className="p-5 sm:p-6 rounded-2xl border border-border bg-surface-elevated/40 flex flex-col gap-3"

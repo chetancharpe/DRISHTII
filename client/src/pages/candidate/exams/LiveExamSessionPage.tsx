@@ -18,6 +18,8 @@ import { ExamShortcutsModal } from '../../../components/exam/ExamShortcutsModal'
 import { ExamInterruptionDialog } from '../../../components/exam/ExamInterruptionDialog';
 import { LayoutGrid, Loader2, AlertTriangle, Keyboard } from 'lucide-react';
 import { useAccessibility } from '../../../contexts/AccessibilityContext';
+import { VoiceCommandBar } from '../../../components/common/VoiceCommandBar';
+import { useVoiceCommands } from '../../../hooks/useVoiceCommands';
 
 export const LiveExamSessionPage: React.FC = () => {
   const { examId } = useParams<{ examId: string }>();
@@ -334,6 +336,30 @@ export const LiveExamSessionPage: React.FC = () => {
     speak(`Available answer choices: ${optionsText}`);
   }, [currentQuestion, speak]);
 
+  // Hands-free voice commands hook
+  const voice = useVoiceCommands({
+    onNext: handleNext,
+    onPrevious: handlePrevious,
+    onSelectOption: (optIndex) => {
+      if (currentQuestion && currentQuestion.options[optIndex]) {
+        const optId = currentQuestion.options[optIndex].id;
+        const currentAns = session?.answers[currentQuestion.id]?.selectedOptions || [];
+        if (currentQuestion.type === 'multiple_choice') {
+          const nextOpts = currentAns.includes(optId)
+            ? currentAns.filter((id) => id !== optId)
+            : [...currentAns, optId];
+          handleAnswerChange(nextOpts);
+        } else {
+          handleAnswerChange([optId]);
+        }
+        announce(`Selected option ${currentQuestion.options[optIndex].label}`, 'polite');
+      }
+    },
+    onMarkReview: handleToggleReview,
+    onClearAnswer: handleClearAnswer,
+    onSubmit: () => setIsSubmitModalOpen(true),
+  });
+
   // Global Keyboard Shortcuts (N, P, 1-4, M, C, S, ?, R, O)
   useEffect(() => {
     const anyModalOpen =
@@ -558,6 +584,15 @@ export const LiveExamSessionPage: React.FC = () => {
 
       {/* Main Focus Area: Question Card */}
       <main id="main-content" className="flex-1 max-w-5xl mx-auto w-full px-4 pt-6 sm:pt-8 flex flex-col justify-between">
+        <VoiceCommandBar
+          isListening={voice.isListening}
+          isSupported={voice.isSupported}
+          lastCommand={voice.lastCommand}
+          errorNotice={voice.errorNotice}
+          onToggle={voice.toggleListening}
+          className="mb-4"
+        />
+
         <ExamQuestion
           question={currentQuestion}
           currentNumber={currentQuestionIndex + 1}

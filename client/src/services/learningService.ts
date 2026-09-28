@@ -52,4 +52,21 @@ export const learningService = {
     const firstTopics = subjects.map((s) => s.topics[0]).filter(Boolean);
     return firstTopics as unknown as LearningTopic[];
   },
+
+  /**
+   * Fetches candidate's persisted audio lesson playback state for a topic.
+   */
+  async getAudioState(topicId: string): Promise<import('../types/learning').TopicAudioState> {
+    return apiClient.get<import('../types/learning').TopicAudioState>(`/learning/topics/${topicId}/audio-state`);
+  },
+
+  /**
+   * Updates candidate's persisted audio lesson playback state (sleep-safe position, bookmarks, speed).
+   */
+  async updateAudioState(
+    topicId: string,
+    state: Partial<import('../types/learning').TopicAudioState>
+  ): Promise<import('../types/learning').TopicAudioState> {
+    return apiClient.put<import('../types/learning').TopicAudioState>(`/learning/topics/${topicId}/audio-state`, state);
+  },
 };

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAccessibility } from '../../contexts/AccessibilityContext';
 import { Link } from 'react-router-dom';
+import { RichMathText } from '../common/RichMathText';
 
 interface PracticeQuestionCardProps {
   question: PracticeQuestion;
@@ -183,7 +184,7 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
           id={`practice-question-${question.id}`}
           className="text-base sm:text-lg font-bold text-foreground leading-relaxed"
         >
-          {question.questionText}
+          <RichMathText text={question.questionText} />
         </h2>
 
         {question.type === 'multiple_choice' && (
@@ -267,7 +268,7 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-foreground">
                       <span className="font-mono text-primary mr-1.5">{opt.label}.</span>
-                      {opt.text}
+                      <RichMathText text={opt.text} />
                     </span>
                   </div>
                 </div>
@@ -348,7 +349,7 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
 
           <div className="text-xs text-foreground leading-relaxed pl-6 border-l-2 border-border">
             <p className="font-semibold text-foreground mb-1">Explanation:</p>
-            <p>{question.explanation}</p>
+            <RichMathText text={question.explanation} />
           </div>
 
           {!isCorrect && (

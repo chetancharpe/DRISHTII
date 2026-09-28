@@ -1,6 +1,9 @@
 import React, { useRef, useEffect } from 'react';
 import { ExamQuestion as ExamQuestionType, ExamAnswer, ExamNavigationPolicy } from '../../types/exam';
 import { ExamAnswerControl } from './ExamAnswerControl';
+import { RichMathText } from '../common/RichMathText';
+import { KaTeXMath } from '../common/KaTeXMath';
+import { AccessibleDataTable } from '../common/AccessibleDataTable';
 import {
   Volume2,
   Bookmark,
@@ -8,7 +11,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Send,
-  Table as TableIcon,
   Variable,
 } from 'lucide-react';
 import { useAccessibility } from '../../contexts/AccessibilityContext';
@@ -134,54 +136,27 @@ export const ExamQuestion: React.FC<ExamQuestionProps> = ({
 
         {/* Question Text */}
         <div className="text-base sm:text-lg font-medium text-foreground leading-relaxed">
-          {question.prompt}
+          <RichMathText text={question.prompt} />
         </div>
 
         {/* Optional Formula */}
         {question.formula && (
-          <div
-            className="p-4 rounded-xl border border-primary/20 bg-primary/5 font-mono text-sm sm:text-base text-foreground flex items-center gap-3 overflow-x-auto"
-            aria-label={question.formulaAriaLabel || 'Mathematical formula'}
-          >
-            <Variable className="w-5 h-5 text-primary flex-shrink-0" aria-hidden="true" />
-            <div>
-              <span className="sr-only">Formula: {question.formulaAriaLabel}</span>
-              <code>{question.formula}</code>
+          <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 text-foreground flex flex-col gap-2 overflow-x-auto">
+            <div className="flex items-center gap-2 text-xs font-bold text-primary">
+              <Variable className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+              <span>Mathematical Formula</span>
             </div>
+            <KaTeXMath math={question.formula} displayMode phoneticLabel={question.formulaAriaLabel} />
           </div>
         )}
 
         {/* Optional Table */}
         {question.table && (
-          <div className="overflow-x-auto rounded-xl border border-border bg-surface my-1">
-            <div className="flex items-center gap-2 p-3 bg-surface-elevated border-b border-border text-xs font-bold text-foreground">
-              <TableIcon className="w-4 h-4 text-primary" aria-hidden="true" />
-              <span>{question.table.caption || 'Reference Table'}</span>
-            </div>
-            <table className="w-full text-left border-collapse text-xs sm:text-sm">
-              <caption className="sr-only">{question.table.caption || 'Reference Table'}</caption>
-              <thead>
-                <tr className="border-b border-border bg-surface-elevated/40">
-                  {question.table.headers.map((h, i) => (
-                    <th key={i} scope="col" className="p-3 font-bold text-foreground">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {question.table.rows.map((row, rIdx) => (
-                  <tr key={rIdx} className="border-b border-border/50 hover:bg-surface-elevated/20">
-                    {row.map((cell, cIdx) => (
-                      <td key={cIdx} className="p-3 font-mono text-foreground">
-                        {cell}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <AccessibleDataTable
+            caption={question.table.caption || 'Reference Table'}
+            headers={question.table.headers}
+            rows={question.table.rows}
+          />
         )}
 
         {/* Answer Options */}

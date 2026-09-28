@@ -244,3 +244,25 @@ class PracticeHistoryItemResponse(BaseModel):
     timeUsedFormatted: str
     difficulty: str
 
+
+class TopicAudioBookmark(BaseModel):
+    id: str
+    timestamp_seconds: float
+    label: str
+    created_at: str
+
+
+class TopicAudioStateResponse(BaseModel):
+    topic_id: str
+    audio_position_seconds: float = 0.0
+    audio_completed: bool = False
+    audio_bookmarks: List[Dict[str, Any]] = Field(default_factory=list)
+    audio_playback_speed: float = 1.0
+
+
+class TopicAudioStateUpdate(BaseModel):
+    audio_position_seconds: Optional[float] = None
+    audio_completed: Optional[bool] = None
+    audio_bookmarks: Optional[List[Dict[str, Any]]] = None
+    audio_playback_speed: Optional[float] = None
+

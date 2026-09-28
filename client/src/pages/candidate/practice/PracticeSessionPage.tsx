@@ -13,6 +13,8 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { useAccessibility } from '../../../contexts/AccessibilityContext';
+import { VoiceCommandBar } from '../../../components/common/VoiceCommandBar';
+import { useVoiceCommands } from '../../../hooks/useVoiceCommands';
 
 export const PracticeSessionPage: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -139,8 +141,31 @@ export const PracticeSessionPage: React.FC = () => {
     }
   };
 
+  const voice = useVoiceCommands({
+    onNext: handleNext,
+    onPrevious: handlePrevious,
+    onSelectOption: (optionIdx) => {
+      if (currentQuestion && currentQuestion.options[optionIdx]) {
+        const optId = currentQuestion.options[optionIdx].id;
+        if (!savedAnswer?.isSubmitted) {
+          handleSubmitAnswer(currentQuestion.id, [optId]);
+        }
+      }
+    },
+    onSubmit: () => setIsFinishModalOpen(true),
+  });
+
   return (
     <div className="flex flex-col gap-6 max-w-6xl mx-auto">
+      {/* Hands-Free Voice Command Navigation Bar */}
+      <VoiceCommandBar
+        isListening={voice.isListening}
+        isSupported={voice.isSupported}
+        lastCommand={voice.lastCommand}
+        errorNotice={voice.errorNotice}
+        onToggle={voice.toggleListening}
+      />
+
       {/* Session Top Bar */}
       <header
         aria-label="Practice session status header"

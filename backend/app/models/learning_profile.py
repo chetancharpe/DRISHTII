@@ -47,6 +47,12 @@ class TopicProgress(Base):
     review_count = Column(Integer, default=1, nullable=False)
     next_review_at = Column(DateTime(timezone=True), nullable=True)
 
+    # Audio Lesson Sleep-Safe Resume & Bookmark Metadata (Phase 4)
+    audio_position_seconds = Column(Float, default=0.0, nullable=False)
+    audio_completed = Column(Boolean, default=False, nullable=False)
+    audio_bookmarks = Column(JSON, default=list, nullable=False)
+    audio_playback_speed = Column(Float, default=1.0, nullable=False)
+
     user = relationship("User")
 
 

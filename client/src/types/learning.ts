@@ -70,3 +70,18 @@ export interface LearningBreadcrumbItem {
   path?: string;
   isCurrent?: boolean;
 }
+
+export interface AudioBookmark {
+  id: string;
+  timestamp_seconds: number;
+  label: string;
+  created_at: string;
+}
+
+export interface TopicAudioState {
+  topic_id: string;
+  audio_position_seconds: number;
+  audio_completed: boolean;
+  audio_bookmarks: AudioBookmark[];
+  audio_playback_speed: number;
+}

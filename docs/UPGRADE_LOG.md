@@ -235,8 +235,51 @@ This log tracks the progress of the multi-phase upgrade plan for GoWow (accessib
   - Integrated audio question reader for stems and options via Web Speech API synthesis.
 
 ### 3. What Remains
-- **Phase 4:** Blind-first learning features (Audio player, KaTeX math formulas, data tables, voice commands).
+- **Phase 4:** Blind-first learning features (Audio player, KaTeX math formulas, data tables, voice commands) — **COMPLETED**
 - **Phase 5:** Examiner & Admin improvements (AI alt-text gate, candidate roster CSV import, psychometric analytics).
 - **Phase 6:** Internationalization (i18n layer, en/hi key parity script, dynamic html lang, voice selection).
 - **Phase 7:** UI/UX redesign according to accessible design system tokens (light/dark/high-contrast, 44x44 touch targets, WCAG 2.2 AA).
 - **Phase 8:** Testing, CI, and honest documentation (Playwright E2E, axe-core scans, revised README and manuals).
+
+---
+
+## Phase 4: Blind-First Learning Features
+
+- **Date:** 2026-09-28
+- **Git Branch:** `upgrade/master-plan`
+
+### 1. Verification Results
+- **TypeScript & Linting:** `cd client && npm run lint` (`tsc --noEmit`)
+  - Status: **PASSED (0 errors)**
+- **Client Build:** `cd client && npm run build` (`tsc -b && vite build`)
+  - Status: **PASSED (built in 7.41s)**
+  - Chunks generated: `dist/index.html` (1.65 kB), KaTeX font assets, `dist/assets/index-*.css` (85.07 kB), `dist/assets/index-*.js` (1,364.97 kB)
+- **Backend Test Suite:** `python -m pytest tests/`
+  - Status: **42 PASSED (0 failed) in 11.49s**
+  - Includes new integration test `tests/integration/test_phase4_learning_features.py` testing sleep-safe audio progress tracking, position restoration, speed adjustments, and bookmark persistence across sessions.
+
+### 2. Changes Made
+- **Sleep-Safe Audio Learning Player & Persistent State API:**
+  - Added topic audio state persistence to backend `TopicProgress` model (`audio_position_seconds`, `audio_completed`, `audio_bookmarks`, `audio_playback_speed`).
+  - Implemented `GET /api/v1/learning/topics/{topic_id}/audio-state` and `PUT /api/v1/learning/topics/{topic_id}/audio-state`.
+  - Upgraded `AudioLearningPlayer.tsx` with sleep-safe resume dialog (prompting candidate if previous playback position was detected), 10s skip backward/forward, speed adjustment (0.75x–1.5x), persistent timestamped bookmark notes, and accessible ARIA slider progress bar.
+- **KaTeX Accessible Mathematical Formulas:**
+  - Installed `katex` and `@types/katex`, and imported KaTeX stylesheet into `globals.css`.
+  - Built `KaTeXMath.tsx`: accessible mathematical formula renderer with visual KaTeX typesetting and mandatory phonetic speech transcript in visually hidden `<span className="sr-only">` tags so screen readers speak formulas phonetically (e.g., "x squared plus y squared equals r squared") rather than reading raw LaTeX syntax.
+  - Built `FormulaBlock.tsx`: dedicated formula block with KaTeX typesetting, phonetic TTS reader button, and one-click LaTeX code copy.
+  - Built `RichMathText.tsx`: smart markdown parser recognizing inline (`$...$`) and display (`$$...$$`) LaTeX expressions, auto-rendering them via `KaTeXMath`.
+  - Integrated `RichMathText` across `TopicPage.tsx`, `ExamQuestion.tsx`, and `PracticeQuestionCard.tsx` (stem, options, and explanations).
+- **Accessible Data Table Component:**
+  - Built `AccessibleDataTable.tsx`: WCAG 2.2 AA compliant data table supporting `role="grid"` with full keyboard Arrow key cell navigation (Up/Down/Left/Right/Home/End), caption and live search filtering. Supports both structured typed columns/data and standard `headers`/`rows` matrices.
+  - Integrated `AccessibleDataTable` in `TopicPage.tsx` and `ExamQuestion.tsx`.
+- **Hands-Free Voice Command Navigation:**
+  - Built `useVoiceCommands.ts`: Web Speech API recognition hook supporting voice commands: "Next", "Previous", "Option A", "Option B", "Option C", "Option D", "Mark for review", "Clear answer", "Submit", "Play audio", "Pause audio", and "Bookmark".
+  - Built `VoiceCommandBar.tsx`: microphone toggle indicator with live recognition badges and browser compatibility fallback.
+  - Integrated `VoiceCommandBar` across `TopicPage.tsx`, `PracticeSessionPage.tsx`, and `LiveExamSessionPage.tsx`.
+
+### 3. What Remains
+- **Phase 5:** Examiner & Admin improvements (AI alt-text gate, candidate roster CSV import, psychometric analytics).
+- **Phase 6:** Internationalization (i18n layer, en/hi key parity script, dynamic html lang, voice selection).
+- **Phase 7:** UI/UX redesign according to accessible design system tokens (light/dark/high-contrast, 44x44 touch targets, WCAG 2.2 AA).
+- **Phase 8:** Testing, CI, and honest documentation (Playwright E2E, axe-core scans, revised README and manuals).
+

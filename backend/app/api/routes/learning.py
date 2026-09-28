@@ -128,6 +128,8 @@ from app.schemas.learning import (
     PracticeHistoryItemResponse,
     PracticeQuestionOption,
     PracticeQuestionSanitized,
+    TopicAudioStateResponse,
+    TopicAudioStateUpdate,
 )
 from app.utils.datetime import utc_now
 from fastapi import HTTPException
@@ -296,6 +298,91 @@ def get_topic_detail(
         sections=sections_res,
         quickRecap=target_topic.get("quickRecap"),
         audioNarrative=target_topic.get("audioNarrative"),
+    )
+
+
+@router.get("/learning/topics/{topic_id}/audio-state", response_model=TopicAudioStateResponse)
+def get_topic_audio_state(
+    topic_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Retrieve candidate's persisted audio position, bookmarks, speed, and completion status.
+    Guarantees sleep-safe continuity across sessions and device reloads.
+    """
+    progress = (
+        db.query(TopicProgress)
+        .filter(TopicProgress.user_id == current_user.id, TopicProgress.topic == topic_id)
+        .first()
+    )
+    if not progress:
+        return TopicAudioStateResponse(
+            topic_id=topic_id,
+            audio_position_seconds=0.0,
+            audio_completed=False,
+            audio_bookmarks=[],
+            audio_playback_speed=1.0,
+        )
+    return TopicAudioStateResponse(
+        topic_id=topic_id,
+        audio_position_seconds=getattr(progress, "audio_position_seconds", 0.0) or 0.0,
+        audio_completed=getattr(progress, "audio_completed", False) or False,
+        audio_bookmarks=getattr(progress, "audio_bookmarks", []) or [],
+        audio_playback_speed=getattr(progress, "audio_playback_speed", 1.0) or 1.0,
+    )
+
+
+@router.put("/learning/topics/{topic_id}/audio-state", response_model=TopicAudioStateResponse)
+def update_topic_audio_state(
+    topic_id: str,
+    update: TopicAudioStateUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Persist candidate's current audio position, bookmark entries, speed, or completion.
+    """
+    progress = (
+        db.query(TopicProgress)
+        .filter(TopicProgress.user_id == current_user.id, TopicProgress.topic == topic_id)
+        .first()
+    )
+    if not progress:
+        subj_name = "Mathematics"
+        for s_id, t_list in CURRICULUM_TOPICS.items():
+            if any(t["id"] == topic_id for t in t_list):
+                subj_name = s_id.capitalize()
+                break
+
+        progress = TopicProgress(
+            user_id=current_user.id,
+            subject=subj_name,
+            topic=topic_id,
+            audio_position_seconds=update.audio_position_seconds or 0.0,
+            audio_completed=update.audio_completed or False,
+            audio_bookmarks=update.audio_bookmarks or [],
+            audio_playback_speed=update.audio_playback_speed or 1.0,
+        )
+        db.add(progress)
+    else:
+        if update.audio_position_seconds is not None:
+            progress.audio_position_seconds = update.audio_position_seconds
+        if update.audio_completed is not None:
+            progress.audio_completed = update.audio_completed
+        if update.audio_bookmarks is not None:
+            progress.audio_bookmarks = update.audio_bookmarks
+        if update.audio_playback_speed is not None:
+            progress.audio_playback_speed = update.audio_playback_speed
+
+    db.commit()
+    db.refresh(progress)
+    return TopicAudioStateResponse(
+        topic_id=topic_id,
+        audio_position_seconds=progress.audio_position_seconds,
+        audio_completed=progress.audio_completed,
+        audio_bookmarks=progress.audio_bookmarks,
+        audio_playback_speed=progress.audio_playback_speed,
     )
 
 
