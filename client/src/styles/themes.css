@@ -106,7 +106,9 @@
   --border-width-default: 1px;
 }
 
-[data-theme="high_contrast"] {
+[data-theme="high_contrast"],
+[data-contrast="high"],
+html.high-contrast {
   /* High Contrast Mode - Pure OLED black, thick 2px borders, neon yellow/cyan */
   --color-bg: #000000;
   --color-surface: #0a0a0a;

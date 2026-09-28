@@ -22,10 +22,10 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
             onClick={() => onSelectIndex?.(i)}
             aria-label={`Go to question ${i + 1}`}
             aria-current={currentIndex === i ? 'true' : undefined}
-            className={`w-9 h-9 rounded text-xs font-bold border cursor-pointer ${
+            className={`min-w-[44px] min-h-[44px] rounded text-sm font-bold border cursor-pointer flex items-center justify-center transition-colors ${
               currentIndex === i
-                ? 'bg-primary text-primary-contrast border-primary'
-                : 'bg-surface-elevated text-foreground border-border hover:border-border-strong'
+                ? 'bg-primary text-primary-contrast border-primary shadow-sm ring-1 ring-primary'
+                : 'bg-surface-elevated text-foreground border-border hover:border-border-strong hover:bg-surface'
             }`}
           >
             {i + 1}

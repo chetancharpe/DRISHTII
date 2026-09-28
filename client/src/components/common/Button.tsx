@@ -41,7 +41,7 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
   // WCAG 2.5.5 / 2.5.8 Target Size: Ensure min 44px height for interactive targets
   const sizeStyles: Record<ButtonSize, string> = {
-    sm: 'text-sm px-3 py-1.5 min-h-[38px] gap-1.5',
+    sm: 'text-sm px-3.5 py-2 min-h-[44px] gap-1.5',
     md: 'text-base px-4 py-2.5 min-h-[44px] gap-2',
     lg: 'text-lg px-6 py-3.5 min-h-[50px] gap-2.5',
   };

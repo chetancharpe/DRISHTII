@@ -26,7 +26,9 @@ textarea:focus-visible,
 }
 
 /* High Contrast mode specific focus enhancements */
-[data-theme="high_contrast"] *:focus-visible {
+[data-theme="high_contrast"] *:focus-visible,
+[data-contrast="high"] *:focus-visible,
+.high-contrast *:focus-visible {
   outline: 3px solid #00ffff !important;
   outline-offset: 4px !important;
   box-shadow: 0 0 0 2px #000000 !important;
@@ -39,7 +41,36 @@ textarea:focus-visible,
 [data-theme="high_contrast"] textarea,
 [data-theme="high_contrast"] .card,
 [data-theme="high_contrast"] [role="region"],
-[data-theme="high_contrast"] [role="dialog"] {
+[data-theme="high_contrast"] [role="dialog"],
+[data-theme="high_contrast"] [role="table"],
+[data-theme="high_contrast"] [role="grid"],
+[data-theme="high_contrast"] table,
+[data-theme="high_contrast"] th,
+[data-theme="high_contrast"] td,
+[data-contrast="high"] button,
+[data-contrast="high"] input,
+[data-contrast="high"] select,
+[data-contrast="high"] textarea,
+[data-contrast="high"] .card,
+[data-contrast="high"] [role="region"],
+[data-contrast="high"] [role="dialog"],
+[data-contrast="high"] [role="table"],
+[data-contrast="high"] [role="grid"],
+[data-contrast="high"] table,
+[data-contrast="high"] th,
+[data-contrast="high"] td,
+.high-contrast button,
+.high-contrast input,
+.high-contrast select,
+.high-contrast textarea,
+.high-contrast .card,
+.high-contrast [role="region"],
+.high-contrast [role="dialog"],
+.high-contrast [role="table"],
+.high-contrast [role="grid"],
+.high-contrast table,
+.high-contrast th,
+.high-contrast td {
   border-width: 2px !important;
 }
 

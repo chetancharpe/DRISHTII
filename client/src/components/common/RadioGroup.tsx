@@ -59,7 +59,7 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
               key={opt.value}
               htmlFor={optionId}
               className={`
-                flex items-start gap-3 p-3 rounded-md border cursor-pointer select-none transition-colors duration-fast
+                flex items-start gap-3 p-3 rounded-md border cursor-pointer select-none min-h-[44px] transition-colors duration-fast
                 ${isSelected ? 'bg-surface-elevated border-primary' : 'bg-surface border-border hover:bg-surface-elevated'}
                 ${opt.disabled ? 'opacity-50 cursor-not-allowed' : ''}
               `.trim()}

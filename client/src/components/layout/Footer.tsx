@@ -65,19 +65,19 @@ export const Footer: React.FC<FooterProps> = ({ onOpenAccessibility, onOpenHelp 
                 <button
                   type="button"
                   onClick={onOpenHelp}
-                  className="text-left text-xs text-primary hover:underline cursor-pointer"
+                  className="text-left text-xs text-primary hover:underline cursor-pointer min-h-[44px] inline-flex items-center"
                   aria-label="Open Accessibility Help and Keyboard Shortcuts (Alt+H)"
                 >
                   Help &amp; Shortcuts (Alt+H)
                 </button>
               </li>
               <li>
-                <a href="#how-it-works" className="hover:text-foreground hover:underline">
+                <a href="#how-it-works" className="hover:text-foreground hover:underline min-h-[44px] inline-flex items-center">
                   Keyboard Navigation
                 </a>
               </li>
               <li>
-                <a href="#accessibility" className="hover:text-foreground hover:underline">
+                <a href="#accessibility" className="hover:text-foreground hover:underline min-h-[44px] inline-flex items-center">
                   Screen Reader Support
                 </a>
               </li>
@@ -86,12 +86,12 @@ export const Footer: React.FC<FooterProps> = ({ onOpenAccessibility, onOpenHelp 
                   <button
                     type="button"
                     onClick={onOpenAccessibility}
-                    className="text-left text-xs text-primary hover:underline cursor-pointer"
+                    className="text-left text-xs text-primary hover:underline cursor-pointer min-h-[44px] inline-flex items-center"
                   >
                     Accessibility Settings (Alt+A)
                   </button>
                 ) : (
-                  <Link to="/auth/accessibility-setup" className="hover:text-foreground hover:underline">
+                  <Link to="/auth/accessibility-setup" className="hover:text-foreground hover:underline min-h-[44px] inline-flex items-center">
                     Accessibility Settings
                   </Link>
                 )}
