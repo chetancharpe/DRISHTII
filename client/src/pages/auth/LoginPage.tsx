@@ -56,10 +56,10 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  // Quick Demo Autofill Helper for Prototyping
-  const fillDemoAccount = (demoEmail: string) => {
+  // Quick Demo Autofill Helper for Development (calling real seeded demo accounts)
+  const fillDemoAccount = (demoEmail: string, demoPass: string) => {
     setEmail(demoEmail);
-    setPassword('DemoPass123!');
+    setPassword(demoPass);
     setErrors({});
     setFormError(null);
   };
@@ -154,42 +154,44 @@ export const LoginPage: React.FC = () => {
           Sign In
         </Button>
 
-        {/* Development Prototype Demo Access Bar */}
-        <div className="mt-4 pt-4 border-t border-dashed border-border flex flex-col gap-2 bg-surface-elevated/40 p-3.5 rounded-lg">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-              <UserCheck className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
-              <span>Development Prototype Demo Access</span>
-            </span>
-            <span className="text-[10px] font-mono text-foreground-muted">Demo Mode</span>
+        {/* Quick Demo Access Bar (Only in Development) */}
+        {import.meta.env.DEV && (
+          <div className="mt-4 pt-4 border-t border-border flex flex-col gap-2 bg-surface-elevated/40 p-3.5 rounded-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <UserCheck className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
+                <span>Dev Demo Accounts</span>
+              </span>
+              <span className="text-[10px] font-mono text-primary font-bold">Real API</span>
+            </div>
+            <p className="text-[11px] text-foreground-muted leading-tight">
+              Autofill seeded credentials to sign in via the live FastAPI backend:
+            </p>
+            <div className="grid grid-cols-3 gap-2 mt-1">
+              <button
+                type="button"
+                onClick={() => fillDemoAccount('candidate1@gowow.org', 'CandidateSecure123!')}
+                className="px-2 py-1.5 rounded border border-border bg-surface hover:bg-surface-elevated text-xs font-semibold text-foreground text-center"
+              >
+                Candidate
+              </button>
+              <button
+                type="button"
+                onClick={() => fillDemoAccount('examiner@gowow.org', 'ExaminerSecure123!')}
+                className="px-2 py-1.5 rounded border border-border bg-surface hover:bg-surface-elevated text-xs font-semibold text-foreground text-center"
+              >
+                Examiner
+              </button>
+              <button
+                type="button"
+                onClick={() => fillDemoAccount('admin@gowow.org', 'AdminSecurePass123!')}
+                className="px-2 py-1.5 rounded border border-border bg-surface hover:bg-surface-elevated text-xs font-semibold text-foreground text-center"
+              >
+                Admin
+              </button>
+            </div>
           </div>
-          <p className="text-[11px] text-foreground-muted leading-tight">
-            Click any demo role to autofill test credentials:
-          </p>
-          <div className="grid grid-cols-3 gap-2 mt-1">
-            <button
-              type="button"
-              onClick={() => fillDemoAccount('candidate@gowow.demo')}
-              className="px-2 py-1.5 rounded border border-border bg-surface hover:bg-surface-elevated text-xs font-semibold text-foreground text-center"
-            >
-              Candidate
-            </button>
-            <button
-              type="button"
-              onClick={() => fillDemoAccount('examiner@gowow.demo')}
-              className="px-2 py-1.5 rounded border border-border bg-surface hover:bg-surface-elevated text-xs font-semibold text-foreground text-center"
-            >
-              Examiner
-            </button>
-            <button
-              type="button"
-              onClick={() => fillDemoAccount('admin@gowow.demo')}
-              className="px-2 py-1.5 rounded border border-border bg-surface hover:bg-surface-elevated text-xs font-semibold text-foreground text-center"
-            >
-              Admin
-            </button>
-          </div>
-        </div>
+        )}
 
         {/* Link to Registration */}
         <div className="text-center pt-2">

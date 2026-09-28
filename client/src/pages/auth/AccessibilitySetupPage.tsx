@@ -22,7 +22,7 @@ export const AccessibilitySetupPage: React.FC = () => {
     >
       {/* WCAG Skip Navigation Link */}
       <a href="#accessibility-wizard-main" className="skip-link">
-        Skip to accessibility configuration options [Press Enter]
+        Skip to accessibility configuration options
       </a>
 
       {/* Main Accessible Container */}

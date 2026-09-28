@@ -65,15 +65,22 @@ export const Sidebar: React.FC = () => {
 
   const isCandidate = role === 'candidate';
 
+  const roleDisplayName =
+    role === 'examiner'
+      ? 'Examiner Studio'
+      : role === 'admin'
+      ? 'Admin Console'
+      : 'Candidate Workspace';
+
   return (
     <aside
       className="w-64 bg-surface border-r border-border p-4 flex flex-col justify-between shrink-0 hidden md:flex"
-      aria-label={`${role ? role.charAt(0).toUpperCase() + role.slice(1) : 'Portal'} Navigation`}
+      aria-label={`${roleDisplayName} Navigation`}
     >
       <div className="flex flex-col gap-5">
         {/* Navigation Section Title */}
-        <div className="text-[11px] font-mono font-bold uppercase tracking-wider text-foreground-muted px-2">
-          {role} Workspace
+        <div className="text-[11px] font-mono font-bold uppercase tracking-wider text-primary px-2">
+          {roleDisplayName}
         </div>
 
         {/* Primary Links */}

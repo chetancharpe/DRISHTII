@@ -1,11 +1,7 @@
 import { Exam, ExamConfig } from '../types/exam';
 
 /**
- * GoWow Live Examination System — Demonstration Exam Data
- * 
- * DISCLAIMER: All examination organizations, questions, codes, and roll numbers
- * in this dataset are purely fictional demonstration fixtures designed to test
- * accessible candidate examination workflows.
+ * GoWow Live Examination System — Demonstration Exam Fixtures
  */
 
 export const DEMO_EXAM_01_CONFIG: ExamConfig = {
@@ -13,7 +9,7 @@ export const DEMO_EXAM_01_CONFIG: ExamConfig = {
   title: 'GoWow Accessible Aptitude Examination — 2026',
   organization: 'GoWow Demo Examination Authority',
   examCode: 'GAA-2026-01',
-  durationMinutes: 45, // 45-minute live exam demo window
+  durationMinutes: 45,
   totalQuestions: 12,
   scheduledStartTime: '2026-10-12T10:00:00Z',
   scheduledEndTime: '2026-10-12T12:00:00Z',

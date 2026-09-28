@@ -5,7 +5,7 @@
  */
 
 import { ExamCandidateResult, SubjectiveEvaluationItem } from '../types/examiner';
-import { INITIAL_EXAM_RESULTS, INITIAL_SUBJECTIVE_EVALUATION_QUEUE } from '../data/resultData';
+import { INITIAL_EXAM_RESULTS, INITIAL_SUBJECTIVE_EVALUATION_QUEUE } from '../fixtures/examinerFixtures';
 import { storage } from '../utils/storage';
 
 const RESULTS_STORAGE_KEY = 'gowow_exam_results';

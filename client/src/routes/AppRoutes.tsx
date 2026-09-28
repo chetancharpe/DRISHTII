@@ -19,7 +19,7 @@ import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage';
 import { AccessibilitySetupPage } from '../pages/auth/AccessibilitySetupPage';
 
 // Candidate Pages
-import { DashboardPage as CandidateDashboardPage } from '../pages/candidate/DashboardPage';
+import { CandidateDashboardPage } from '../pages/candidate/CandidateDashboardPage';
 import { LearningHomePage } from '../pages/candidate/learning/LearningHomePage';
 import { SubjectPage } from '../pages/candidate/learning/SubjectPage';
 import { TopicPage } from '../pages/candidate/learning/TopicPage';
@@ -42,7 +42,7 @@ import { MockTestResultPage } from '../pages/candidate/mockTests/MockTestResultP
 import { MockTestReviewPage } from '../pages/candidate/mockTests/MockTestReviewPage';
 import { MockTestHistoryPage } from '../pages/candidate/mockTests/MockTestHistoryPage';
 import { ResultsPage as CandidateResultsPage } from '../pages/candidate/ResultsPage';
-import { ProgressPage } from '../pages/candidate/ProgressPage';
+import { ProgressPage } from '../pages/candidate/progress/ProgressPage';
 import { SettingsPage as CandidateSettingsPage } from '../pages/candidate/SettingsPage';
 
 // Examiner Pages

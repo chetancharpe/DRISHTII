@@ -55,7 +55,7 @@ export const CandidateDashboardPage: React.FC = () => {
     <div className="w-full flex flex-col gap-8 pb-12">
       {/* Skip links specifically for dashboard layout */}
       <a href="#next-action-section" className="skip-link">
-        Skip directly to next practice activity [Press Enter]
+        Skip directly to next practice activity
       </a>
 
       {/* 1. Header & Candidate Greeting */}
@@ -72,96 +72,96 @@ export const CandidateDashboardPage: React.FC = () => {
       {/* Main Actionable Dashboard Body */}
       {!isLoading && dashboardData && (
         preferences.simplifiedInterface ? (
-          /* Section 10: SIMPLIFIED INTERFACE MODE */
+          /* Simplified High-Focus Interface Mode */
           <div id="candidate-main-content" className="flex flex-col gap-6 focus:outline-none" tabIndex={-1}>
-            <div className="p-4 rounded-xl bg-indigo-950/40 border border-indigo-800/40 flex items-center justify-between">
-              <span className="text-xs font-semibold text-indigo-300">
-                ✨ Simplified Interface Mode Active
+            <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between">
+              <span className="text-xs font-semibold text-primary">
+                ✨ Simplified High-Focus Mode Active
               </span>
               <button
                 type="button"
                 onClick={() => navigate('/candidate/settings')}
-                className="text-xs text-indigo-400 hover:underline"
+                className="text-xs text-primary hover:underline font-semibold"
               >
                 Change in Settings
               </button>
             </div>
 
-            {/* 1. Continue Learning */}
-            <div className="p-6 rounded-2xl bg-slate-900 border-2 border-indigo-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {/* Continue Learning */}
+            <div className="p-6 rounded-2xl bg-surface border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">Current Task</span>
-                <h3 className="text-xl font-bold text-white mt-1">Continue: Probability — Compound Events</h3>
-                <p className="text-xs text-slate-400 mt-1">Lesson 4 · 65% Completed</p>
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">Current Study Topic</span>
+                <h3 className="text-xl font-bold text-foreground mt-1">Continue: Probability — Compound Events</h3>
+                <p className="text-xs text-foreground-muted mt-1">Lesson 4 · 65% Completed</p>
               </div>
               <button
                 type="button"
-                onClick={() => navigate('/learning')}
-                className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm focus:ring-2 focus:ring-indigo-400"
+                onClick={() => navigate('/candidate/learn')}
+                className="px-6 py-3 rounded-xl bg-primary hover:bg-primary-hover text-primary-contrast font-bold text-sm focus:ring-2 focus:ring-primary min-h-[44px]"
               >
                 Continue Learning
               </button>
             </div>
 
-            {/* 2. Practice */}
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {/* Practice */}
+            <div className="p-6 rounded-2xl bg-surface border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">Adaptive Practice</span>
-                <h3 className="text-xl font-bold text-white mt-1">Targeted Question Practice</h3>
-                <p className="text-xs text-slate-400 mt-1">10 questions tailored to unmastered topics</p>
+                <span className="text-xs font-bold uppercase tracking-wider text-status-success">Adaptive Practice</span>
+                <h3 className="text-xl font-bold text-foreground mt-1">Targeted Question Practice</h3>
+                <p className="text-xs text-foreground-muted mt-1">10 questions tailored to unmastered topics</p>
               </div>
               <button
                 type="button"
-                onClick={() => navigate('/practice')}
-                className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm focus:ring-2 focus:ring-emerald-400"
+                onClick={() => navigate('/candidate/practice')}
+                className="px-6 py-3 rounded-xl bg-primary hover:bg-primary-hover text-primary-contrast font-bold text-sm focus:ring-2 focus:ring-primary min-h-[44px]"
               >
                 Start Practice
               </button>
             </div>
 
-            {/* 3. Mock Test */}
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {/* Mock Test */}
+            <div className="p-6 rounded-2xl bg-surface border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Exam Simulation</span>
-                <h3 className="text-xl font-bold text-white mt-1">Timed Mock Tests</h3>
-                <p className="text-xs text-slate-400 mt-1">Practice pacing under simulated conditions</p>
+                <span className="text-xs font-bold uppercase tracking-wider text-status-warning">Exam Simulation</span>
+                <h3 className="text-xl font-bold text-foreground mt-1">Timed Mock Tests</h3>
+                <p className="text-xs text-foreground-muted mt-1">Practice pacing under simulated conditions</p>
               </div>
               <button
                 type="button"
-                onClick={() => navigate('/mock-tests')}
-                className="px-6 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm focus:ring-2 focus:ring-amber-400"
+                onClick={() => navigate('/candidate/mock-tests')}
+                className="px-6 py-3 rounded-xl bg-primary hover:bg-primary-hover text-primary-contrast font-bold text-sm focus:ring-2 focus:ring-primary min-h-[44px]"
               >
                 Open Mock Tests
               </button>
             </div>
 
-            {/* 4. Examination */}
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {/* Examination */}
+            <div className="p-6 rounded-2xl bg-surface border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-rose-400">Live Examination</span>
-                <h3 className="text-xl font-bold text-white mt-1">Official Scheduled Exams</h3>
-                <p className="text-xs text-slate-400 mt-1">Check scheduled live examinations and eligibility</p>
+                <span className="text-xs font-bold uppercase tracking-wider text-status-error">Official Examination</span>
+                <h3 className="text-xl font-bold text-foreground mt-1">Official Scheduled Exams</h3>
+                <p className="text-xs text-foreground-muted mt-1">Check scheduled live examinations and eligibility</p>
               </div>
               <button
                 type="button"
                 onClick={() => navigate('/candidate/exams')}
-                className="px-6 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm focus:ring-2 focus:ring-rose-400"
+                className="px-6 py-3 rounded-xl bg-primary hover:bg-primary-hover text-primary-contrast font-bold text-sm focus:ring-2 focus:ring-primary min-h-[44px]"
               >
                 View Examinations
               </button>
             </div>
 
-            {/* 5. Progress */}
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {/* Progress */}
+            <div className="p-6 rounded-2xl bg-surface border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-purple-400">Telemetry</span>
-                <h3 className="text-xl font-bold text-white mt-1">Progress & Analytics</h3>
-                <p className="text-xs text-slate-400 mt-1">Review accuracy trends and weekly narrative report</p>
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">Progress Analytics</span>
+                <h3 className="text-xl font-bold text-foreground mt-1">Progress & Analytics</h3>
+                <p className="text-xs text-foreground-muted mt-1">Review accuracy trends and weekly narrative report</p>
               </div>
               <button
                 type="button"
-                onClick={() => navigate('/progress')}
-                className="px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm focus:ring-2 focus:ring-purple-400"
+                onClick={() => navigate('/candidate/progress')}
+                className="px-6 py-3 rounded-xl bg-primary hover:bg-primary-hover text-primary-contrast font-bold text-sm focus:ring-2 focus:ring-primary min-h-[44px]"
               >
                 View Progress
               </button>
@@ -170,19 +170,19 @@ export const CandidateDashboardPage: React.FC = () => {
         ) : (
           /* Standard Multi-Column Accessible Dashboard */
           <div id="candidate-main-content" className="flex flex-col gap-8 focus:outline-none" tabIndex={-1}>
-            {/* 2. Priority 1: What Should I Do Next? */}
+            {/* Recommended Next Step */}
             <NextActionBanner action={dashboardData.nextAction} />
 
             {/* Personalized Practice Set Banner */}
             <PersonalizedPractice topics={['Probability', 'Percentages', 'Syllogisms']} />
 
-            {/* 3. Priority 2: Today's Goal & Routine Streak */}
+            {/* Today's Goal & Routine Streak */}
             <DailyGoalCard goal={dashboardData.dailyGoal} />
 
-            {/* 4. Priority 3: Accessible Quick Actions */}
+            {/* Accessible Quick Actions */}
             <QuickActionsGrid actions={dashboardData.quickActions} />
 
-            {/* 5. Priority 4: Preparation Overview & Telemetry */}
+            {/* Preparation Overview & Telemetry */}
             <PreparationStatsOverview stats={dashboardData.overviewStats} />
 
             {/* 6. Multi-Column Content Area */}

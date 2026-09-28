@@ -20,6 +20,7 @@ from app.services.exam_service import (
     create_exam,
     get_examiner_exam,
     list_candidate_exams,
+    list_examiner_exams,
     publish_exam,
     schedule_exam,
     update_exam,
@@ -58,6 +59,17 @@ def start_session(
 
 
 # --- EXAMINER ENDPOINTS ---
+
+@router.get("/examiner/exams", response_model=List[ExamExaminerResponse])
+def get_all_examiner_exams(
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100),
+    current_user: User = Depends(require_examiner_access),
+    db: Session = Depends(get_db),
+):
+    """List all examinations for examiner management."""
+    return list_examiner_exams(db, page, limit)
+
 
 @router.post("/examiner/exams", response_model=ExamExaminerResponse, status_code=status.HTTP_201_CREATED)
 def create_new_exam(

@@ -1,12 +1,13 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, UserRole } from '../types/user';
-import { MOCK_CANDIDATE, MOCK_EXAMINER, MOCK_ADMIN } from '../utils/mockData';
-import { storage } from '../utils/storage';
+import { authService } from '../services/authService';
+import { tokenStorage } from '../utils/tokenStorage';
 
 export interface SignupData {
   name: string;
   email: string;
-  role: UserRole;
+  password?: string;
+  role?: UserRole;
   organization?: string;
   preferredLanguage?: string;
 }
@@ -18,22 +19,18 @@ interface AuthContextType {
   isLoading: boolean;
   authError: string | null;
   clearAuthError: () => void;
-  login: (email: string, password?: string, targetRole?: UserRole) => Promise<User>;
+  login: (email: string, password?: string) => Promise<User>;
   signup: (data: SignupData) => Promise<User>;
-  logout: () => void;
-  switchRole: (role: UserRole) => void;
+  logout: () => Promise<void>;
+  // Dev-only demo helper calling real API with seeded credentials
+  loginDemo?: (role: UserRole) => Promise<User>;
 }
-
-const AUTH_USER_STORAGE_KEY = 'gowow_auth_user';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    // Default to mock candidate so candidate views are immediately previewable during development
-    return storage.get<User | null>(AUTH_USER_STORAGE_KEY, MOCK_CANDIDATE);
-  });
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [authError, setAuthError] = useState<string | null>(null);
 
   const role: UserRole = user?.role || 'candidate';
@@ -41,54 +38,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearAuthError = () => setAuthError(null);
 
-  const login = async (email: string, password?: string, targetRole?: UserRole): Promise<User> => {
+  // Initialize session from real backend /auth/me on initial load
+  useEffect(() => {
+    let isMounted = true;
+
+    async function initializeAuth() {
+      if (!tokenStorage.hasToken()) {
+        if (isMounted) {
+          setUser(null);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const currentUser = await authService.getCurrentUser();
+        if (isMounted) {
+          setUser(currentUser);
+        }
+      } catch {
+        if (isMounted) {
+          setUser(null);
+          tokenStorage.clearTokens();
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    initializeAuth();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const login = async (email: string, password?: string): Promise<User> => {
     setIsLoading(true);
     setAuthError(null);
 
     try {
-      // Simulate network response latency
-      await new Promise((resolve) => setTimeout(resolve, 350));
-
-      const normalizedEmail = email.trim().toLowerCase();
-
-      // Mock validation failure check for test accounts
-      if (normalizedEmail === 'error@gowow.demo' || password === 'wrongpassword') {
-        const errorMsg = "We couldn't sign you in. Check your email and password and try again.";
-        setAuthError(errorMsg);
-        throw new Error(errorMsg);
-      }
-
-      // Determine mock role based on demo accounts or targetRole parameter
-      let resolvedRole: UserRole = targetRole || 'candidate';
-      if (normalizedEmail.includes('examiner') || normalizedEmail === 'examiner@gowow.demo') {
-        resolvedRole = 'examiner';
-      } else if (normalizedEmail.includes('admin') || normalizedEmail === 'admin@gowow.demo') {
-        resolvedRole = 'admin';
-      }
-
-      const baseAccount =
-        resolvedRole === 'examiner'
-          ? MOCK_EXAMINER
-          : resolvedRole === 'admin'
-          ? MOCK_ADMIN
-          : MOCK_CANDIDATE;
-
-      const loggedInUser: User = {
-        ...baseAccount,
-        id: `user-${Date.now()}`,
-        email: normalizedEmail,
-        role: resolvedRole,
-      };
-
+      const { user: loggedInUser } = await authService.login(email, password);
       setUser(loggedInUser);
-      storage.set(AUTH_USER_STORAGE_KEY, loggedInUser);
       return loggedInUser;
-    } catch (err) {
-      if (err instanceof Error) {
-        setAuthError(err.message);
-      } else {
-        setAuthError("We couldn't sign you in. Check your email and password and try again.");
-      }
+    } catch (err: any) {
+      const message = err.message || "We couldn't sign you in. Check your email and password and try again.";
+      setAuthError(message);
       throw err;
     } finally {
       setIsLoading(false);
@@ -100,58 +97,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthError(null);
 
     try {
-      // Simulate account creation network latency
-      await new Promise((resolve) => setTimeout(resolve, 400));
+      const nameParts = data.name.trim().split(' ');
+      const firstName = nameParts[0] || 'Candidate';
+      const lastName = nameParts.slice(1).join(' ') || 'User';
 
-      const newUser: User = {
-        id: `user-${Date.now()}`,
-        name: data.name.trim(),
-        email: data.email.trim().toLowerCase(),
-        role: data.role,
-        accessibilityPreferences: {
-          fontSize: 'default',
-          contrast: 'standard',
-          theme: 'dark',
-          audioEnabled: false,
-          speechRate: 'normal',
-          readQuestions: true,
-          readOptions: true,
-          readInstructions: true,
-          announceStatus: true,
-          timerAnnouncements: 'warnings',
-          keyboardFirst: false,
-          screenReaderOptimized: false,
-          reducedMotion: 'system',
-          simplifiedInterface: false,
-          language: data.preferredLanguage || 'en',
-          highContrast: false,
-          audioFeedbackEnabled: false,
-          keyboardOnlyMode: false,
-          preferredLanguage: data.preferredLanguage || 'en',
-        },
-      };
+      const { user: newUser } = await authService.signup({
+        firstName,
+        lastName,
+        email: data.email,
+        password: data.password,
+      });
 
       setUser(newUser);
-      storage.set(AUTH_USER_STORAGE_KEY, newUser);
       return newUser;
+    } catch (err: any) {
+      const message = err.message || 'Unable to complete registration. Please verify your details and try again.';
+      setAuthError(message);
+      throw err;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    setAuthError(null);
-    storage.remove(AUTH_USER_STORAGE_KEY);
+  const logout = async (): Promise<void> => {
+    setIsLoading(true);
+    try {
+      await authService.logout();
+    } finally {
+      setUser(null);
+      setAuthError(null);
+      setIsLoading(false);
+    }
   };
 
-  const switchRole = (newRole: UserRole) => {
-    const mock =
-      newRole === 'examiner' ? MOCK_EXAMINER : newRole === 'admin' ? MOCK_ADMIN : MOCK_CANDIDATE;
-    setUser(mock);
-    setAuthError(null);
-    storage.set(AUTH_USER_STORAGE_KEY, mock);
-  };
+  // Dev-only demo account helper that makes REAL login calls against seeded accounts
+  const loginDemo = import.meta.env.DEV
+    ? async (targetRole: UserRole): Promise<User> => {
+        if (targetRole === 'admin') {
+          return await login('admin@gowow.org', 'AdminSecurePass123!');
+        }
+        if (targetRole === 'examiner') {
+          return await login('examiner@gowow.org', 'ExaminerSecure123!');
+        }
+        return await login('candidate1@gowow.org', 'CandidateSecure123!');
+      }
+    : undefined;
 
   return (
     <AuthContext.Provider
@@ -165,7 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         signup,
         logout,
-        switchRole,
+        loginDemo,
       }}
     >
       {children}

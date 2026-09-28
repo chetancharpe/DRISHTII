@@ -404,3 +404,15 @@ def list_candidate_exams(
         )
 
     return results, total, total_pages
+
+
+def list_examiner_exams(
+    db: Session, page: int = 1, limit: int = 50
+) -> List[ExamExaminerResponse]:
+    """List all exams for examiner management."""
+    exams = db.query(Exam).order_by(Exam.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
+    results: List[ExamExaminerResponse] = []
+    for ex in exams:
+        results.append(get_examiner_exam(db, ex.id))
+    return results
+

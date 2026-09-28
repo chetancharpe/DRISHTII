@@ -61,7 +61,7 @@ def seed_demo_data(force: bool = False):
         if not demo_org:
             demo_org = Organization(
                 name="GoWow Inclusive Academy [DEMO]",
-                code="GOWOW-DEMO",
+                description="GoWow Demo Organization Tenant",
                 is_active=True,
             )
             db.add(demo_org)
@@ -84,7 +84,7 @@ def seed_demo_data(force: bool = False):
                 user_role = UserRole(user_id=user.id, role_id=roles[role_name].id)
                 db.add(user_role)
 
-                user_org = UserOrganization(user_id=user.id, organization_id=demo_org.id, role="MEMBER")
+                user_org = UserOrganization(user_id=user.id, organization_id=demo_org.id, role_in_org="MEMBER")
                 db.add(user_org)
 
                 # Initialize accessibility profile for candidate
@@ -267,6 +267,82 @@ def seed_demo_data(force: bool = False):
                 published_at=now,
             )
             db.add(result)
+
+        # 6. Seed Topic Progress for Candidate
+        from app.models.learning_profile import TopicProgress, LearningActivity
+        from app.models.audit_log import AuditLog
+
+        demo_progress = [
+            ("Mathematics", "Percentages", 15, 11, 4, 73.3),
+            ("Reasoning Ability", "Coding & Decoding", 12, 10, 2, 83.3),
+            ("English Language", "Reading Comprehension", 10, 7, 3, 70.0),
+            ("General Knowledge", "Current Affairs", 10, 5, 5, 50.0),
+        ]
+        for subj, topic, att, corr, incorr, acc in demo_progress:
+            tp = db.query(TopicProgress).filter(
+                TopicProgress.user_id == candidate_user.id,
+                TopicProgress.subject == subj,
+                TopicProgress.topic == topic,
+            ).first()
+            if not tp:
+                tp = TopicProgress(
+                    user_id=candidate_user.id,
+                    subject=subj,
+                    topic=topic,
+                    questions_attempted=att,
+                    correct_answers=corr,
+                    incorrect_answers=incorr,
+                    accuracy=acc,
+                    average_time_seconds=24.5,
+                    last_practiced=now - timedelta(days=1),
+                )
+                db.add(tp)
+
+        # 7. Seed Learning Activities
+        demo_activities = [
+            ("practice_completed", "Completed English Practice", 480, now - timedelta(hours=3)),
+            ("mock_completed", "Finished Reasoning Mock Test", 1800, now - timedelta(days=1)),
+            ("practice_completed", "Practiced 20 GK questions", 600, now - timedelta(days=3)),
+            ("lesson_completed", "Reviewed Mathematics results", 300, now - timedelta(days=4)),
+        ]
+        for act_type, title, dur, ts in demo_activities:
+            act = db.query(LearningActivity).filter(
+                LearningActivity.user_id == candidate_user.id,
+                LearningActivity.activity_type == act_type,
+                LearningActivity.timestamp == ts,
+            ).first()
+            if not act:
+                act = LearningActivity(
+                    user_id=candidate_user.id,
+                    activity_type=act_type,
+                    duration_seconds=dur,
+                    timestamp=ts,
+                    metadata_json={"title": title},
+                )
+                db.add(act)
+
+        # 8. Seed Audit Logs for Admin
+        demo_audit_logs = [
+            ("EXAM_PUBLISHED", "exam", demo_exam.id if demo_exam else "exam-cds-01", "CDS Examination published following accessibility check", admin_user.id, now - timedelta(days=1)),
+            ("USER_CREATED", "user", candidate_user.id, "Candidate user created and enrolled into CDS track", admin_user.id, now - timedelta(days=5)),
+            ("ROLE_ASSIGNED", "user", examiner_user.id, "Assigned EXAMINER role to user", admin_user.id, now - timedelta(days=10)),
+        ]
+        for action, r_type, r_id, details, actor_id, ts in demo_audit_logs:
+            log = db.query(AuditLog).filter(
+                AuditLog.action == action,
+                AuditLog.resource_id == r_id,
+            ).first()
+            if not log:
+                log = AuditLog(
+                    action=action,
+                    resource_type=r_type,
+                    resource_id=r_id,
+                    actor_id=actor_id,
+                    timestamp=ts,
+                    metadata_json={"details": details},
+                    ip_address="192.168.1.100",
+                )
+                db.add(log)
 
         db.commit()
         print("\n[SUCCESS] Demo Environment Seeded Successfully!")

@@ -50,7 +50,7 @@ export const NextActionBanner: React.FC<NextActionBannerProps> = ({ action, clas
           </div>
 
           <p className="text-xs sm:text-sm text-foreground-secondary leading-relaxed">
-            Complete {action.totalQuestions - action.completedQuestions} more questions to finish today's scheduled reasoning practice session.
+            Complete {action.totalQuestions - action.completedQuestions} more questions to finish this scheduled {action.subject} practice session.
           </p>
         </div>
 

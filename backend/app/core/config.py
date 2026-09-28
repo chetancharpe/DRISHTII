@@ -1,5 +1,7 @@
+import logging
 import os
-from typing import List, Union
+import secrets
+from typing import List, Optional, Union
 from pydantic import AnyHttpUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -18,7 +20,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./gowow.db"
 
     # Security
-    JWT_SECRET_KEY: str = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
+    JWT_SECRET_KEY: Optional[str] = None
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 120
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
@@ -27,6 +29,8 @@ class Settings(BaseSettings):
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 60
     AUTH_RATE_LIMIT_PER_MINUTE: int = 10
+    EXAM_AUTOSAVE_RATE_LIMIT_PER_MINUTE: int = 300
+    REDIS_URL: Optional[str] = None
 
     # Backup & Retention
     BACKUP_RETENTION_DAYS: int = 30
@@ -48,14 +52,22 @@ class Settings(BaseSettings):
             return v
         raise ValueError("Invalid format for CORS_ORIGINS")
 
-    @field_validator("JWT_SECRET_KEY")
-    def validate_jwt_secret(cls, v, info):
-        # Prevent deploying with short or default key in production
+    @field_validator("JWT_SECRET_KEY", mode="before")
+    def validate_jwt_secret(cls, v):
         env = os.environ.get("ENVIRONMENT", "development").lower()
         if env == "production":
-            if not v or len(v) < 32 or "09d25e094faa6ca2" in v:
-                raise ValueError("CRITICAL: Production deployment requires a secure, custom 64-character JWT_SECRET_KEY.")
-        return v
+            if not v or len(str(v)) < 32 or "09d25e094faa6ca2" in str(v):
+                raise ValueError("CRITICAL: Production deployment requires a secure, custom 32+ character JWT_SECRET_KEY.")
+            return str(v)
+        
+        # In non-production, if key is not configured, generate ephemeral random secret
+        if not v or not str(v).strip():
+            ephemeral_key = secrets.token_hex(32)
+            logging.getLogger("gowow.security").warning(
+                "SECURITY WARNING: No JWT_SECRET_KEY provided. Auto-generated ephemeral random secret for this session. (Value will not be logged)"
+            )
+            return ephemeral_key
+        return str(v)
 
     # Grace period in seconds for submission transit
     SUBMISSION_GRACE_PERIOD_SECONDS: int = 30

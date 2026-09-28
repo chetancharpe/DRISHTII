@@ -1,12 +1,16 @@
+import os
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.api.routes import (
     accessibility,
+    admin,
     analytics,
     auth,
+    candidate,
     exams,
     learning,
+    mock_tests,
     questions,
     results,
     sessions,
@@ -23,8 +27,9 @@ from app.core.middleware import (
 from app.db.base import Base
 from app.db.database import engine
 
-# Auto-create tables for development / local SQLite testing
-Base.metadata.create_all(bind=engine)
+# Auto-create tables only when ENVIRONMENT=development and Alembic is not being used
+if settings.ENVIRONMENT.lower() == "development" and not os.environ.get("USE_ALEMBIC"):
+    Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -139,3 +144,7 @@ app.include_router(sessions.router, prefix=api_v1_prefix)
 app.include_router(results.router, prefix=api_v1_prefix)
 app.include_router(questions.router, prefix=api_v1_prefix)
 app.include_router(analytics.router, prefix=api_v1_prefix)
+app.include_router(admin.router, prefix=api_v1_prefix)
+app.include_router(candidate.router, prefix=api_v1_prefix)
+app.include_router(mock_tests.router, prefix=api_v1_prefix)
+

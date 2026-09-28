@@ -16,7 +16,7 @@ export const AccessibilityFeaturesSection: React.FC = () => {
     {
       icon: <Volume2 className="w-6 h-6 text-primary" aria-hidden="true" />,
       title: 'Screen Reader Friendly',
-      desc: 'Semantic page structures, meaningful labels, accessible controls, and assistive-technology-friendly interactions tested with NVDA, JAWS, and VoiceOver.',
+      desc: 'Semantic landmarks, explicit ARIA live regions, accessible form controls, and linear reading order engineered for assistive technologies.',
     },
     {
       icon: <Keyboard className="w-6 h-6 text-primary" aria-hidden="true" />,

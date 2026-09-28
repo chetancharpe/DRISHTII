@@ -1,44 +1,133 @@
-import { User } from '../types/user';
-import { MOCK_CANDIDATE } from '../utils/mockData';
+import { apiClient } from './api';
+import { tokenStorage } from '../utils/tokenStorage';
+import { User, UserRole } from '../types/user';
 
-/**
- * Authentication Service
- * Prepares endpoints for FastAPI OAuth2 / JWT integration:
- * - POST /api/v1/auth/login
- * - POST /api/v1/auth/signup
- * - POST /api/v1/auth/logout
- * - GET  /api/v1/auth/me
- */
+export interface BackendUserResponse {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  permissions?: string[];
+  is_active: boolean;
+}
+
+export interface BackendTokenResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  user: BackendUserResponse;
+}
+
+export function mapBackendUserToClient(backendUser: BackendUserResponse): User {
+  const role = (backendUser.role || 'CANDIDATE').toLowerCase() as UserRole;
+  return {
+    id: backendUser.id,
+    name: `${backendUser.first_name || ''} ${backendUser.last_name || ''}`.trim() || backendUser.email,
+    email: backendUser.email,
+    role: role === 'examiner' ? 'examiner' : role === 'admin' ? 'admin' : 'candidate',
+    accessibilityPreferences: {
+      fontSize: 'default',
+      contrast: 'standard',
+      theme: 'dark',
+      audioEnabled: false,
+      speechRate: 'normal',
+      readQuestions: true,
+      readOptions: true,
+      readInstructions: true,
+      announceStatus: true,
+      timerAnnouncements: 'warnings',
+      keyboardFirst: false,
+      screenReaderOptimized: false,
+      reducedMotion: 'system',
+      simplifiedInterface: false,
+      language: 'en',
+      highContrast: false,
+      audioFeedbackEnabled: false,
+      keyboardOnlyMode: false,
+      preferredLanguage: 'en',
+    },
+  };
+}
+
 export const authService = {
-  async login(email: string, _password: string): Promise<{ user: User; token: string }> {
-    // Future FastAPI connection:
-    // return apiClient<{ user: User; token: string }>('/auth/login', {
-    //   method: 'POST',
-    //   body: JSON.stringify({ username: email, password }),
-    // });
-    return {
-      user: { ...MOCK_CANDIDATE, email },
-      token: 'mock-jwt-bearer-token',
-    };
+  async login(email: string, password?: string): Promise<{ user: User; token: string }> {
+    const res = await apiClient<BackendTokenResponse>('/auth/login', {
+      method: 'POST',
+      skipAuth: true,
+      body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+    });
+
+    tokenStorage.setTokens(res.access_token, res.refresh_token);
+    const user = mapBackendUserToClient(res.user);
+    return { user, token: res.access_token };
   },
 
-  async signup(data: { name: string; email: string; role: string }): Promise<{ user: User; token: string }> {
-    // Future FastAPI connection:
-    // return apiClient('/auth/signup', { method: 'POST', body: JSON.stringify(data) });
-    return {
-      user: { ...MOCK_CANDIDATE, name: data.name, email: data.email },
-      token: 'mock-jwt-bearer-token',
-    };
+  async signup(data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password?: string;
+  }): Promise<{ user: User; token: string }> {
+    const res = await apiClient<BackendTokenResponse>('/auth/register', {
+      method: 'POST',
+      skipAuth: true,
+      body: JSON.stringify({
+        first_name: data.firstName.trim(),
+        last_name: data.lastName.trim(),
+        email: data.email.trim().toLowerCase(),
+        password: data.password || 'CandidateSecure123!',
+      }),
+    });
+
+    tokenStorage.setTokens(res.access_token, res.refresh_token);
+    const user = mapBackendUserToClient(res.user);
+    return { user, token: res.access_token };
   },
 
   async getCurrentUser(): Promise<User | null> {
-    // Future FastAPI connection:
-    // return apiClient<User>('/auth/me');
-    return MOCK_CANDIDATE;
+    if (!tokenStorage.hasToken()) {
+      return null;
+    }
+
+    try {
+      const res = await apiClient<BackendUserResponse>('/auth/me');
+      return mapBackendUserToClient(res);
+    } catch {
+      tokenStorage.clearTokens();
+      return null;
+    }
   },
 
   async logout(): Promise<void> {
-    // Future FastAPI connection:
-    // return apiClient('/auth/logout', { method: 'POST' });
+    const refreshToken = tokenStorage.getRefreshToken();
+    try {
+      await apiClient('/auth/logout', {
+        method: 'POST',
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+    } catch {
+      // Ignore network errors on logout
+    } finally {
+      tokenStorage.clearTokens();
+    }
+  },
+
+  async requestPasswordReset(email: string): Promise<string> {
+    const res = await apiClient<{ status: string; message: string }>('/auth/forgot-password', {
+      method: 'POST',
+      skipAuth: true,
+      body: JSON.stringify({ email: email.trim().toLowerCase() }),
+    });
+    return res.message;
+  },
+
+  async resetPassword(token: string, newPassword: string): Promise<string> {
+    const res = await apiClient<{ status: string; message: string }>('/auth/reset-password', {
+      method: 'POST',
+      skipAuth: true,
+      body: JSON.stringify({ token, new_password: newPassword }),
+    });
+    return res.message;
   },
 };

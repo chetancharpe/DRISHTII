@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   LineChart,
   Target,
+  Volume2,
 } from 'lucide-react';
 import { Card } from '../common/Card';
 
@@ -14,38 +15,43 @@ export const CandidateExperienceSection: React.FC = () => {
   const showcaseModules = [
     {
       icon: <LayoutDashboard className="w-5 h-5 text-primary" aria-hidden="true" />,
-      title: 'Personalized Dashboard',
-      desc: 'Quick access to active assignments, scheduled competitive tests, and recent scores with streamlined screen-reader summary landmarks.',
+      title: 'Adaptive Dashboard',
+      desc: 'Instant overview of daily targets, routine streaks, active assignments, and your next study session.',
     },
     {
       icon: <FileCheck className="w-5 h-5 text-primary" aria-hidden="true" />,
-      title: 'Practice Questions',
-      desc: 'Subject and topic-wise practice banks with adjustable font sizing, step-by-step solutions, and immediate acoustic confirmation.',
+      title: 'Topic-Wise Practice',
+      desc: 'Comprehensive practice question banks with adjustable font scaling, spoken formulas, and instant acoustic feedback.',
     },
     {
       icon: <FileSpreadsheet className="w-5 h-5 text-primary" aria-hidden="true" />,
-      title: 'Timed Mock Tests',
-      desc: 'Simulate high-stakes competitive examinations with realistic question palettes, section hopping, and accessible countdown warnings.',
+      title: 'Timed Mock Simulations',
+      desc: 'Simulate high-stakes exam conditions with realistic question palettes, calm countdown alerts, and section hopping.',
     },
     {
       icon: <MonitorCheck className="w-5 h-5 text-primary" aria-hidden="true" />,
-      title: 'Accessible Exam Interface',
-      desc: 'Strictly keyboard-controlled test interface with Alt+A accessibility access, clear radio buttons, and focus lock during question reading.',
+      title: 'Barrier-Free Exam Hall',
+      desc: 'Strictly keyboard-operable interface with Alt+A calibration, persistent focus outlines, and auto-saving synchronization.',
     },
     {
       icon: <CheckCircle2 className="w-5 h-5 text-primary" aria-hidden="true" />,
-      title: 'Transparent Results',
-      desc: 'Comprehensive scorecards showing total marks, time elapsed per section, and answer review with screen-reader accessible tables.',
+      title: 'Transparent Scorecards',
+      desc: 'Detailed diagnostic results with section-wise marks, pacing telemetry, and screen-reader accessible tabular summaries.',
     },
     {
       icon: <LineChart className="w-5 h-5 text-primary" aria-hidden="true" />,
-      title: 'Progress Tracking',
-      desc: 'Track accuracy curves and test frequency over time through accessible textual summaries and high-contrast telemetry indicators.',
+      title: 'Progress Telemetry',
+      desc: 'Track accuracy trends over time through high-contrast indicators and accessible textual milestone narratives.',
     },
     {
       icon: <Target className="w-5 h-5 text-primary" aria-hidden="true" />,
-      title: 'Weak-Topic Identification',
-      desc: 'Specific recommendations pointing candidates directly toward chapters and subtopics that need revision before exam day.',
+      title: 'Weak-Topic Diagnostics',
+      desc: 'Intelligent revision recommendations highlighting specific chapters and topics that need reinforcement.',
+    },
+    {
+      icon: <Volume2 className="w-5 h-5 text-primary" aria-hidden="true" />,
+      title: 'Audio-First Formulas',
+      desc: 'Candidate-controlled speech synthesis that speaks complex mathematical equations and tables with unambiguous clarity.',
     },
   ];
 
@@ -63,24 +69,24 @@ export const CandidateExperienceSection: React.FC = () => {
           Everything You Need to Prepare With Confidence
         </h2>
         <p className="text-body text-foreground-secondary leading-relaxed">
-          GoWow provides a unified ecosystem where visually impaired candidates independently navigate preparation, practice tests, live examinations, and detailed post-exam analytics.
+          GoWow provides a unified learning and testing environment where visually impaired and low-vision candidates independently prepare, practice, sit for exams, and review diagnostic scorecards.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {showcaseModules.map((item) => (
           <Card
             key={item.title}
             variant="default"
-            className="p-6 flex flex-col justify-start hover:border-border-strong transition-all duration-fast"
+            className="p-5 flex flex-col justify-start hover:border-border-strong hover:shadow-sm transition-all duration-fast"
           >
             <div
-              className="w-10 h-10 rounded-md bg-surface-elevated border border-border flex items-center justify-center mb-4 shrink-0"
+              className="w-10 h-10 rounded-lg bg-surface-elevated border border-border flex items-center justify-center mb-3 shrink-0"
               aria-hidden="true"
             >
               {item.icon}
             </div>
-            <h3 className="text-base font-bold text-foreground mb-2">
+            <h3 className="text-sm font-bold text-foreground mb-1.5">
               {item.title}
             </h3>
             <p className="text-xs text-foreground-muted leading-relaxed">

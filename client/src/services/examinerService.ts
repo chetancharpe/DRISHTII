@@ -17,12 +17,138 @@ import {
   SystemAnnouncement,
   ExamPublishChecklist,
 } from '../types/examiner';
-import {
-  INITIAL_EXAMINER_EXAMS,
-  INITIAL_AGGREGATE_MONITOR,
-  INITIAL_EXAM_INCIDENTS,
-  INITIAL_ANNOUNCEMENTS,
-} from '../data/examinerData';
+
+const INITIAL_EXAMINER_EXAMS: ExaminerExam[] = [
+  {
+    id: 'exam-01',
+    code: 'EXAM-2026-AAA',
+    title: 'All India Accessible Aptitude Assessment 2026',
+    description: 'Premier national competitive entrance assessment for higher technical education with native screen reader and keyboard optimization.',
+    organization: 'National Assessment Council',
+    organizationId: 'org-01',
+    category: 'Competitive Entrance',
+    examType: 'competitive',
+    language: 'English',
+    instructions: '1. Total duration is 60 minutes.\n2. All questions are screen reader and keyboard-friendly.\n3. Calculator is prohibited.',
+    lifecycleStatus: 'LIVE',
+    version: 2,
+    isImmutable: true,
+    totalQuestions: 50,
+    totalMarks: 100,
+    candidatesCount: 1055,
+    candidateGroupIds: ['grp-01', 'grp-02'],
+    createdAt: '2026-08-15',
+    updatedAt: '2026-09-24',
+    publishedAt: '2026-09-24 16:45 IST',
+    sections: [
+      {
+        id: 'sec-01',
+        title: 'Quantitative Aptitude',
+        code: 'SEC-QA',
+        description: 'Arithmetic progressions, algebra, and numeric sequence problems.',
+        questionCount: 20,
+        durationMinutes: 25,
+        navigationPolicy: 'free',
+        questionIds: ['qb-101', 'qb-102'],
+      },
+    ],
+    rules: {
+      durationMinutes: 60,
+      allowBackNavigation: true,
+      allowSectionSwitching: true,
+      allowReviewMarking: true,
+      randomizeQuestionOrder: false,
+      randomizeOptionOrder: false,
+      calculatorPolicy: 'none',
+      pausePermission: false,
+      attemptCountLimit: 1,
+    },
+    accessibility: {
+      screenReaderOptimized: true,
+      audioQuestionSupport: true,
+      audioPolicy: 'allowed',
+      textScalingSupport: true,
+      highContrastSupport: true,
+      darkModeSupport: true,
+      reducedMotionSupport: true,
+      keyboardNavigationFirst: true,
+      extraTimeMultiplier: 1.5,
+    },
+    schedule: {
+      startDate: '2026-09-27',
+      startTime: '09:00',
+      endDate: '2026-09-27',
+      endTime: '18:00',
+      durationMinutes: 60,
+      timezone: 'IST (UTC+05:30)',
+      attemptWindowHours: 9,
+      candidateAvailability: 'all_assigned',
+    },
+    markingScheme: {
+      correctMarks: 2,
+      negativeMarks: 0.5,
+      unansweredMarks: 0,
+      description: '+2 for correct response, -0.5 for incorrect response, 0 for unattempted.',
+    },
+    checklist: {
+      basicInfoComplete: true,
+      structureValid: true,
+      questionsAssigned: true,
+      correctAnswersVerified: true,
+      markingSchemeConfigured: true,
+      accessibilityChecksPassed: true,
+      candidateGroupAssigned: true,
+      scheduleValid: true,
+      instructionsAccessible: true,
+      securityConfigured: true,
+      previewVerified: true,
+      blockingErrors: [],
+      warnings: [],
+    },
+  },
+];
+
+const INITIAL_AGGREGATE_MONITOR: AggregateSessionMonitoring = {
+  examId: 'exam-01',
+  examTitle: 'All India Accessible Aptitude Assessment 2026',
+  totalCandidates: 1055,
+  notStarted: 124,
+  inProgress: 618,
+  submitted: 288,
+  temporarilyDisconnected: 19,
+  expired: 6,
+  submissionPending: 0,
+  averageProgressPercentage: 64,
+  lastUpdatedTimestamp: Date.now(),
+  isPaused: false,
+};
+
+const INITIAL_EXAM_INCIDENTS: ExamIncident[] = [
+  {
+    id: 'inc-501',
+    examId: 'exam-01',
+    candidateRef: 'GW-2026-10493 (Priya S.)',
+    timestamp: '2026-09-27 10:14 IST',
+    type: 'reconnect',
+    severity: 'low',
+    status: 'resolved',
+    actionTaken: 'Candidate reconnected automatically. Local encrypted answers synchronized with zero data loss.',
+    notes: 'Brief 14-second Wi-Fi reconnect event.',
+  },
+];
+
+const INITIAL_ANNOUNCEMENTS: SystemAnnouncement[] = [
+  {
+    id: 'ann-01',
+    examId: 'exam-01',
+    sentAt: '2026-09-27 09:30 IST',
+    sentBy: 'Chief Examiner Thorne',
+    message: 'Welcome candidates. Please note all mathematics questions contain audio speech transcripts accessible via Alt+S.',
+    priority: 'normal',
+    acknowledgedByCount: 590,
+  },
+];
+
 import { storage } from '../utils/storage';
 
 const EXAMS_STORAGE_KEY = 'gowow_examiner_exams';

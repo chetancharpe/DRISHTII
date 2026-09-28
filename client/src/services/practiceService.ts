@@ -6,73 +6,54 @@ import {
   PracticeSessionFilter,
   PracticeWeakTopic,
 } from '../types/practice';
-import { MOCK_PRACTICE_HISTORY, MOCK_PRACTICE_QUESTIONS } from '../data/practiceData';
+import { apiClient } from './api';
 
 /**
  * Service abstraction for practice sessions, questions, feedback, and history.
- * Mirrors future FastAPI REST endpoints:
- * - GET /api/questions?subject=...&topic=...
- * - POST /api/practice/sessions
- * - GET /api/practice/sessions/:id
- * - POST /api/practice/sessions/:id/answers
- * - POST /api/practice/sessions/:id/finish
- * - GET /api/practice/sessions/:id/result
- * - GET /api/practice/history
+ * Connected directly to FastAPI endpoints:
+ * - GET /practice/questions?subjectId=...&topicId=...&difficulty=...
+ * - POST /practice/verify-answer
+ * - GET /practice/history
+ *
+ * Client NEVER receives correct answers or explanations prior to submitting an answer!
  */
 
-const SIMULATED_LATENCY_MS = 100;
-
-// In-memory sessions store for client-side prototype sessions
-const activeSessions: Map<string, PracticeSession> = new Map();
+// In-memory sessions store for active candidate practice sessions
+const activeSessions: Map<string, PracticeSession & {
+  explanations?: Record<string, string>;
+  correctOptions?: Record<string, string[]>;
+}> = new Map();
 const completedResults: Map<string, PracticeResult> = new Map();
 
 export const practiceService = {
   /**
-   * Filters questions by subject, topic, and difficulty.
+   * Filters questions by subject, topic, and difficulty from real backend.
    */
   async getQuestions(filter: Partial<PracticeSessionFilter>): Promise<PracticeQuestion[]> {
-    await new Promise((r) => setTimeout(r, SIMULATED_LATENCY_MS));
-    return MOCK_PRACTICE_QUESTIONS.filter((q) => {
-      if (filter.subjectId && filter.subjectId !== 'all' && q.subjectId !== filter.subjectId) return false;
-      if (filter.topicId && filter.topicId !== 'all' && q.topicId !== filter.topicId) return false;
-      if (filter.difficulty && filter.difficulty !== 'all' && q.difficulty !== filter.difficulty) return false;
-      return true;
-    });
+    const params = new URLSearchParams();
+    if (filter.subjectId && filter.subjectId !== 'all') params.append('subjectId', filter.subjectId);
+    if (filter.topicId && filter.topicId !== 'all') params.append('topicId', filter.topicId);
+    if (filter.difficulty && filter.difficulty !== 'all') params.append('difficulty', filter.difficulty);
+    if (filter.questionCount) params.append('limit', String(filter.questionCount));
+
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiClient.get<PracticeQuestion[]>(`/practice/questions${query}`);
   },
 
   /**
-   * Initializes a new practice session with the requested filter criteria.
+   * Initializes a new practice session with sanitized questions from backend.
    */
   async startPracticeSession(filter: PracticeSessionFilter): Promise<PracticeSession> {
-    await new Promise((r) => setTimeout(r, SIMULATED_LATENCY_MS));
+    const sessionQuestions = await this.getQuestions(filter);
 
-    // Get matching questions or fallback to general pool if topic has limited set
-    let matching = MOCK_PRACTICE_QUESTIONS.filter((q) => {
-      if (filter.subjectId && filter.subjectId !== 'all' && q.subjectId !== filter.subjectId) return false;
-      if (filter.topicId && filter.topicId !== 'all' && q.topicId !== filter.topicId) return false;
-      if (filter.difficulty && filter.difficulty !== 'all' && q.difficulty !== filter.difficulty) return false;
-      return true;
-    });
-
-    if (matching.length === 0) {
-      matching = MOCK_PRACTICE_QUESTIONS.filter((q) => {
-        if (filter.subjectId && filter.subjectId !== 'all') return q.subjectId === filter.subjectId;
-        return true;
-      });
-    }
-
-    if (matching.length === 0) {
-      matching = [...MOCK_PRACTICE_QUESTIONS];
-    }
-
-    // Limit to requested count
-    const sessionQuestions = matching.slice(0, filter.questionCount || 10);
     const sessionId = `practice-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
     const subjectName = sessionQuestions[0]?.subjectName || 'Practice';
     const topicName = sessionQuestions[0]?.topicName || 'General Topic';
 
-    const newSession: PracticeSession = {
+    const newSession: PracticeSession & {
+      explanations?: Record<string, string>;
+      correctOptions?: Record<string, string[]>;
+    } = {
       id: sessionId,
       subjectId: filter.subjectId,
       subjectName,
@@ -86,7 +67,9 @@ export const practiceService = {
       status: 'in_progress',
       startedAt: new Date().toISOString(),
       timeElapsedSeconds: 0,
-      timeLimitSeconds: filter.questionCount ? filter.questionCount * 90 : 600, // 1.5 mins per question
+      timeLimitSeconds: filter.questionCount ? filter.questionCount * 90 : 600,
+      explanations: {},
+      correctOptions: {},
     };
 
     activeSessions.set(sessionId, newSession);
@@ -97,10 +80,8 @@ export const practiceService = {
    * Retrieves an active or completed practice session by ID.
    */
   async getPracticeSession(sessionId: string): Promise<PracticeSession | null> {
-    await new Promise((r) => setTimeout(r, SIMULATED_LATENCY_MS));
     const session = activeSessions.get(sessionId);
     if (!session) {
-      // Create a default session for demo/direct URL access
       const defaultFilter: PracticeSessionFilter = {
         examId: 'cds',
         subjectId: 'mathematics',
@@ -108,14 +89,15 @@ export const practiceService = {
         difficulty: 'medium',
         questionCount: 5,
       };
-      const fallback = await practiceService.startPracticeSession(defaultFilter);
-      return fallback;
+      return practiceService.startPracticeSession(defaultFilter);
     }
     return { ...session };
   },
 
   /**
    * Submits an answer for a specific question within a practice session.
+   * Authenticated server-side verification: backend evaluates answer, updates topic progress,
+   * and returns the explanation and correct answer key.
    */
   async submitAnswer(
     sessionId: string,
@@ -123,39 +105,48 @@ export const practiceService = {
     selectedOptionIds: string[],
     timeSpentSeconds: number = 0
   ): Promise<{ session: PracticeSession; isCorrect: boolean; explanation: string }> {
-    await new Promise((r) => setTimeout(r, 60));
     const session = activeSessions.get(sessionId);
     if (!session) throw new Error('Practice session not found.');
 
-    const question = session.questions.find((q) => q.id === questionId);
-    if (!question) throw new Error('Question not found in this practice session.');
-
-    const isCorrect =
-      selectedOptionIds.length === question.correctOptionIds.length &&
-      selectedOptionIds.every((id) => question.correctOptionIds.includes(id));
+    // Authoritative server-side answer verification
+    const verification = await apiClient.post<{
+      question_id: string;
+      is_correct: boolean;
+      correct_option_ids: string[];
+      explanation: string;
+    }>('/practice/verify-answer', {
+      question_id: questionId,
+      selected_option_ids: selectedOptionIds,
+      time_spent_seconds: timeSpentSeconds,
+    });
 
     session.answers[questionId] = {
       selectedOptionIds,
       isSubmitted: true,
-      isCorrect,
+      isCorrect: verification.is_correct,
       isSkipped: false,
       timeSpentSeconds,
     };
+
+    if (!session.explanations) session.explanations = {};
+    if (!session.correctOptions) session.correctOptions = {};
+
+    session.explanations[questionId] = verification.explanation;
+    session.correctOptions[questionId] = verification.correct_option_ids;
 
     activeSessions.set(sessionId, session);
 
     return {
       session: { ...session },
-      isCorrect,
-      explanation: question.explanation,
+      isCorrect: verification.is_correct,
+      explanation: verification.explanation,
     };
   },
 
   /**
-   * Marks a question as skipped for now.
+   * Marks a question as skipped.
    */
   async skipQuestion(sessionId: string, questionId: string): Promise<PracticeSession> {
-    await new Promise((r) => setTimeout(r, 40));
     const session = activeSessions.get(sessionId);
     if (!session) throw new Error('Practice session not found.');
 
@@ -175,7 +166,6 @@ export const practiceService = {
    * Concludes a practice session and generates comprehensive results.
    */
   async finishPracticeSession(sessionId: string, timeElapsedSeconds: number): Promise<PracticeResult> {
-    await new Promise((r) => setTimeout(r, SIMULATED_LATENCY_MS));
     const session = activeSessions.get(sessionId);
     if (!session) throw new Error('Practice session not found.');
 
@@ -208,10 +198,10 @@ export const practiceService = {
         type: q.type,
         difficulty: q.difficulty,
         userSelectedOptionIds: ans?.selectedOptionIds || [],
-        correctOptionIds: q.correctOptionIds,
+        correctOptionIds: session.correctOptions?.[q.id] || [],
         isCorrect,
         isSkipped,
-        explanation: q.explanation,
+        explanation: session.explanations?.[q.id] || 'Pedagogical explanation available upon question attempt.',
         options: q.options,
       };
     });
@@ -223,7 +213,6 @@ export const practiceService = {
     const secs = timeElapsedSeconds % 60;
     const timeUsedFormatted = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
 
-    // Rule-based demo weak topics
     const weakTopics: PracticeWeakTopic[] = [];
     if (accuracyPercent < 75) {
       weakTopics.push({
@@ -242,7 +231,7 @@ export const practiceService = {
     const recommendedNextStep =
       accuracyPercent >= 80
         ? `Great conceptual grasp! You are ready to explore the next subtopic or attempt a full mock test.`
-        : `Review the detailed explanations below and reinforce your understanding with an additional 5-question practice set.`;
+        : `Review the detailed explanations below and reinforce your understanding with an additional practice set.`;
 
     const result: PracticeResult = {
       sessionId,
@@ -273,53 +262,17 @@ export const practiceService = {
    * Retrieves results for a completed practice session.
    */
   async getPracticeResult(sessionId: string): Promise<PracticeResult | null> {
-    await new Promise((r) => setTimeout(r, SIMULATED_LATENCY_MS));
     const cached = completedResults.get(sessionId);
     if (cached) return { ...cached };
 
-    // Fallback demo result for direct link access
-    const demoQuestions = MOCK_PRACTICE_QUESTIONS.slice(0, 5);
-    const fallback: PracticeResult = {
-      sessionId,
-      subjectId: 'mathematics',
-      subjectName: 'Mathematics',
-      topicId: 'percentages',
-      topicName: 'Percentages',
-      difficulty: 'medium',
-      totalQuestions: 5,
-      correctCount: 4,
-      incorrectCount: 1,
-      skippedCount: 0,
-      accuracyPercent: 80,
-      timeUsedSeconds: 245,
-      timeUsedFormatted: '4m 05s',
-      summaryTitle: 'Good Progress',
-      summaryMessage: 'You answered 4 of 5 questions correctly.',
-      recommendedNextStep: 'Review the Percentages concept notes and attempt a 10-question set.',
-      weakTopics: [],
-      reviews: demoQuestions.map((q, idx) => ({
-        questionId: q.id,
-        questionIndex: idx + 1,
-        questionText: q.questionText,
-        type: q.type,
-        difficulty: q.difficulty,
-        userSelectedOptionIds: idx === 1 ? ['A'] : q.correctOptionIds,
-        correctOptionIds: q.correctOptionIds,
-        isCorrect: idx !== 1,
-        isSkipped: false,
-        explanation: q.explanation,
-        options: q.options,
-      })),
-    };
-
-    return fallback;
+    // Fallback result if accessed directly
+    return null;
   },
 
   /**
-   * Fetches the candidate's prior practice history.
+   * Fetches the candidate's prior practice history from real backend.
    */
   async getPracticeHistory(): Promise<PracticeHistoryItem[]> {
-    await new Promise((r) => setTimeout(r, SIMULATED_LATENCY_MS));
-    return [...MOCK_PRACTICE_HISTORY];
+    return apiClient.get<PracticeHistoryItem[]>('/practice/history');
   },
 };

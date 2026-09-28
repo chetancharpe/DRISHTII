@@ -215,7 +215,7 @@ export const ExamPreviewSection: React.FC = () => {
 
       <div className="mt-4 text-center">
         <p className="text-xs text-foreground-muted">
-          * Conceptual interactive preview. Keyboard shortcuts, screen reader linearizations, and acoustic cues will be fully functional during live mock tests.
+          Interactive preview demonstrating accessible question card layout, visible keyboard shortcut badges, and radio selection feedback.
         </p>
       </div>
     </section>

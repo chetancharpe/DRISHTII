@@ -10,7 +10,7 @@
  */
 
 import { QuestionBankItem, BankQuestionAccessibility } from '../types/examiner';
-import { INITIAL_QUESTION_BANK } from '../data/questionBankData';
+import { INITIAL_QUESTION_BANK } from '../fixtures/examinerFixtures';
 import { storage } from '../utils/storage';
 
 const QB_STORAGE_KEY = 'gowow_question_bank';

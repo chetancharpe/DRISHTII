@@ -55,7 +55,7 @@ export interface TranslationDictionary {
 
 export const translations: Record<SupportedLocale, Partial<TranslationDictionary>> = {
   en: {
-    skipToContent: 'Skip to main content [Press Enter]',
+    skipToContent: 'Skip to main content',
     accessibilitySettings: 'Accessibility Settings (Alt+A)',
     closeDialog: 'Close dialog',
     loading: 'Loading content...',

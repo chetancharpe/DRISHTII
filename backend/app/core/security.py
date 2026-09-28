@@ -1,3 +1,5 @@
+import re
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional, Union
 from jose import JWTError, jwt
@@ -8,6 +10,28 @@ import bcrypt
 
 # Password hashing context with bcrypt
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def validate_password_strength(password: str) -> tuple[bool, str]:
+    """
+    Validate that password meets platform security requirements:
+    - At least 8 characters
+    - At least one uppercase letter
+    - At least one lowercase letter
+    - At least one digit
+    - At least one special symbol
+    """
+    if not password or len(password) < 8:
+        return False, "Password must be at least 8 characters long."
+    if not re.search(r"[A-Z]", password):
+        return False, "Password must contain at least one uppercase letter."
+    if not re.search(r"[a-z]", password):
+        return False, "Password must contain at least one lowercase letter."
+    if not re.search(r"\d", password):
+        return False, "Password must contain at least one digit."
+    if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?`~]", password):
+        return False, "Password must contain at least one special character (e.g. !@#$%^&*)."
+    return True, ""
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -59,14 +83,16 @@ def create_access_token(
     return encoded_jwt
 
 
-def create_refresh_token(subject: Union[str, Any]) -> str:
-    """Generate long-lived refresh token."""
+def create_refresh_token(subject: Union[str, Any], jti: Optional[str] = None) -> str:
+    """Generate long-lived refresh token with cryptographic jti for server-side rotation."""
+    token_jti = jti or str(uuid.uuid4())
     expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode = {
         "exp": expire,
         "iat": datetime.now(timezone.utc),
         "sub": str(subject),
         "type": "refresh",
+        "jti": token_jti,
     }
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 

@@ -5,7 +5,7 @@ import {
   ExamSubmission,
   ExamSyncState,
 } from '../types/exam';
-import { DEMO_EXAMS } from '../data/examData';
+import { DEMO_EXAMS } from '../fixtures/examFixtures';
 
 /**
  * GoWow Live Examination Service

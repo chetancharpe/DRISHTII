@@ -12,6 +12,7 @@ from app.schemas.auth import (
     ResetPasswordRequest,
     TokenResponse,
 )
+from typing import Optional
 from app.services.auth_service import (
     authenticate_user,
     get_user_role_and_permissions,
@@ -19,6 +20,7 @@ from app.services.auth_service import (
     register_user,
     request_password_reset,
     reset_password,
+    revoke_user_refresh_tokens,
 )
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -75,7 +77,16 @@ def get_me(current_user: User = Depends(get_current_user), db: Session = Depends
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(current_user: User = Depends(get_current_user)):
-    """Stateless logout confirmation endpoint."""
+def logout(
+    data: Optional[RefreshTokenRequest] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Revoke refresh token(s) and conclude authenticated session."""
+    revoke_user_refresh_tokens(
+        db,
+        user_id=current_user.id,
+        refresh_token=data.refresh_token if data else None,
+    )
     return None
 

@@ -38,7 +38,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
     <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-fast">
       {/* Skip to Main Auth Form */}
       <a href="#auth-form-content" className="skip-link">
-        Skip to form fields [Press Enter]
+        Skip to form fields
       </a>
 
       {/* Top Accessible Bar */}

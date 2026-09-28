@@ -1,11 +1,10 @@
 /**
  * Candidate Service Layer for GoWow
- * Architecture: Separates API / data retrieval from React components.
- * Can be dropped in with FastAPI REST endpoints without changing React component interfaces.
+ * Connects directly to FastAPI backend via apiClient.
  */
 
 import { CandidateDashboardData } from '../types/candidateDashboard';
-import { MOCK_CANDIDATE_DASHBOARD_DATA } from '../data/candidateDashboardData';
+import { apiClient } from './api';
 
 export interface CandidateServiceOptions {
   simulateDelayMs?: number;
@@ -14,28 +13,17 @@ export interface CandidateServiceOptions {
 
 class CandidateService {
   /**
-   * Fetches full candidate dashboard payload
+   * Fetches full candidate dashboard payload from backend API
    */
-  async getDashboardData(options: CandidateServiceOptions = {}): Promise<CandidateDashboardData> {
-    const { simulateDelayMs = 250, simulateError = false } = options;
-
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (simulateError) {
-          reject(new Error('Failed to load candidate dashboard telemetry.'));
-        } else {
-          // Return deep clone of mock data to prevent accidental mutations
-          resolve(JSON.parse(JSON.stringify(MOCK_CANDIDATE_DASHBOARD_DATA)));
-        }
-      }, simulateDelayMs);
-    });
+  async getDashboardData(_options?: CandidateServiceOptions): Promise<CandidateDashboardData> {
+    return apiClient.get<CandidateDashboardData>('/candidate/dashboard');
   }
 
   /**
    * Fetches empty state variant for testing empty states
    */
   async getEmptyDashboardData(): Promise<CandidateDashboardData> {
-    const base = await this.getDashboardData({ simulateDelayMs: 150 });
+    const base = await this.getDashboardData();
     return {
       ...base,
       continueLearning: null,

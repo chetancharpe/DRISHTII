@@ -121,3 +121,126 @@ class LearningActivityResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# --- Curriculum & Practice Schemas for Frontend Integration ---
+
+class LearningTopicSummary(BaseModel):
+    id: str
+    subjectId: str
+    name: str
+    shortDescription: str
+    progressPercent: int = 0
+    completedLessons: int = 0
+    totalLessons: int = 10
+    estimatedMinutes: int = 15
+    isRecommended: Optional[bool] = False
+    practiceAvailable: bool = True
+    practiceCount: int = 15
+
+
+class LearningSubjectResponse(BaseModel):
+    id: str
+    examId: str = "cds"
+    name: str
+    code: str
+    description: str
+    iconName: str
+    progressPercent: int = 0
+    completedTopicsCount: int = 0
+    totalTopicsCount: int = 3
+    topics: List[LearningTopicSummary] = Field(default_factory=list)
+    recommendedTopicId: Optional[str] = None
+
+
+class LessonFormula(BaseModel):
+    id: str
+    visualText: str
+    accessibleText: str
+    explanation: Optional[str] = None
+
+
+class LessonExample(BaseModel):
+    id: str
+    question: str
+    steps: List[str]
+    answer: str
+    explanation: Optional[str] = None
+
+
+class LessonSection(BaseModel):
+    id: str
+    title: str
+    paragraphs: List[str] = Field(default_factory=list)
+    formulas: Optional[List[LessonFormula]] = None
+    examples: Optional[List[LessonExample]] = None
+    keyPoints: Optional[List[str]] = None
+
+
+class LearningTopicDetailResponse(BaseModel):
+    id: str
+    subjectId: str
+    name: str
+    shortDescription: str
+    progressPercent: int = 0
+    completedLessons: int = 0
+    totalLessons: int = 10
+    estimatedMinutes: int = 15
+    isRecommended: Optional[bool] = False
+    practiceAvailable: bool = True
+    practiceCount: int = 15
+    learningObjectives: List[str] = Field(default_factory=list)
+    overview: str
+    sections: List[LessonSection] = Field(default_factory=list)
+    quickRecap: Optional[List[str]] = None
+    audioNarrative: Optional[str] = None
+
+
+class PracticeQuestionOption(BaseModel):
+    id: str
+    label: str
+    text: str
+
+
+class PracticeQuestionSanitized(BaseModel):
+    id: str
+    subjectId: str
+    subjectName: str
+    topicId: str
+    topicName: str
+    type: str = "single_choice"
+    difficulty: str = "medium"
+    questionText: str
+    options: List[PracticeQuestionOption]
+    hint: Optional[str] = None
+    audioDescription: Optional[str] = None
+
+
+class PracticeAnswerVerificationRequest(BaseModel):
+    question_id: str
+    selected_option_ids: List[str]
+    time_spent_seconds: int = 0
+
+
+class PracticeAnswerVerificationResponse(BaseModel):
+    question_id: str
+    is_correct: bool
+    correct_option_ids: List[str]
+    explanation: str
+
+
+class PracticeHistoryItemResponse(BaseModel):
+    id: str
+    sessionId: str
+    date: str
+    formattedDate: str
+    subjectId: str
+    subjectName: str
+    topicId: str
+    topicName: str
+    questionsCount: int
+    scoreFormatted: str
+    accuracyPercent: int
+    timeUsedFormatted: str
+    difficulty: str
+

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import { Button } from '../common/Button';
 
@@ -46,22 +47,23 @@ export const PracticePreviewSection: React.FC = () => {
             Instead of solving random questions, GoWow tracks your accuracy across subjects and flags specific weak topics. You always know what to study next to maximize your examination score.
           </p>
 
-          <div className="p-4 rounded-lg border border-border bg-surface-elevated/70 text-xs text-foreground-muted mb-6">
+          <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 text-xs text-foreground-secondary mb-6">
             <span className="font-bold text-foreground block mb-1">
-              * Demonstration Preview
+              Diagnostic Mastery Tracking
             </span>
             <span>
-              The cards on the right illustrate how topic mastery and adaptive practice recommendations will be presented. No artificial intelligence claims are made prior to full deployment.
+              Targeted revision focuses your preparation where you need it most, helping you build accuracy and confidence across every subject topic.
             </span>
           </div>
 
-          <Button
-            variant="outline"
-            iconRight={<ArrowRight className="w-4 h-4" />}
-            onClick={() => window.location.assign('/candidate/practice')}
-          >
-            Explore Practice System
-          </Button>
+          <Link to="/candidate/practice">
+            <Button
+              variant="outline"
+              iconRight={<ArrowRight className="w-4 h-4" />}
+            >
+              Explore Practice System
+            </Button>
+          </Link>
         </div>
 
         {/* Right Column: Conceptual Telemetry Card */}

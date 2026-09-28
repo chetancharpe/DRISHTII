@@ -5,28 +5,22 @@ import {
   MockTestQuestionReview,
   MockTestResult,
   MockTestSession,
-  SectionPerformance,
 } from '../types/mockTest';
-import { MOCK_TESTS, MOCK_TEST_HISTORY } from '../data/mockTestData';
+import { apiClient } from './api';
 
 /**
  * Service abstraction for Mock Test Engine.
- * Represents client-side simulation layer in current prototype.
- * Architectural endpoints for future FastAPI REST service:
- * - GET /api/mock-tests
- * - GET /api/mock-tests/:id
- * - POST /api/mock-tests/:id/sessions
- * - GET /api/mock-tests/sessions/:sessionId
- * - POST /api/mock-tests/sessions/:sessionId/answers
- * - POST /api/mock-tests/sessions/:sessionId/review
- * - POST /api/mock-tests/sessions/:sessionId/submit
- * - GET /api/mock-tests/sessions/:sessionId/result
- * - GET /api/mock-tests/history
+ * Connected directly to FastAPI endpoints:
+ * - GET /mock-tests
+ * - GET /mock-tests/:id
+ * - POST /mock-tests/submit
+ * - GET /mock-tests/history
+ *
+ * Scoring and answer validation are 100% server-authoritative!
  */
 
 const STORAGE_SESSION_PREFIX = 'gowow_mock_session_';
 const STORAGE_RESULT_PREFIX = 'gowow_mock_result_';
-const STORAGE_HISTORY_KEY = 'gowow_mock_history';
 
 // In-memory runtime cache
 const activeSessions: Map<string, MockTestSession> = new Map();
@@ -34,28 +28,28 @@ const completedResults: Map<string, MockTestResult> = new Map();
 
 export const mockTestService = {
   /**
-   * Fetches all available mock tests.
+   * Fetches all available mock tests from backend.
    */
   async getMockTests(): Promise<MockTest[]> {
-    await new Promise((r) => setTimeout(r, 80));
-    return [...MOCK_TESTS];
+    return apiClient.get<MockTest[]>('/mock-tests');
   },
 
   /**
-   * Fetches a specific mock test by ID.
+   * Fetches a specific mock test by ID with sanitized questions.
    */
   async getMockTest(id: string): Promise<MockTest | null> {
-    await new Promise((r) => setTimeout(r, 60));
-    const test = MOCK_TESTS.find((t) => t.id === id);
-    return test ? { ...test } : null;
+    try {
+      return await apiClient.get<MockTest>(`/mock-tests/${id}`);
+    } catch {
+      return null;
+    }
   },
 
   /**
    * Starts a new mock test session.
    */
   async startMockTest(testId: string): Promise<MockTestSession> {
-    await new Promise((r) => setTimeout(r, 100));
-    const test = MOCK_TESTS.find((t) => t.id === testId) || MOCK_TESTS[0];
+    const test = (await this.getMockTest(testId)) || (await this.getMockTests())[0];
 
     const firstSection = test.sections[0];
     const firstQuestion = firstSection?.questions[0];
@@ -83,31 +77,37 @@ export const mockTestService = {
       testTitle: test.title,
       examName: test.examName,
       totalQuestions: test.totalQuestions,
+      status: 'in_progress',
+      startedAt: new Date().toISOString(),
       durationSeconds,
       secondsRemaining: durationSeconds,
       currentSectionId: firstSection?.id || '',
       currentQuestionId: firstQuestion?.id || '',
       answers: initialAnswers,
-      status: 'in_progress',
-      startedAt: new Date().toISOString(),
     };
 
     activeSessions.set(sessionId, session);
     try {
       localStorage.setItem(`${STORAGE_SESSION_PREFIX}${sessionId}`, JSON.stringify(session));
       localStorage.setItem('gowow_active_mock_session_id', sessionId);
-    } catch (e) {
-      // Storage quota or fallback
-    }
+    } catch (e) {}
 
-    return { ...session };
+    return session;
   },
 
   /**
-   * Retrieves an active or recent mock test session.
+   * Retrieves currently active session from localStorage if present.
+   */
+  async getActiveSession(): Promise<MockTestSession | null> {
+    const activeId = localStorage.getItem('gowow_active_mock_session_id');
+    if (!activeId) return null;
+    return this.getMockSession(activeId);
+  },
+
+  /**
+   * Retrieves an active or stored mock test session.
    */
   async getMockSession(sessionId: string): Promise<MockTestSession | null> {
-    await new Promise((r) => setTimeout(r, 60));
     if (activeSessions.has(sessionId)) {
       return { ...activeSessions.get(sessionId)! };
     }
@@ -119,26 +119,22 @@ export const mockTestService = {
         activeSessions.set(sessionId, parsed);
         return { ...parsed };
       }
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) {}
 
-    // Auto-create demo session for direct URL access
-    return this.startMockTest('cds-full-mock-01');
+    return null;
   },
 
   /**
-   * Saves or updates a candidate's answer for a question in a mock test.
+   * Updates an answer within a mock test session.
    */
-  async saveMockAnswer(
+  async saveAnswer(
     sessionId: string,
     questionId: string,
     selectedOptionIds: string[],
     timeSpentSeconds: number = 0
   ): Promise<MockTestSession> {
-    await new Promise((r) => setTimeout(r, 40));
-    const session = activeSessions.get(sessionId) || (await this.getMockSession(sessionId));
-    if (!session) throw new Error('Mock session not found.');
+    const session = await this.getMockSession(sessionId);
+    if (!session) throw new Error('Session not found.');
 
     const currentAnswer = session.answers[questionId] || {
       questionId,
@@ -150,16 +146,13 @@ export const mockTestService = {
     };
 
     const hasSelection = selectedOptionIds.length > 0;
-    const isMarked = currentAnswer.markedForReview;
-
-    let newStatus: MockTestAnswer['status'] = 'unanswered';
-    if (hasSelection && isMarked) {
-      newStatus = 'answered_marked_for_review';
-    } else if (hasSelection) {
-      newStatus = 'answered';
-    } else if (isMarked) {
-      newStatus = 'marked_for_review';
-    }
+    const newStatus = currentAnswer.markedForReview
+      ? hasSelection
+        ? 'answered_marked_for_review'
+        : 'marked_for_review'
+      : hasSelection
+      ? 'answered'
+      : 'unanswered';
 
     session.answers[questionId] = {
       ...currentAnswer,
@@ -177,37 +170,40 @@ export const mockTestService = {
   },
 
   /**
-   * Toggles the Mark for Review flag on a question.
+   * Alias for saveAnswer expected by MockTestSessionPage
+   */
+  async saveMockAnswer(
+    sessionId: string,
+    questionId: string,
+    selectedOptionIds: string[],
+    timeSpentSeconds: number = 0
+  ): Promise<MockTestSession> {
+    return this.saveAnswer(sessionId, questionId, selectedOptionIds, timeSpentSeconds);
+  },
+
+  /**
+   * Toggles the mark for review status.
    */
   async toggleMarkForReview(sessionId: string, questionId: string): Promise<MockTestSession> {
-    await new Promise((r) => setTimeout(r, 40));
-    const session = activeSessions.get(sessionId) || (await this.getMockSession(sessionId));
-    if (!session) throw new Error('Mock session not found.');
+    const session = await this.getMockSession(sessionId);
+    if (!session) throw new Error('Session not found.');
 
-    const currentAnswer = session.answers[questionId] || {
-      questionId,
-      sectionId: session.currentSectionId,
-      selectedOptionIds: [],
-      status: 'unanswered',
-      markedForReview: false,
-      timeSpentSeconds: 0,
-    };
+    const currentAnswer = session.answers[questionId];
+    if (!currentAnswer) return session;
 
-    const nextMarked = !currentAnswer.markedForReview;
+    const newMarked = !currentAnswer.markedForReview;
     const hasSelection = currentAnswer.selectedOptionIds.length > 0;
-
-    let newStatus: MockTestAnswer['status'] = 'unanswered';
-    if (hasSelection && nextMarked) {
-      newStatus = 'answered_marked_for_review';
-    } else if (hasSelection) {
-      newStatus = 'answered';
-    } else if (nextMarked) {
-      newStatus = 'marked_for_review';
-    }
+    const newStatus = newMarked
+      ? hasSelection
+        ? 'answered_marked_for_review'
+        : 'marked_for_review'
+      : hasSelection
+      ? 'answered'
+      : 'unanswered';
 
     session.answers[questionId] = {
       ...currentAnswer,
-      markedForReview: nextMarked,
+      markedForReview: newMarked,
       status: newStatus,
     };
 
@@ -220,203 +216,129 @@ export const mockTestService = {
   },
 
   /**
-   * Updates current navigation positions (section and question).
+   * Clears candidate's response for a question.
+   */
+  async clearAnswer(sessionId: string, questionId: string): Promise<MockTestSession> {
+    const session = await this.getMockSession(sessionId);
+    if (!session) throw new Error('Session not found.');
+
+    const currentAnswer = session.answers[questionId];
+    if (!currentAnswer) return session;
+
+    session.answers[questionId] = {
+      ...currentAnswer,
+      selectedOptionIds: [],
+      status: currentAnswer.markedForReview ? 'marked_for_review' : 'unanswered',
+    };
+
+    activeSessions.set(sessionId, session);
+    try {
+      localStorage.setItem(`${STORAGE_SESSION_PREFIX}${sessionId}`, JSON.stringify(session));
+    } catch (e) {}
+
+    return { ...session };
+  },
+
+  /**
+   * Updates current navigation position and remaining timer in active session.
    */
   async updateNavigationPosition(
     sessionId: string,
     sectionId: string,
     questionId: string,
-    secondsRemaining: number
-  ): Promise<void> {
-    const session = activeSessions.get(sessionId);
-    if (!session) return;
+    secondsRemaining?: number
+  ): Promise<MockTestSession | null> {
+    const session = await this.getMockSession(sessionId);
+    if (!session) return null;
+
     session.currentSectionId = sectionId;
     session.currentQuestionId = questionId;
-    session.secondsRemaining = secondsRemaining;
+    if (secondsRemaining !== undefined) {
+      session.secondsRemaining = secondsRemaining;
+    }
+
     activeSessions.set(sessionId, session);
     try {
       localStorage.setItem(`${STORAGE_SESSION_PREFIX}${sessionId}`, JSON.stringify(session));
     } catch (e) {}
+
+    return { ...session };
   },
 
   /**
-   * Concludes the mock test, computes scores based on marking scheme, and produces detailed results.
+   * Submits the mock test to the backend server for authoritative scoring.
    */
-  async finishMockTest(sessionId: string, secondsRemaining: number): Promise<MockTestResult> {
-    await new Promise((r) => setTimeout(r, 120));
-    const session = activeSessions.get(sessionId) || (await this.getMockSession(sessionId));
-    if (!session) throw new Error('Mock test session not found.');
-
-    const test = MOCK_TESTS.find((t) => t.id === session.testId) || MOCK_TESTS[0];
+  async submitMockTest(session: MockTestSession, secondsRemaining: number): Promise<MockTestResult> {
     const timeUsedSeconds = Math.max(0, session.durationSeconds - secondsRemaining);
-
-    session.status = 'submitted';
-    session.completedAt = new Date().toISOString();
-    session.secondsRemaining = secondsRemaining;
-
-    // Build question reviews and tally scores
-    const reviews: MockTestQuestionReview[] = [];
-    const sectionStatsMap: Record<
-      string,
-      {
-        total: number;
-        answered: number;
-        correct: number;
-        incorrect: number;
-        unanswered: number;
-        score: number;
-      }
-    > = {};
-
-    test.sections.forEach((sec) => {
-      sectionStatsMap[sec.id] = {
-        total: sec.questions.length,
-        answered: 0,
-        correct: 0,
-        incorrect: 0,
-        unanswered: 0,
-        score: 0,
-      };
-    });
-
-    let totalCorrect = 0;
-    let totalIncorrect = 0;
-    let totalUnanswered = 0;
-    let totalMarkedReview = 0;
-
-    test.sections.forEach((sec) => {
-      sec.questions.forEach((q) => {
-        const userAns = session.answers[q.id];
-        const selectedIds = userAns?.selectedOptionIds || [];
-        const isMarked = userAns?.markedForReview || false;
-        if (isMarked) totalMarkedReview++;
-
-        let reviewStatus: 'correct' | 'incorrect' | 'unanswered' = 'unanswered';
-
-        if (selectedIds.length === 0) {
-          totalUnanswered++;
-          sectionStatsMap[sec.id].unanswered++;
-        } else {
-          sectionStatsMap[sec.id].answered++;
-          const isCorrect =
-            selectedIds.length === q.correctOptionIds.length &&
-            selectedIds.every((id) => q.correctOptionIds.includes(id));
-
-          if (isCorrect) {
-            reviewStatus = 'correct';
-            totalCorrect++;
-            sectionStatsMap[sec.id].correct++;
-            sectionStatsMap[sec.id].score += test.markingScheme.correctMarks;
-          } else {
-            reviewStatus = 'incorrect';
-            totalIncorrect++;
-            sectionStatsMap[sec.id].incorrect++;
-            sectionStatsMap[sec.id].score -= test.markingScheme.incorrectPenalty;
-          }
-        }
-
-        reviews.push({
-          questionId: q.id,
-          questionNumber: q.questionNumber,
-          sectionId: sec.id,
-          sectionName: sec.name,
-          questionText: q.text,
-          type: q.type,
-          options: q.options,
-          userOptionIds: selectedIds,
-          correctOptionIds: q.correctOptionIds,
-          status: reviewStatus,
-          markedForReview: isMarked,
-          explanation: q.explanation || 'Detailed explanation will be released by examination mentors.',
-          formula: q.formula,
-          table: q.table,
-        });
-      });
-    });
-
-    // Compute grand totals
-    const rawTotalScore =
-      totalCorrect * test.markingScheme.correctMarks -
-      totalIncorrect * test.markingScheme.incorrectPenalty;
-    const finalTotalScore = Math.max(0, Math.round(rawTotalScore * 100) / 100);
-    const maxScore = test.totalQuestions * test.markingScheme.correctMarks;
-    const percentage = maxScore > 0 ? Math.round((finalTotalScore / maxScore) * 1000) / 10 : 0;
-
     const mins = Math.floor(timeUsedSeconds / 60);
     const secs = timeUsedSeconds % 60;
     const timeUsedFormatted = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
 
-    // Section performance array
-    const sectionPerformances: SectionPerformance[] = test.sections.map((sec) => {
-      const stats = sectionStatsMap[sec.id];
-      const secMax = stats.total * test.markingScheme.correctMarks;
-      const secAcc = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
-      return {
-        sectionId: sec.id,
-        sectionName: sec.name,
-        totalQuestions: stats.total,
-        answeredCount: stats.answered,
-        correctCount: stats.correct,
-        incorrectCount: stats.incorrect,
-        unansweredCount: stats.unanswered,
-        score: Math.max(0, Math.round(stats.score * 100) / 100),
-        maxScore: secMax,
-        accuracyPercent: secAcc,
-        timeSpentSeconds: Math.floor(timeUsedSeconds / test.sections.length),
-      };
+    // Server-authoritative scoring call
+    const serverResult = await apiClient.post<any>('/mock-tests/submit', {
+      test_id: session.testId,
+      answers: session.answers,
+      duration_seconds: session.durationSeconds,
+      seconds_remaining: secondsRemaining,
     });
 
-    // Factual interpretations from data (strictly without fake claims)
-    const factualInterpretations: string[] = [];
-    const highestSec = [...sectionPerformances].sort((a, b) => b.accuracyPercent - a.accuracyPercent)[0];
-    const lowestSec = [...sectionPerformances].sort((a, b) => a.accuracyPercent - b.accuracyPercent)[0];
-
-    if (highestSec && lowestSec && highestSec.sectionId !== lowestSec.sectionId) {
-      factualInterpretations.push(`Accuracy was highest in ${highestSec.sectionName} at ${highestSec.accuracyPercent}%.`);
-      factualInterpretations.push(
-        `${lowestSec.sectionName} recorded the lowest accuracy at ${lowestSec.accuracyPercent}% with ${lowestSec.incorrectCount} incorrect attempts.`
-      );
-    } else {
-      factualInterpretations.push(`Completed all sections with an overall accuracy of ${percentage}%.`);
-    }
-
-    if (totalMarkedReview > 0) {
-      factualInterpretations.push(
-        `You flagged ${totalMarkedReview} questions for review during your test session.`
-      );
-    }
-
-    // Recommended next steps (rule-based demo recommendations)
-    const recommendedNextSteps: string[] = [
-      `Review incorrect attempts in ${lowestSec?.sectionName || 'weak sections'} using the detailed question explanations below.`,
-      `Attempt a 10-question targeted practice drill in ${lowestSec?.sectionName || 'Elementary Mathematics'}.`,
-      `Retake this mock examination after 48 hours to measure retention under timed constraints.`,
-    ];
+    const reviews: MockTestQuestionReview[] = (serverResult.reviews || []).map((r: any) => ({
+      questionId: r.questionId,
+      questionNumber: r.questionNumber,
+      sectionId: r.sectionId,
+      sectionName: r.sectionId.replace('sec-', '').toUpperCase(),
+      questionText: r.text,
+      type: 'single_choice',
+      options: [],
+      userOptionIds: r.selectedOptionIds,
+      correctOptionIds: r.correctOptionIds,
+      status: r.isCorrect ? 'correct' : r.isSkipped ? 'unanswered' : 'incorrect',
+      markedForReview: r.markedForReview,
+      explanation: r.explanation,
+    }));
 
     const result: MockTestResult = {
-      sessionId,
-      testId: test.id,
-      testTitle: test.title,
-      examName: test.examName,
-      totalScore: finalTotalScore,
-      maxScore,
-      percentage,
-      totalQuestions: test.totalQuestions,
-      correctCount: totalCorrect,
-      incorrectCount: totalIncorrect,
-      unansweredCount: totalUnanswered,
-      markedForReviewCount: totalMarkedReview,
+      sessionId: session.sessionId,
+      testId: session.testId,
+      testTitle: serverResult.testTitle,
+      examName: session.examName,
+      totalScore: serverResult.totalScore,
+      maxScore: serverResult.maximumScore,
+      percentage: serverResult.percentage,
+      totalQuestions: serverResult.totalQuestions,
+      correctCount: serverResult.correctCount,
+      incorrectCount: serverResult.incorrectCount,
+      unansweredCount: serverResult.unansweredCount,
+      markedForReviewCount: serverResult.markedForReviewCount,
       timeUsedSeconds,
       timeUsedFormatted,
-      sectionPerformances,
-      factualInterpretations,
-      recommendedNextSteps,
+      sectionPerformances: (serverResult.sections || []).map((s: any) => ({
+        sectionId: s.sectionId,
+        sectionName: s.sectionName,
+        totalQuestions: s.totalQuestions,
+        answeredCount: s.attemptedCount,
+        correctCount: s.correctCount,
+        incorrectCount: s.incorrectCount,
+        unansweredCount: s.unansweredCount,
+        score: s.score,
+        maxScore: s.totalQuestions,
+        accuracyPercent: s.accuracyPercent,
+        timeSpentSeconds: Math.floor(timeUsedSeconds / (serverResult.sections.length || 1)),
+      })),
+      factualInterpretations: [
+        `You scored ${serverResult.totalScore} marks out of ${serverResult.maximumScore} (${serverResult.percentage}%).`,
+        `Answered ${serverResult.correctCount} correctly, ${serverResult.incorrectCount} incorrectly, and skipped ${serverResult.unansweredCount}.`,
+      ],
+      recommendedNextSteps: [
+        'Review the detailed question explanations to reinforce your conceptual retention.',
+        'Focus on topics where errors occurred and schedule a targeted practice set.',
+      ],
     };
 
-    completedResults.set(sessionId, result);
+    completedResults.set(session.sessionId, result);
     try {
-      localStorage.setItem(`${STORAGE_RESULT_PREFIX}${sessionId}`, JSON.stringify(result));
-      localStorage.setItem(`${STORAGE_RESULT_PREFIX}${test.id}_reviews`, JSON.stringify(reviews));
+      localStorage.setItem(`${STORAGE_RESULT_PREFIX}${session.sessionId}`, JSON.stringify(result));
+      localStorage.setItem(`${STORAGE_RESULT_PREFIX}${session.testId}_reviews`, JSON.stringify(reviews));
       localStorage.removeItem('gowow_active_mock_session_id');
     } catch (e) {}
 
@@ -424,10 +346,32 @@ export const mockTestService = {
   },
 
   /**
+   * Finalizes and submits mock test by sessionId.
+   */
+  async finishMockTest(sessionId: string, secondsRemaining: number): Promise<MockTestResult> {
+    const session = await this.getMockSession(sessionId);
+    if (!session) throw new Error('Session not found.');
+    return this.submitMockTest(session, secondsRemaining);
+  },
+
+  /**
+   * Discards an active mock test session.
+   */
+  async discardMockSession(sessionId: string): Promise<void> {
+    activeSessions.delete(sessionId);
+    try {
+      localStorage.removeItem(`${STORAGE_SESSION_PREFIX}${sessionId}`);
+      const activeId = localStorage.getItem('gowow_active_mock_session_id');
+      if (activeId === sessionId) {
+        localStorage.removeItem('gowow_active_mock_session_id');
+      }
+    } catch (e) {}
+  },
+
+  /**
    * Retrieves results for a completed mock test session.
    */
   async getMockResult(sessionId: string): Promise<MockTestResult | null> {
-    await new Promise((r) => setTimeout(r, 60));
     if (completedResults.has(sessionId)) {
       return { ...completedResults.get(sessionId)! };
     }
@@ -441,163 +385,45 @@ export const mockTestService = {
       }
     } catch (e) {}
 
-    // Fallback demo result
-    const fallbackTest = MOCK_TESTS[0];
-    return {
-      sessionId,
-      testId: fallbackTest.id,
-      testTitle: fallbackTest.title,
-      examName: fallbackTest.examName,
-      totalScore: 10.34,
-      maxScore: 15.0,
-      percentage: 68.9,
-      totalQuestions: 15,
-      correctCount: 11,
-      incorrectCount: 2,
-      unansweredCount: 2,
-      markedForReviewCount: 3,
-      timeUsedSeconds: 1680,
-      timeUsedFormatted: '28m 00s',
-      sectionPerformances: [
-        {
-          sectionId: 'sec-english',
-          sectionName: 'English Language',
-          totalQuestions: 5,
-          answeredCount: 5,
-          correctCount: 4,
-          incorrectCount: 1,
-          unansweredCount: 0,
-          score: 3.67,
-          maxScore: 5.0,
-          accuracyPercent: 80.0,
-          timeSpentSeconds: 480,
-        },
-        {
-          sectionId: 'sec-gk',
-          sectionName: 'General Knowledge',
-          totalQuestions: 5,
-          answeredCount: 4,
-          correctCount: 4,
-          incorrectCount: 0,
-          unansweredCount: 1,
-          score: 4.0,
-          maxScore: 5.0,
-          accuracyPercent: 80.0,
-          timeSpentSeconds: 520,
-        },
-        {
-          sectionId: 'sec-math',
-          sectionName: 'Elementary Mathematics',
-          totalQuestions: 5,
-          answeredCount: 4,
-          correctCount: 3,
-          incorrectCount: 1,
-          unansweredCount: 1,
-          score: 2.67,
-          maxScore: 5.0,
-          accuracyPercent: 60.0,
-          timeSpentSeconds: 680,
-        },
-      ],
-      factualInterpretations: [
-        'Accuracy was highest in General Knowledge and English Language at 80%.',
-        'Elementary Mathematics had the lowest accuracy at 60% with 1 incorrect attempt.',
-        'You flagged 3 questions for review during the examination simulation.',
-      ],
-      recommendedNextSteps: [
-        'Review Elementary Mathematics formulas for simple interest and algebraic identities.',
-        'Attempt a 5-question speed drill on Elementary Mathematics.',
-        'Retake this CDS practice mock to target 80%+ overall percentage.',
-      ],
-    };
+    return null;
   },
 
   /**
-   * Retrieves question-by-question reviews for a completed test.
+   * Retrieves question reviews for a completed mock test session.
    */
-  async getMockReviews(testId: string): Promise<MockTestQuestionReview[]> {
-    await new Promise((r) => setTimeout(r, 60));
+  async getQuestionReviews(testId: string): Promise<MockTestQuestionReview[]> {
     try {
       const stored = localStorage.getItem(`${STORAGE_RESULT_PREFIX}${testId}_reviews`);
-      if (stored) {
-        return JSON.parse(stored);
-      }
+      if (stored) return JSON.parse(stored);
     } catch (e) {}
-
-    // Generate reviews from test definition
-    const test = MOCK_TESTS.find((t) => t.id === testId) || MOCK_TESTS[0];
-    const generated: MockTestQuestionReview[] = [];
-
-    test.sections.forEach((sec) => {
-      sec.questions.forEach((q, idx) => {
-        const isCorrect = idx !== 1 && idx !== 4;
-        const isUnanswered = idx === 4;
-        const userOpt = isUnanswered ? [] : isCorrect ? q.correctOptionIds : ['A'];
-
-        generated.push({
-          questionId: q.id,
-          questionNumber: q.questionNumber,
-          sectionId: sec.id,
-          sectionName: sec.name,
-          questionText: q.text,
-          type: q.type,
-          options: q.options,
-          userOptionIds: userOpt,
-          correctOptionIds: q.correctOptionIds,
-          status: isUnanswered ? 'unanswered' : isCorrect ? 'correct' : 'incorrect',
-          markedForReview: idx === 2,
-          explanation: q.explanation || 'Detailed mathematical/grammatical rationale.',
-          formula: q.formula,
-          table: q.table,
-        });
-      });
-    });
-
-    return generated;
+    return [];
   },
 
   /**
-   * Fetches mock test history log.
+   * Fetches the candidate's prior mock test history from backend.
+   */
+  async getMockTestHistory(): Promise<MockTestHistoryItem[]> {
+    return apiClient.get<MockTestHistoryItem[]>('/mock-tests/history');
+  },
+
+  /**
+   * Alias for getMockTestHistory
    */
   async getMockHistory(): Promise<MockTestHistoryItem[]> {
-    await new Promise((r) => setTimeout(r, 80));
-    try {
-      const stored = localStorage.getItem(STORAGE_HISTORY_KEY);
-      if (stored) {
-        return JSON.parse(stored);
-      }
-    } catch (e) {}
-    return [...MOCK_TEST_HISTORY];
+    return this.getMockTestHistory();
   },
 
   /**
-   * Resets and starts a brand new attempt for an existing mock test without overwriting past history.
+   * Retakes a mock test by starting a new session.
    */
   async retakeMockTest(testId: string): Promise<MockTestSession> {
     return this.startMockTest(testId);
   },
 
   /**
-   * Checks if there is an in-progress session to resume.
+   * Alias for getQuestionReviews
    */
-  async getActiveSession(): Promise<MockTestSession | null> {
-    try {
-      const activeId = localStorage.getItem('gowow_active_mock_session_id');
-      if (activeId) {
-        return this.getMockSession(activeId);
-      }
-    } catch (e) {}
-    return null;
-  },
-
-  /**
-   * Discards an in-progress session.
-   */
-  async discardMockSession(sessionId: string): Promise<void> {
-    activeSessions.delete(sessionId);
-    try {
-      localStorage.removeItem(`${STORAGE_SESSION_PREFIX}${sessionId}`);
-      localStorage.removeItem('gowow_active_mock_session_id');
-    } catch (e) {}
+  async getMockReviews(testId: string): Promise<MockTestQuestionReview[]> {
+    return this.getQuestionReviews(testId);
   },
 };

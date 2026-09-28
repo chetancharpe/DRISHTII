@@ -5,7 +5,7 @@ export const AccessibilityCommitmentSection: React.FC = () => {
   const principles = [
     { title: 'Semantic HTML First', desc: 'Native landmarks, headings, tables, and buttons rather than generic div elements.' },
     { title: 'Keyboard Accessibility', desc: 'Every button, link, and input is reachable and operable with standard key navigation.' },
-    { title: 'Screen-Reader Compatibility', desc: 'Tested with NVDA, JAWS, and VoiceOver to ensure linearized reading flow.' },
+    { title: 'Screen-Reader Compatibility', desc: 'Engineered for linear reading flow and standard assistive technology compatibility.' },
     { title: 'Always-Visible Focus Rings', desc: '3px solid focus indicators that are never suppressed with outline: none.' },
     { title: 'Accessible Form Architecture', desc: 'Explicit label associations, inline helper notes, and polite dynamic error alerts.' },
     { title: 'Calculated Visual Contrast', desc: 'Exceeds standard 4.5:1 ratios with a dedicated OLED pure black High Contrast mode.' },

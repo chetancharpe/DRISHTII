@@ -1,6 +1,6 @@
 import React from 'react';
 import { DashboardStats } from '../../types/candidateDashboard';
-import { BarChart, CheckCircle2, Award, TrendingUp, Info } from 'lucide-react';
+import { BarChart, CheckCircle2, Award, TrendingUp } from 'lucide-react';
 
 export interface PreparationStatsOverviewProps {
   stats: DashboardStats;
@@ -20,12 +20,11 @@ export const PreparationStatsOverview: React.FC<PreparationStatsOverviewProps> =
         <div className="flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-primary shrink-0" aria-hidden="true" />
           <h2 id="preparation-overview-heading" className="text-base sm:text-lg font-bold text-foreground">
-            Your Preparation
+            Preparation Overview
           </h2>
         </div>
-        <span className="text-[11px] font-mono text-foreground-muted flex items-center gap-1">
-          <Info className="w-3.5 h-3.5 text-primary shrink-0" aria-hidden="true" />
-          Prototype candidate telemetry demo values
+        <span className="text-xs text-foreground-muted">
+          Updated in real-time as you practice
         </span>
       </div>
 

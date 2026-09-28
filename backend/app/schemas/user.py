@@ -14,6 +14,11 @@ class UserCreate(UserBase):
     role: Optional[str] = "CANDIDATE"
 
 
+class AdminUserCreate(UserBase):
+    password: str
+    role: str = "CANDIDATE"
+
+
 class UserUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None

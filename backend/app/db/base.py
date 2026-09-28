@@ -21,3 +21,5 @@ from app.models.announcement import Announcement  # noqa
 from app.models.audit_log import AuditLog  # noqa
 from app.models.accessibility_profile import AccessibilityProfile, AccessibilityIssue  # noqa
 from app.models.learning_profile import LearningProfile, TopicProgress, LearningActivity, Recommendation  # noqa
+from app.models.refresh_token import RefreshToken  # noqa
+from app.models.password_reset_token import PasswordResetToken  # noqa

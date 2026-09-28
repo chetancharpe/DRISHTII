@@ -40,7 +40,7 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
     <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-fast">
       {/* Skip Navigation Link - Top of DOM hierarchy */}
       <a href="#main-content" className="skip-link">
-        Skip to main content [Press Enter]
+        Skip to main content
       </a>
 
       {/* Global Application Navbar */}

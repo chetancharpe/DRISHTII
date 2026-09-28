@@ -5,7 +5,7 @@
  */
 
 import { CandidateGroup, ExamCandidateRecord } from '../types/examiner';
-import { INITIAL_CANDIDATE_GROUPS, INITIAL_CANDIDATE_RECORDS } from '../data/candidateData';
+import { INITIAL_CANDIDATE_GROUPS, INITIAL_CANDIDATE_RECORDS } from '../fixtures/examinerFixtures';
 import { storage } from '../utils/storage';
 
 const GROUPS_STORAGE_KEY = 'gowow_candidate_groups';

@@ -2,7 +2,6 @@ import { User } from '../types/user';
 import { Exam } from '../types/exam';
 import { Question } from '../types/question';
 import { Analytics } from '../types/analytics';
-import { DEMO_EXAMS } from '../data/examData';
 
 export const MOCK_CANDIDATE: User = {
   id: 'cand-001',
@@ -88,7 +87,7 @@ export const MOCK_ADMIN: User = {
   },
 };
 
-export const MOCK_EXAMS: Exam[] = DEMO_EXAMS;
+export const MOCK_EXAMS: Exam[] = [];
 
 export const MOCK_QUESTIONS: Question[] = [
   {
