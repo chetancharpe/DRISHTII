@@ -7,8 +7,6 @@ import {
   AccessibilityFeaturesSection,
   HowItWorksSection,
   CandidateExperienceSection,
-  ExamPreviewSection,
-  PracticePreviewSection,
   ExaminerSection,
   IndependenceSection,
   AccessibilityCommitmentSection,
@@ -38,13 +36,7 @@ export const LandingPage: React.FC = () => {
       {/* 6. Candidate Experience Section */}
       <CandidateExperienceSection />
 
-      {/* 7. Exam Interface Preview */}
-      <ExamPreviewSection />
-
-      {/* 8. Practice & Personalization Showcase */}
-      <PracticePreviewSection />
-
-      {/* 9. Examiner & Institution Section */}
+      {/* 7. Examiner & Institution Section */}
       <ExaminerSection />
 
       {/* 10. Independence & Lifecycle Section */}
