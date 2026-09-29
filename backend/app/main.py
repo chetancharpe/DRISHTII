@@ -56,10 +56,11 @@ app.add_middleware(SecurityHeadersMiddleware)
 # 4. Correlation / Request ID Middleware (Section 36)
 app.add_middleware(RequestIDMiddleware)
 
-# 5. CORS Middleware (Section 16: Configured via environment variables, not open *)
+# 5. CORS Middleware (Section 16: Supports configured origins + all Vercel deployments)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
+    allow_origin_regex=r"^https:\/\/.*\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
