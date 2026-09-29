@@ -58,6 +58,8 @@ export interface PracticeSession {
   completedAt?: string;
   timeElapsedSeconds: number;
   timeLimitSeconds?: number;
+  explanations?: Record<string, string>;
+  correctOptions?: Record<string, string[]>;
 }
 
 export interface PracticeWeakTopic {

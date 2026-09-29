@@ -377,6 +377,14 @@ class ExamService {
       return { session, syncState: 'OFFLINE' };
     }
 
+    if (session.sessionId.startsWith('sess-')) {
+      // Local demo / fallback session: save locally and mark synced immediately
+      session.answers[questionId].syncState = 'synced';
+      session.lastSyncTimestamp = now;
+      this.saveStoredSession(session);
+      return { session, syncState: 'SYNCED' };
+    }
+
     // Attempt real backend dispatch via PATCH /exam-sessions/:sessionId/answers/:questionId
     try {
       await apiClient.patch(`/exam-sessions/${session.sessionId}/answers/${questionId}`, {
@@ -712,7 +720,7 @@ class ExamService {
     }
   }
 
-  private getStoredSections(examId: string): ExamSection[] | null {
+  public getStoredSections(examId: string): ExamSection[] | null {
     try {
       const data = localStorage.getItem(`${STORAGE_QUESTIONS_PREFIX}${examId}`);
       return data ? JSON.parse(data) : null;

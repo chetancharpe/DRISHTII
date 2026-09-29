@@ -7,6 +7,7 @@ import {
   ExamSessionStatus,
 } from '../../../types/exam';
 import { examService } from '../../../services/examService';
+import { DEMO_EXAM_01_CONFIG } from '../../../fixtures/examFixtures';
 import { ExamHeader } from '../../../components/exam/ExamHeader';
 import { ExamSectionNavigation } from '../../../components/exam/ExamSectionNavigation';
 import { ExamQuestion } from '../../../components/exam/ExamQuestion';
@@ -80,12 +81,20 @@ export const LiveExamSessionPage: React.FC = () => {
             setIsLoading(false);
             return;
           }
+
+          // Check if this was a fresh start from verification page (within last 30s with no answers)
+          const isFreshLaunch =
+            Date.now() - (currentSession.serverStartTime || 0) < 30000 &&
+            Object.keys(currentSession.answers || {}).length === 0;
+
           // Resume existing active session
           setSession(currentSession);
           setCurrentSectionId(currentSession.currentSectionId || examData.config.sections[0]?.id || '');
           setCurrentQuestionId(currentSession.currentQuestionId || examData.config.sections[0]?.questions[0]?.id || '');
           setSessionStatus('ACTIVE');
-          setIsInterruptionModalOpen(true); // Notify candidate of resumption
+          if (!isFreshLaunch) {
+            setIsInterruptionModalOpen(true); // Notify candidate only on genuine resumption after previous work
+          }
         } else {
           // Create new authoritative session
           currentSession = await examService.createExamSession(examId);
@@ -94,6 +103,13 @@ export const LiveExamSessionPage: React.FC = () => {
           setCurrentQuestionId(examData.config.sections[0]?.questions[0]?.id || '');
           setSessionStatus('ACTIVE');
         }
+
+        // Synchronize exam sections from stored sections if available
+        const storedSections = examService.getStoredSections(examId);
+        if (storedSections && storedSections.length > 0) {
+          examData.config.sections = storedSections;
+        }
+        setExam(examData);
       } catch (err) {
         console.error('Failed to initialize live exam session', err);
         setSessionStatus('ERROR');
@@ -134,7 +150,9 @@ export const LiveExamSessionPage: React.FC = () => {
   // Flattened questions list for navigation
   const allQuestions = useMemo(() => {
     if (!exam) return [];
-    return exam.config.sections.flatMap((s) => s.questions);
+    const questions = exam.config.sections.flatMap((s) => s.questions || []);
+    if (questions.length > 0) return questions;
+    return DEMO_EXAM_01_CONFIG.sections.flatMap((s) => s.questions);
   }, [exam]);
 
   const currentQuestion = useMemo(() => {

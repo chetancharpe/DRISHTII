@@ -281,6 +281,8 @@ export const PracticeSessionPage: React.FC = () => {
               currentIndex={currentIdx + 1}
               totalQuestions={session.totalQuestions}
               savedAnswer={savedAnswer}
+              correctOptionIds={session.correctOptions?.[currentQuestion.id]}
+              explanation={session.explanations?.[currentQuestion.id]}
               onSubmitAnswer={handleSubmitAnswer}
               onSkipQuestion={handleSkipQuestion}
               onGoPrevious={handlePrevious}

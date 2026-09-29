@@ -23,6 +23,8 @@ interface PracticeQuestionCardProps {
   currentIndex: number;
   totalQuestions: number;
   savedAnswer?: PracticeAnswerRecord;
+  correctOptionIds?: string[];
+  explanation?: string;
   onSubmitAnswer: (questionId: string, selectedOptionIds: string[]) => void;
   onSkipQuestion: (questionId: string) => void;
   onGoPrevious: () => void;
@@ -36,6 +38,8 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
   currentIndex,
   totalQuestions,
   savedAnswer,
+  correctOptionIds: propCorrectOptionIds,
+  explanation: propExplanation,
   onSubmitAnswer,
   onSkipQuestion,
   onGoPrevious,
@@ -45,6 +49,16 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
 }) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const { speak, preferences, announce } = useAccessibility();
+
+  const effectiveCorrectIds: string[] =
+    propCorrectOptionIds && propCorrectOptionIds.length > 0
+      ? propCorrectOptionIds
+      : (question.correctOptionIds || []);
+
+  const effectiveExplanation: string =
+    propExplanation ||
+    question.explanation ||
+    'Detailed step-by-step pedagogical explanation is available upon answering.';
 
   // Synchronize state when question changes or when viewing an already answered question
   useEffect(() => {
@@ -77,18 +91,22 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
     onSubmitAnswer(question.id, selectedIds);
 
     // Check correctness for immediate speech announcement
-    const correct =
-      selectedIds.length === question.correctOptionIds.length &&
-      selectedIds.every((id) => question.correctOptionIds.includes(id));
+    if (effectiveCorrectIds.length > 0) {
+      const correct =
+        selectedIds.length === effectiveCorrectIds.length &&
+        selectedIds.every((id) => effectiveCorrectIds.includes(id));
 
-    if (correct) {
-      announce('Correct. Your answer is correct.', 'assertive');
+      if (correct) {
+        announce('Correct. Your answer is correct.', 'assertive');
+      } else {
+        const correctLabels = question.options
+          .filter((o) => effectiveCorrectIds.includes(o.id))
+          .map((o) => `Option ${o.label}: ${o.text}`)
+          .join(', ');
+        announce(`Not quite. The correct answer is ${correctLabels || 'indicated below'}.`, 'assertive');
+      }
     } else {
-      const correctLabels = question.options
-        .filter((o) => question.correctOptionIds.includes(o.id))
-        .map((o) => `Option ${o.label}: ${o.text}`)
-        .join(', ');
-      announce(`Not quite. The correct answer is ${correctLabels}.`, 'assertive');
+      announce('Answer submitted.', 'polite');
     }
   };
 
@@ -203,7 +221,7 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
         <div className="flex flex-col gap-2.5" role={question.type === 'multiple_choice' ? 'group' : 'radiogroup'}>
           {question.options.map((opt) => {
             const isSelected = selectedIds.includes(opt.id);
-            const isCorrectOption = question.correctOptionIds.includes(opt.id);
+            const isCorrectOption = effectiveCorrectIds.includes(opt.id);
 
             // Calculate semantic and visual styles after submission
             let borderClass = 'border-border';
@@ -309,7 +327,7 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
         {isSubmitted &&
           (isCorrect
             ? 'Correct. Your answer is correct.'
-            : `Not quite. Let's review the concept. Correct answer is ${question.correctOptionIds.join(', ')}.`)}
+            : `Not quite. Let's review the concept. Correct answer is ${effectiveCorrectIds.join(', ') || 'indicated in options'}.`)}
       </div>
 
       {/* Explanatory Feedback Card */}
@@ -349,7 +367,7 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
 
           <div className="text-xs text-foreground leading-relaxed pl-6 border-l-2 border-border">
             <p className="font-semibold text-foreground mb-1">Explanation:</p>
-            <RichMathText text={question.explanation} />
+            <RichMathText text={effectiveExplanation} />
           </div>
 
           {!isCorrect && (

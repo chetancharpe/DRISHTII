@@ -6,6 +6,8 @@ import { LearningSubject } from '../../types/learning';
 import { learningService } from '../../services/learningService';
 import { Link } from 'react-router-dom';
 
+import { FALLBACK_SUBJECTS } from '../../fixtures/curriculumFixtures';
+
 interface PracticeFilterCardProps {
   initialSubjectId?: string;
   initialTopicId?: string;
@@ -19,7 +21,7 @@ export const PracticeFilterCard: React.FC<PracticeFilterCardProps> = ({
   onStartPractice,
   isLoading = false,
 }) => {
-  const [subjects, setSubjects] = useState<LearningSubject[]>([]);
+  const [subjects, setSubjects] = useState<LearningSubject[]>(FALLBACK_SUBJECTS);
   const [selectedExam, setSelectedExam] = useState('cds');
   const [selectedSubject, setSelectedSubject] = useState(initialSubjectId);
   const [selectedTopic, setSelectedTopic] = useState(initialTopicId);
