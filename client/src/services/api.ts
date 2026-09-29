@@ -185,10 +185,18 @@ export async function apiClient<T>(endpoint: string, options: ApiRequestOptions 
             return (await retryResponse.json()) as T;
           }
         } else {
-          // Session definitively dead; clear tokens and notify
+          // Session definitively dead; clear tokens and notify only if on a protected route
           tokenStorage.clearTokens();
-          if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth/')) {
-            window.location.href = '/auth/login?session_expired=true';
+          if (typeof window !== 'undefined') {
+            const pathname = window.location.pathname;
+            const isProtectedRoute =
+              pathname.startsWith('/candidate') ||
+              pathname.startsWith('/examiner') ||
+              pathname.startsWith('/admin');
+
+            if (isProtectedRoute) {
+              window.location.href = '/auth/login?session_expired=true';
+            }
           }
         }
       }
