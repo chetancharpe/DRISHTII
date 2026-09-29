@@ -156,19 +156,18 @@ export const LoginPage: React.FC = () => {
           Sign In
         </Button>
 
-        {/* Quick Demo Access Bar (Only in Development) */}
-        {import.meta.env.DEV && (
-          <div className="mt-4 pt-4 border-t border-border flex flex-col gap-2 bg-surface-elevated/40 p-3.5 rounded-lg">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <UserCheck className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
-                <span>Dev Demo Accounts</span>
-              </span>
-              <span className="text-[10px] font-mono text-primary font-bold">Real API</span>
-            </div>
-            <p className="text-[11px] text-foreground-muted leading-tight">
-              Autofill seeded credentials to sign in via the live FastAPI backend:
-            </p>
+        {/* Quick Demo Access Bar */}
+        <div className="mt-4 pt-4 border-t border-border flex flex-col gap-2 bg-surface-elevated/40 p-3.5 rounded-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <UserCheck className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
+              <span>1-Click Demo Accounts</span>
+            </span>
+            <span className="text-[10px] font-mono text-primary font-bold">Quick Access</span>
+          </div>
+          <p className="text-[11px] text-foreground-muted leading-tight">
+            Autofill credentials to sign in directly:
+          </p>
             <div className="grid grid-cols-3 gap-2 mt-1">
               <button
                 type="button"
@@ -193,7 +192,6 @@ export const LoginPage: React.FC = () => {
               </button>
             </div>
           </div>
-        )}
 
         {/* Link to Registration */}
         <div className="text-center pt-2">
