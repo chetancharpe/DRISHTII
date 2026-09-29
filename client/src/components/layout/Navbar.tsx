@@ -20,9 +20,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
 
-  // Landing page elements are only shown on the public landing page when unauthenticated
-  const isLandingPage = !isAuthenticated && location.pathname === '/';
-
   const navLinks = [
     { label: 'Home', href: '/' },
     { label: 'Features', href: '/#features' },
@@ -50,45 +47,43 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
             <BrandLogo variant="full" size="md" />
           </Link>
 
-          {/* Desktop Navigation Links (Landing Page Only) */}
-          {isLandingPage && (
-            <nav className="hidden lg:flex items-center gap-1" aria-label="Main Navigation">
-              {navLinks.map((link) => {
-                const isAnchor = link.href.startsWith('/#');
-                if (isAnchor) {
-                  return (
-                    <a
-                      key={link.label}
-                      href={link.href}
-                      className="px-3 py-1.5 rounded-md text-sm font-medium text-foreground-secondary hover:text-foreground hover:bg-surface-elevated transition-colors"
-                    >
-                      {link.label}
-                    </a>
-                  );
-                }
-                const isActive = location.pathname === link.href;
+          {/* Desktop Navigation Links */}
+          <nav className="hidden lg:flex items-center gap-1" aria-label="Main Navigation">
+            {navLinks.map((link) => {
+              const isAnchor = link.href.startsWith('/#');
+              if (isAnchor) {
                 return (
-                  <Link
+                  <a
                     key={link.label}
-                    to={link.href}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-surface-elevated text-primary font-semibold'
-                        : 'text-foreground-secondary hover:text-foreground hover:bg-surface-elevated'
-                    }`}
+                    href={link.href}
+                    className="px-3 py-1.5 rounded-md text-sm font-medium text-foreground-secondary hover:text-foreground hover:bg-surface-elevated transition-colors"
                   >
                     {link.label}
-                  </Link>
+                  </a>
                 );
-              })}
-            </nav>
-          )}
+              }
+              const isActive = location.pathname === link.href;
+              return (
+                <Link
+                  key={link.label}
+                  to={link.href}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-surface-elevated text-primary font-semibold'
+                      : 'text-foreground-secondary hover:text-foreground hover:bg-surface-elevated'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
 
         {/* Right Side Controls & Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Help & Keyboard Shortcuts Action (Landing Page Only) */}
-          {isLandingPage && onOpenHelp && (
+          {/* Help & Keyboard Shortcuts Action */}
+          {onOpenHelp && (
             <button
               type="button"
               onClick={onOpenHelp}
@@ -222,37 +217,35 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
           role="region"
           aria-label="Mobile Navigation"
         >
-          {isLandingPage && (
-            <nav className="flex flex-col gap-1 border-b border-border pb-3 mb-1">
-              {navLinks.map((link) => {
-                const isAnchor = link.href.startsWith('/#');
-                if (isAnchor) {
-                  return (
-                    <a
-                      key={link.label}
-                      href={link.href}
-                      onClick={handleLinkClick}
-                      className="px-3 py-2.5 rounded-md text-sm font-semibold text-foreground hover:bg-surface-elevated"
-                    >
-                      {link.label}
-                    </a>
-                  );
-                }
+          <nav className="flex flex-col gap-1">
+            {navLinks.map((link) => {
+              const isAnchor = link.href.startsWith('/#');
+              if (isAnchor) {
                 return (
-                  <Link
+                  <a
                     key={link.label}
-                    to={link.href}
+                    href={link.href}
                     onClick={handleLinkClick}
                     className="px-3 py-2.5 rounded-md text-sm font-semibold text-foreground hover:bg-surface-elevated"
                   >
                     {link.label}
-                  </Link>
+                  </a>
                 );
-              })}
-            </nav>
-          )}
+              }
+              return (
+                <Link
+                  key={link.label}
+                  to={link.href}
+                  onClick={handleLinkClick}
+                  className="px-3 py-2.5 rounded-md text-sm font-semibold text-foreground hover:bg-surface-elevated"
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </nav>
 
-          <div className="flex flex-col gap-2">
+          <div className="border-t border-border pt-3 mt-1 flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <button
                 type="button"
