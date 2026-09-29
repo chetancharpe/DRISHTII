@@ -18,7 +18,15 @@ import {
 export const ExamVerificationPage: React.FC = () => {
   const { examId } = useParams<{ examId: string }>();
   const navigate = useNavigate();
-  const { preferences, openCalibration } = useAccessibility();
+  const { preferences, openCalibration, speak, announce } = useAccessibility();
+  const [audioTestPassed, setAudioTestPassed] = useState(false);
+
+  const handleTestAudio = () => {
+    const testMessage = 'DRISHTI audio speech synthesized successfully. Your accessibility setup is operational and ready.';
+    speak(testMessage);
+    announce(testMessage, 'assertive');
+    setAudioTestPassed(true);
+  };
 
   const [exam, setExam] = useState<Exam | null>(null);
   const [isStarting, setIsStarting] = useState(false);
@@ -80,16 +88,43 @@ export const ExamVerificationPage: React.FC = () => {
       <header className="flex flex-col gap-2 border-b border-border pb-4">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded border border-primary/20">
-            Step 2 of 2: Readiness Check
+            Step 2 of 2: Candidate Readiness & Accessibility Check
           </span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight mt-1">
-          Review Your Accessibility Settings
+          Candidate Readiness & Accessibility Check
         </h1>
         <p className="text-sm text-foreground-secondary leading-relaxed">
-          Verify that text sizing, color contrast, speech audio, and input controls match your preferences before beginning.
+          Verify text sizing, color contrast, speech audio synthesis, and peripheral readiness before launching your timed examination session.
         </p>
       </header>
+
+      {/* Interactive Speech & Audio Output Check */}
+      <section aria-labelledby="audio-test-heading" className="p-4 rounded-xl bg-surface border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 id="audio-test-heading" className="text-sm font-bold text-foreground flex items-center gap-2">
+            <Volume2 className="w-4 h-4 text-primary" aria-hidden="true" />
+            <span>Audio Narration & Peripheral Sound Test</span>
+          </h2>
+          <p className="text-xs text-foreground-secondary mt-1">
+            Test audio speech volume and voice clarity before starting. This is an accessibility check; no camera or microphone recordings are made.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {audioTestPassed && (
+            <span className="text-xs font-semibold text-status-success flex items-center gap-1" role="status">
+              ✓ Audio Confirmed
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={handleTestAudio}
+            className="px-4 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-xs min-h-[40px] focus:outline-none focus:ring-2 focus:ring-primary transition-colors whitespace-nowrap"
+          >
+            {audioTestPassed ? 'Re-test Audio Narration' : 'Test Audio Narration 🔊'}
+          </button>
+        </div>
+      </section>
 
       {/* Current Settings Overview Cards (Section 10) */}
       <section aria-labelledby="settings-status-heading" className="flex flex-col gap-4">

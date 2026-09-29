@@ -16,11 +16,6 @@ export const AudioControl: React.FC<AudioControlProps> = ({ className = '' }) =>
     announce(enabled ? 'Audio assistance enabled.' : 'Audio assistance disabled.');
   };
 
-  const handleRateChange = (rate: SpeechRateOption) => {
-    updatePreference('speechRate', rate);
-    announce(`Speech rate set to ${rate}.`);
-  };
-
   const handleTimerChange = (val: TimerAnnouncementsOption) => {
     updatePreference('timerAnnouncements', val);
     announce(`Timer announcements set to ${val}.`);
@@ -131,32 +126,80 @@ export const AudioControl: React.FC<AudioControlProps> = ({ className = '' }) =>
 
       {/* Fine-Tuned Audio Preferences (Visible when audio is enabled or for pre-configuration) */}
       <div className={`flex flex-col gap-4 pt-2 transition-opacity ${preferences.audioEnabled ? 'opacity-100' : 'opacity-60'}`}>
-        {/* 1. Speech Rate */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <Gauge className="w-4 h-4 text-foreground-muted" aria-hidden="true" />
-            <span className="text-xs font-bold text-foreground">Speech Rate</span>
+        {/* 1. Speech Rate Slider & Presets (0.5x to 3.0x) */}
+        <div className="flex flex-col gap-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Gauge className="w-4 h-4 text-primary" aria-hidden="true" />
+              <label htmlFor="speech-rate-slider" className="text-xs font-bold text-foreground">
+                Speech Rate Speed
+              </label>
+            </div>
+            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+              {(preferences.speechRateMultiplier ?? (preferences.speechRate === 'slow' ? 0.8 : preferences.speechRate === 'fast' ? 1.3 : 1.0)).toFixed(1)}x
+            </span>
           </div>
-          <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Speech rate speed">
-            {(['slow', 'normal', 'fast'] as SpeechRateOption[]).map((rate) => {
-              const isSelected = preferences.speechRate === rate;
+
+          {/* Granular Slider for Screen Reader Users (0.5x to 3.0x) */}
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-mono text-foreground-muted">0.5x</span>
+            <input
+              type="range"
+              id="speech-rate-slider"
+              min="0.5"
+              max="3.0"
+              step="0.1"
+              value={preferences.speechRateMultiplier ?? (preferences.speechRate === 'slow' ? 0.8 : preferences.speechRate === 'fast' ? 1.3 : 1.0)}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                const rateCategory: SpeechRateOption = val <= 0.85 ? 'slow' : val >= 1.25 ? 'fast' : 'normal';
+                updatePreference('speechRateMultiplier', val);
+                updatePreference('speechRate', rateCategory);
+                announce(`Speech rate speed set to ${val.toFixed(1)} times normal speed.`);
+              }}
+              className="flex-1 h-2 bg-surface-elevated rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              aria-valuemin={0.5}
+              aria-valuemax={3.0}
+              aria-valuenow={preferences.speechRateMultiplier ?? 1.0}
+              aria-valuetext={`${(preferences.speechRateMultiplier ?? 1.0).toFixed(1)} times normal speed`}
+            />
+            <span className="text-[10px] font-mono text-foreground-muted">3.0x</span>
+          </div>
+
+          {/* Quick Presets */}
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5" role="radiogroup" aria-label="Speech rate speed presets">
+            {[
+              { val: 0.75, label: '0.75x', desc: 'Slow' },
+              { val: 1.0, label: '1.0x', desc: 'Normal' },
+              { val: 1.25, label: '1.25x', desc: 'Brisk' },
+              { val: 1.5, label: '1.5x', desc: 'Fast' },
+              { val: 2.0, label: '2.0x', desc: 'Pro' },
+              { val: 3.0, label: '3.0x', desc: 'Ultra' },
+            ].map((preset) => {
+              const currentVal = preferences.speechRateMultiplier ?? (preferences.speechRate === 'slow' ? 0.8 : preferences.speechRate === 'fast' ? 1.3 : 1.0);
+              const isSelected = Math.abs(currentVal - preset.val) < 0.08;
               return (
                 <button
-                  key={rate}
+                  key={preset.val}
                   type="button"
-                  onClick={() => handleRateChange(rate)}
+                  onClick={() => {
+                    const rateCategory: SpeechRateOption = preset.val <= 0.85 ? 'slow' : preset.val >= 1.25 ? 'fast' : 'normal';
+                    updatePreference('speechRateMultiplier', preset.val);
+                    updatePreference('speechRate', rateCategory);
+                    announce(`Speech rate set to ${preset.label} (${preset.desc}).`);
+                  }}
                   aria-pressed={isSelected}
                   className={`
-                    p-2 rounded-md border text-xs font-semibold capitalize min-h-[40px]
-                    transition-all select-none
+                    p-1.5 rounded-lg border text-center transition-all select-none
                     ${
                       isSelected
-                        ? 'border-primary bg-primary text-primary-contrast'
+                        ? 'border-primary bg-primary text-primary-contrast font-bold shadow-xs'
                         : 'border-border bg-surface text-foreground hover:bg-surface-elevated'
                     }
                   `.trim()}
                 >
-                  {rate}
+                  <div className="text-xs font-mono">{preset.label}</div>
+                  <div className="text-[9px] opacity-75">{preset.desc}</div>
                 </button>
               );
             })}

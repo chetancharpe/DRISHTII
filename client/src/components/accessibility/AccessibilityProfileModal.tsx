@@ -60,6 +60,10 @@ export const AccessibilityProfileModal: React.FC<AccessibilityProfileModalProps>
     const isHighContrast = selectedAids.includes('high_contrast');
     const isSimplified = selectedAids.includes('simplified');
 
+    const numericRate = parseFloat(speechRate);
+    const multiplier = !isNaN(numericRate) ? numericRate : speechRate === 'slow' ? 0.8 : speechRate === 'fast' ? 1.3 : 1.0;
+    const rateCategory: 'slow' | 'normal' | 'fast' = multiplier <= 0.85 ? 'slow' : multiplier >= 1.25 ? 'fast' : 'normal';
+
     const updates = {
       screenReaderOptimized: isScreenReader,
       keyboardFirst: isKeyboard,
@@ -67,7 +71,8 @@ export const AccessibilityProfileModal: React.FC<AccessibilityProfileModalProps>
       simplifiedInterface: isSimplified,
       fontSize: isLargeText ? 'large' : 'default',
       contrast: isHighContrast ? 'high' : 'standard',
-      speechRate: speechRate as any,
+      speechRate: rateCategory,
+      speechRateMultiplier: multiplier,
       timerAnnouncements: timerAlerts as any,
     };
 
@@ -81,7 +86,7 @@ export const AccessibilityProfileModal: React.FC<AccessibilityProfileModalProps>
       simplified_interface: isSimplified,
       text_scale: isLargeText ? 'large' : 'default',
       contrast_mode: isHighContrast ? 'high_contrast' : 'standard',
-      speech_rate: speechRate === 'slow' ? 0.75 : speechRate === 'fast' ? 1.5 : 1.0,
+      speech_rate: multiplier,
       timer_announcement_mode: timerAlerts,
     });
 
@@ -211,9 +216,14 @@ export const AccessibilityProfileModal: React.FC<AccessibilityProfileModalProps>
               onChange={(e) => setSpeechRate(e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
             >
-              <option value="slow">Slow (0.8x)</option>
-              <option value="normal">Normal (1.0x)</option>
-              <option value="fast">Fast (1.3x)</option>
+              <option value="0.5">0.5x (Very Slow)</option>
+              <option value="slow">0.8x (Slow)</option>
+              <option value="normal">1.0x (Standard)</option>
+              <option value="1.25">1.25x (Brisk)</option>
+              <option value="fast">1.5x (Fast)</option>
+              <option value="2.0">2.0x (Screen Reader Pro)</option>
+              <option value="2.5">2.5x (Expert)</option>
+              <option value="3.0">3.0x (Maximum)</option>
             </select>
           </div>
 

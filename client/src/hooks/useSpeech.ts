@@ -43,7 +43,10 @@ export function useSpeech(): UseSpeechReturn {
       const targetLang = (preferences.language === 'hi' || preferences.preferredLanguage === 'hi') ? 'hi-IN' : 'en-US';
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = targetLang;
-      utterance.rate = preferences.speechRate === 'slow' ? 0.8 : preferences.speechRate === 'fast' ? 1.3 : 1.0;
+      const targetRate = preferences.speechRateMultiplier ?? (
+        preferences.speechRate === 'slow' ? 0.8 : preferences.speechRate === 'fast' ? 1.3 : 1.0
+      );
+      utterance.rate = Math.min(3.0, Math.max(0.5, targetRate));
       utterance.pitch = 1.0;
 
       // Select matching voice

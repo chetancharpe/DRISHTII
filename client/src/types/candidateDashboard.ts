@@ -149,4 +149,6 @@ export interface CandidateDashboardData {
   performanceTrend: PerformanceTrendData;
   weakAreas: WeakAreaTopicItem[];
   recentActivity: RecentActivityItem[];
+  isOfflineFallback?: boolean;
+  fallbackMessage?: string;
 }

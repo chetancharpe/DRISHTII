@@ -19,7 +19,7 @@ from app.models.password_reset_token import PasswordResetToken
 from app.models.refresh_token import RefreshToken
 from app.models.role import Role, UserRole
 from app.models.user import User
-from app.schemas.auth import AuthUserResponse, LoginRequest, RegisterRequest, TokenResponse
+from app.schemas.auth import AuthUserResponse, LoginRequest, MessageResponse, RegisterRequest, TokenResponse
 from app.schemas.user import AdminUserCreate, UserResponse
 from app.services.audit_service import log_audit_event
 from app.services.email_service import get_email_sender
@@ -233,13 +233,11 @@ def revoke_user_refresh_tokens(db: Session, user_id: str, refresh_token: Optiona
     db.commit()
 
 
-def request_password_reset(db: Session, email: str) -> "MessageResponse":
+def request_password_reset(db: Session, email: str) -> MessageResponse:
     """
     Generate a secure password reset token without revealing account existence.
     Uses SHA-256 token hashing and EmailSender interface.
     """
-    from app.schemas.auth import MessageResponse
-
     user = db.query(User).filter(User.email == email.lower().strip()).first()
     if user and user.is_active:
         # Invalidate any prior unused reset tokens for this user
@@ -272,12 +270,12 @@ def request_password_reset(db: Session, email: str) -> "MessageResponse":
     )
 
 
-def reset_password(db: Session, token: str, new_password: str) -> "MessageResponse":
+def reset_password(db: Session, token: str, new_password: str) -> MessageResponse:
     """
     Reset user password using single-use cryptographic token.
     Validates token hash, expiration, and password strength.
     """
-    from app.schemas.auth import MessageResponse
+    # 1. Enforce password complexity
 
     # 1. Enforce password complexity
     is_valid, msg = validate_password_strength(new_password)

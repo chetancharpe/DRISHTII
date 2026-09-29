@@ -39,7 +39,7 @@ export const Sidebar: React.FC = () => {
 
   const candidateSecondaryLinks = [
     { to: '/candidate/settings', label: 'Settings', icon: <Settings className="w-4 h-4" aria-hidden="true" /> },
-    { to: '/about', label: 'Help & Guides', icon: <HelpCircle className="w-4 h-4" aria-hidden="true" /> },
+    { to: '/candidate/help', label: 'Help & Guides', icon: <HelpCircle className="w-4 h-4" aria-hidden="true" /> },
   ];
 
   const examinerLinks = [

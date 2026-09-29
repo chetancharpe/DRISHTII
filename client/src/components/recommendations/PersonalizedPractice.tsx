@@ -33,7 +33,7 @@ export const PersonalizedPractice: React.FC<PersonalizedPracticeProps> = ({
       <div className="flex items-center gap-3 shrink-0">
         <button
           type="button"
-          onClick={() => navigate('/practice')}
+          onClick={() => navigate('/candidate/practice')}
           className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
           Start Practice Set (10 Questions)

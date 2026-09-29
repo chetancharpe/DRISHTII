@@ -343,12 +343,13 @@ def seed_demo_data(force: bool = False):
             db.add(live_exam)
             db.flush()
 
-            # Assign candidate as ELIGIBLE and NOT_ATTEMPTED
+            # Assign candidate as ELIGIBLE and NOT_ATTEMPTED with 1.5x PwD accommodation multiplier
             cand_live_assign = ExamCandidate(
                 exam_id=live_exam.id,
                 candidate_id=candidate_user.id,
                 eligibility_status=EligibilityStatus.ELIGIBLE.value,
                 attempt_status=AttemptStatus.NOT_ATTEMPTED.value,
+                time_multiplier=1.5,
             )
             db.add(cand_live_assign)
             db.flush()

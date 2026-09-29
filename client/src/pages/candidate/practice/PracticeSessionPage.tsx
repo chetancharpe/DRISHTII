@@ -19,7 +19,7 @@ import { useVoiceCommands } from '../../../hooks/useVoiceCommands';
 export const PracticeSessionPage: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
-  const { openCalibration } = useAccessibility();
+  const { openCalibration, announce } = useAccessibility();
 
   const [session, setSession] = useState<PracticeSession | null>(null);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -27,6 +27,7 @@ export const PracticeSessionPage: React.FC = () => {
   const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const elapsedSecondsRef = useRef(0);
 
   useEffect(() => {
@@ -42,7 +43,7 @@ export const PracticeSessionPage: React.FC = () => {
           setCurrentIdx(data.currentQuestionIndex || 0);
         }
       } catch (err) {
-        setError('Error loading practice session.');
+        setError('Error loading practice session. Please try again.');
       } finally {
         setIsLoading(false);
       }
@@ -92,8 +93,9 @@ export const PracticeSessionPage: React.FC = () => {
   const remainingCount = session.totalQuestions - answeredCount - skippedCount;
   const unansweredCount = session.totalQuestions - answeredCount;
 
-  // Handlers
+  // Handlers with assertive error feedback
   const handleSubmitAnswer = async (questionId: string, selectedOptionIds: string[]) => {
+    setActionError(null);
     try {
       const res = await practiceService.submitAnswer(
         session.id,
@@ -104,10 +106,14 @@ export const PracticeSessionPage: React.FC = () => {
       setSession(res.session);
     } catch (err) {
       console.error('Answer submission error', err);
+      const msg = 'Could not submit your answer. Please check your connection and retry.';
+      setActionError(msg);
+      announce(msg, 'assertive');
     }
   };
 
   const handleSkipQuestion = async (questionId: string) => {
+    setActionError(null);
     try {
       const updated = await practiceService.skipQuestion(session.id, questionId);
       setSession(updated);
@@ -116,6 +122,9 @@ export const PracticeSessionPage: React.FC = () => {
       }
     } catch (err) {
       console.error('Skip question error', err);
+      const msg = 'Could not skip the question. Please retry.';
+      setActionError(msg);
+      announce(msg, 'assertive');
     }
   };
 
@@ -133,11 +142,15 @@ export const PracticeSessionPage: React.FC = () => {
 
   const handleConfirmFinish = async () => {
     setIsFinishModalOpen(false);
+    setActionError(null);
     try {
       await practiceService.finishPracticeSession(session.id, elapsedSecondsRef.current);
       navigate(`/candidate/practice/session/${session.id}/result`);
     } catch (err) {
       console.error('Failed to finish practice', err);
+      const msg = 'Failed to finalize practice session. Please try clicking Finish again.';
+      setActionError(msg);
+      announce(msg, 'assertive');
     }
   };
 
@@ -235,6 +248,28 @@ export const PracticeSessionPage: React.FC = () => {
           </button>
         </div>
       </header>
+
+      {/* Action Error Alert */}
+      {actionError && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="p-4 rounded-xl bg-status-error/10 border border-status-error/30 text-status-error text-xs font-semibold flex items-center justify-between gap-3 shadow-xs"
+        >
+          <span className="flex items-center gap-2">
+            <span aria-hidden="true">⚠️</span>
+            <span>{actionError}</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setActionError(null)}
+            className="text-xs underline hover:opacity-80 p-1"
+            aria-label="Dismiss error notification"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Main Practice Workspace: 2-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">

@@ -146,7 +146,9 @@ def assign_candidates(
     db: Session = Depends(get_db),
 ):
     """Assign candidate users to an examination."""
-    assigned_count = assign_candidates_to_exam(db, exam_id, data.candidate_ids, current_user.id)
+    assigned_count = assign_candidates_to_exam(
+        db, exam_id, data.candidate_ids, current_user.id, data.time_multiplier or 1.0
+    )
     return {"message": f"Successfully assigned {assigned_count} candidates.", "assigned_count": assigned_count}
 
 

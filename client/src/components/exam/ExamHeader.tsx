@@ -13,6 +13,7 @@ interface ExamHeaderProps {
   unsyncedCount: number;
   currentQuestionNumber: number;
   totalQuestions: number;
+  timeMultiplier?: number;
   onExpire: () => void;
   onRetrySync?: () => void;
   onOpenAccessibility: () => void;
@@ -29,6 +30,7 @@ export const ExamHeader: React.FC<ExamHeaderProps> = ({
   unsyncedCount,
   currentQuestionNumber,
   totalQuestions,
+  timeMultiplier,
   onExpire,
   onRetrySync,
   onOpenAccessibility,
@@ -50,6 +52,15 @@ export const ExamHeader: React.FC<ExamHeaderProps> = ({
             <span className="text-[11px] text-foreground-secondary truncate max-w-[200px] sm:max-w-xs">
               {organization}
             </span>
+            {timeMultiplier && timeMultiplier > 1.0 && (
+              <span
+                className="hidden lg:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-secondary/15 text-secondary border border-secondary/30"
+                title={`${timeMultiplier}x compensatory time accommodation active`}
+                aria-label={`Compensatory extra time accommodation active: ${timeMultiplier} times`}
+              >
+                PwD {timeMultiplier}x Time
+              </span>
+            )}
           </div>
           <h1 className="text-sm sm:text-base font-extrabold text-foreground truncate mt-0.5">
             {title}

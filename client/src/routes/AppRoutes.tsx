@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { PageLayout } from '../components/layout/PageLayout';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RoleRoute } from './RoleRoute';
@@ -44,6 +44,13 @@ import { MockTestHistoryPage } from '../pages/candidate/mockTests/MockTestHistor
 import { ResultsPage as CandidateResultsPage } from '../pages/candidate/ResultsPage';
 import { ProgressPage } from '../pages/candidate/progress/ProgressPage';
 import { SettingsPage as CandidateSettingsPage } from '../pages/candidate/SettingsPage';
+import { CandidateHelpPage } from '../pages/candidate/CandidateHelpPage';
+
+// Redirect helper for legacy or variant exam session URLs
+const CandidateExamRedirect: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/candidate/exams/${id}/session`} replace />;
+};
 
 // Examiner Pages
 import { ExaminerDashboardPage } from '../pages/examiner/ExaminerDashboardPage';
@@ -311,17 +318,21 @@ export const AppRoutes: React.FC = () => {
         />
         <Route
           path="/candidate/exam/:id"
-          element={
-            <PageLayout>
-              <LiveExamSessionPage />
-            </PageLayout>
-          }
+          element={<CandidateExamRedirect />}
         />
         <Route
           path="/candidate/results"
           element={
             <PageLayout showSidebar>
               <CandidateResultsPage />
+            </PageLayout>
+          }
+        />
+        <Route
+          path="/candidate/help"
+          element={
+            <PageLayout showSidebar>
+              <CandidateHelpPage />
             </PageLayout>
           }
         />

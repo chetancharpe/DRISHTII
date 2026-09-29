@@ -288,6 +288,7 @@ class ExamService {
         answers,
         unsyncedQuestionIds: [],
         lastSyncTimestamp: Date.now(),
+        timeMultiplier: (backendSession as any).time_multiplier || 1.0,
       };
 
       this.saveStoredSession(session);
@@ -344,7 +345,8 @@ class ExamService {
     examId: string,
     questionId: string,
     selectedOptions: string[],
-    isMarkedForReview: boolean
+    isMarkedForReview: boolean,
+    textAnswer?: string
   ): Promise<{ session: ExamSession; syncState: ExamSyncState }> {
     const session = this.getStoredSession(examId);
     if (!session) {
@@ -361,6 +363,7 @@ class ExamService {
     session.answers[questionId] = {
       questionId,
       selectedOptions,
+      textAnswer,
       isMarkedForReview,
       savedAt: now,
       syncState: isOnline ? 'synced' : 'pending',
@@ -377,7 +380,7 @@ class ExamService {
     // Attempt real backend dispatch via PATCH /exam-sessions/:sessionId/answers/:questionId
     try {
       await apiClient.patch(`/exam-sessions/${session.sessionId}/answers/${questionId}`, {
-        selected_answer: selectedOptions,
+        selected_answer: textAnswer ? [textAnswer] : selectedOptions,
         version: 1,
         client_timestamp: new Date(now).toISOString(),
       });

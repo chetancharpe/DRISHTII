@@ -48,14 +48,16 @@ export const ExamTimer: React.FC<ExamTimerProps> = ({
           minutesRemaining === 1;
 
         if (preferences.timerAnnouncements === 'regular') {
-          if (minutesRemaining > 0 && minutesRemaining % 5 === 0) {
-            announce(`${minutesRemaining} minutes remaining in examination.`);
-          } else if (minutesRemaining === 1) {
-            announce('1 minute remaining in examination. Prepare to submit.');
+          if (minutesRemaining === 1) {
+            announce('Urgent Notice: 1 minute remaining in examination. Prepare to submit.', 'assertive');
+          } else if (minutesRemaining > 0 && minutesRemaining % 5 === 0) {
+            announce(`${minutesRemaining} minutes remaining in examination.`, 'polite');
           }
         } else if (preferences.timerAnnouncements === 'warnings') {
-          if (isWarningMilestone) {
-            announce(`Notice: ${minutesRemaining} minute${minutesRemaining > 1 ? 's' : ''} remaining in examination.`);
+          if (minutesRemaining === 1) {
+            announce('Urgent Notice: 1 minute remaining in examination. Prepare to submit.', 'assertive');
+          } else if (isWarningMilestone) {
+            announce(`Notice: ${minutesRemaining} minutes remaining in examination.`, 'polite');
           }
         }
       }

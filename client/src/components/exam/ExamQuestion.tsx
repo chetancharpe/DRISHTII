@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { ExamQuestion as ExamQuestionType, ExamAnswer, ExamNavigationPolicy } from '../../types/exam';
 import { ExamAnswerControl } from './ExamAnswerControl';
+import { ExamSubjectiveDictation } from './ExamSubjectiveDictation';
 import { RichMathText } from '../common/RichMathText';
 import { KaTeXMath } from '../common/KaTeXMath';
 import { AccessibleDataTable } from '../common/AccessibleDataTable';
@@ -29,6 +30,16 @@ interface ExamQuestionProps {
   onPrevious: () => void;
   onNext: () => void;
   onSubmit: () => void;
+  // Scribe Subjective Dictation Props
+  onSubjectiveAnswerChange?: (text: string) => void;
+  isDictating?: boolean;
+  isVoiceSupported?: boolean;
+  onToggleDictation?: () => void;
+  onReadBackDictation?: () => void;
+  onReadLastSentence?: () => void;
+  onDeleteLastSentence?: () => void;
+  onClearDictation?: () => void;
+  onConfirmDictation?: () => void;
 }
 
 export const ExamQuestion: React.FC<ExamQuestionProps> = ({
@@ -45,6 +56,15 @@ export const ExamQuestion: React.FC<ExamQuestionProps> = ({
   onPrevious,
   onNext,
   onSubmit,
+  onSubjectiveAnswerChange,
+  isDictating = false,
+  isVoiceSupported = true,
+  onToggleDictation,
+  onReadBackDictation,
+  onReadLastSentence,
+  onDeleteLastSentence,
+  onClearDictation,
+  onConfirmDictation,
 }) => {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const { speak, preferences } = useAccessibility();
@@ -170,6 +190,25 @@ export const ExamQuestion: React.FC<ExamQuestionProps> = ({
             onClear={onClearAnswer}
           />
         </div>
+
+        {/* Scribe Subjective Answer & Dictation Assistant */}
+        {onSubjectiveAnswerChange && (
+          <div className="mt-4">
+            <ExamSubjectiveDictation
+              value={answer?.textAnswer || ''}
+              onChange={onSubjectiveAnswerChange}
+              isDictating={isDictating}
+              isSupported={isVoiceSupported}
+              onToggleDictation={onToggleDictation || (() => {})}
+              onReadBack={onReadBackDictation || (() => {})}
+              onReadLastSentence={onReadLastSentence || (() => {})}
+              onDeleteLastSentence={onDeleteLastSentence || (() => {})}
+              onClear={onClearDictation || (() => onSubjectiveAnswerChange(''))}
+              onConfirm={onConfirmDictation || (() => {})}
+              placeholder="Dictate your detailed answer, subjective solution, or rough notes here..."
+            />
+          </div>
+        )}
       </fieldset>
 
       {/* Question Actions & Navigation Footer */}

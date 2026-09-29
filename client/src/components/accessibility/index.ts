@@ -15,3 +15,4 @@ export * from './ResetSettingsModal';
 export * from './ScreenReaderControl';
 export * from './KeyboardModeControl';
 export * from './AccessibilityHelpModal';
+export * from './AudioGuidedOnboardingModal';

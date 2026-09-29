@@ -6,14 +6,16 @@ import {
   ShieldCheck,
   CheckCircle2,
   Building2,
+  Volume2,
 } from 'lucide-react';
 import { Button } from '../common/Button';
 
 export interface HeroSectionProps {
   onOpenAccessibility: () => void;
+  onOpenAudioOnboarding?: () => void;
 }
 
-export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenAccessibility }) => {
+export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenAccessibility, onOpenAudioOnboarding }) => {
   return (
     <section
       aria-labelledby="hero-title"
@@ -83,6 +85,20 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenAccessibility })
             <span>Accessibility</span>
             <span className="keyboard-indicator ml-2 text-[10px]">Alt+A</span>
           </Button>
+
+          {onOpenAudioOnboarding && (
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={onOpenAudioOnboarding}
+              icon={<Volume2 className="w-4 h-4 text-primary animate-pulse" />}
+              className="w-full sm:w-auto px-6 border-primary/40 bg-primary/5 text-primary hover:bg-primary/10"
+              aria-label="Start hands-free audio onboarding (Shortcut: Enter)"
+            >
+              <span>Audio Setup</span>
+              <span className="keyboard-indicator ml-2 text-[10px] text-primary">Enter</span>
+            </Button>
+          )}
         </div>
 
         {/* Key Guarantees */}

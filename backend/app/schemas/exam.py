@@ -73,6 +73,7 @@ class ExamScheduleRequest(BaseModel):
 
 class ExamCandidateAssignRequest(BaseModel):
     candidate_ids: List[str]
+    time_multiplier: Optional[float] = 1.0
 
 
 class ExamCandidateResponse(ExamBase):
@@ -84,6 +85,7 @@ class ExamCandidateResponse(ExamBase):
     total_questions: int = 0
     is_eligible: bool = True
     attempt_status: str = "NOT_ATTEMPTED"
+    time_multiplier: float = 1.0
     organization_name: Optional[str] = None
     exam_code: Optional[str] = None
 
@@ -119,6 +121,7 @@ class RosterImportResultItem(BaseModel):
     email: str
     candidate_id: str
     status: str  # ENROLLED, NEW_USER_ENROLLED, ALREADY_ENROLLED, ERROR
+    time_multiplier: float = 1.0
     accommodations_applied: List[str] = Field(default_factory=list)
     error_message: Optional[str] = None
 

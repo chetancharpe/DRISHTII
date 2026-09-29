@@ -69,6 +69,7 @@ class SessionResponse(BaseModel):
     last_sync_at: Optional[datetime] = None
     
     # Examination structural payload (all questions strictly stripped of answers/explanations)
+    time_multiplier: float = 1.0
     sections: List[SectionCandidateDetailResponse] = Field(default_factory=list)
     saved_answers: Dict[str, Any] = Field(default_factory=dict)
     answer_versions: Dict[str, int] = Field(default_factory=dict)

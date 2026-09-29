@@ -173,11 +173,15 @@ export const LiveExamSessionPage: React.FC = () => {
 
       setSession(updatedSession);
       setSyncState(newSyncState);
+      if (newSyncState === 'OFFLINE') {
+        announce('Response safely saved in offline queue. Will auto-sync when connection is restored.', 'polite');
+      }
     } catch (err) {
       console.error('Error saving answer', err);
       setSyncState('SYNC_ERROR');
+      announce('Saving to server failed, retrying automatically. Response safely preserved offline.', 'assertive');
     }
-  }, [exam, session, currentQuestion]);
+  }, [exam, session, currentQuestion, announce]);
 
   // Clear answer
   const handleClearAnswer = useCallback(async () => {
@@ -268,7 +272,7 @@ export const LiveExamSessionPage: React.FC = () => {
   };
 
   // Retry synchronizing unsynced answers
-  const handleRetrySync = async () => {
+  const handleRetrySync = useCallback(async () => {
     if (!exam) return;
     setIsSyncing(true);
     try {
@@ -277,14 +281,44 @@ export const LiveExamSessionPage: React.FC = () => {
       setSyncState(success ? 'SYNCED' : 'SYNC_ERROR');
       if (success) {
         announce('All answers synchronized with examination server.', 'polite');
+      } else {
+        announce('Saving failed, retrying in background. Answers remain safely stored offline.', 'assertive');
       }
     } catch (e) {
       console.error(e);
       setSyncState('SYNC_ERROR');
+      announce('Saving failed, retrying in background. Answers remain safely stored offline.', 'assertive');
     } finally {
       setIsSyncing(false);
     }
-  };
+  }, [exam, announce]);
+
+  // Network connection event listeners for assertive accessibility announcements
+  useEffect(() => {
+    const handleOffline = () => {
+      setSyncState('OFFLINE');
+      announce(
+        'Internet connection lost. Your examination answers are safely preserved in offline storage and will auto-synchronize when connection resumes.',
+        'assertive'
+      );
+    };
+
+    const handleOnline = () => {
+      announce(
+        'Internet connection restored. Synchronizing saved answers with the examination server.',
+        'polite'
+      );
+      handleRetrySync();
+    };
+
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [announce, handleRetrySync]);
 
   // Auto-submit when authoritative timer expires
   const handleTimerExpired = async () => {
@@ -317,26 +351,133 @@ export const LiveExamSessionPage: React.FC = () => {
     }
   };
 
-  // Audio assistance: speak question stem
-  const handleListenQuestion = useCallback(() => {
+  // Audio assistance: speak question stem only (Hotkey: Q)
+  const handleListenQuestionOnly = useCallback(() => {
     if (!currentQuestion) return;
-    let textToSpeak = `Question ${currentQuestionIndex + 1} of ${allQuestions.length}. Section: ${currentQuestion.sectionTitle}. ${currentQuestion.prompt}`;
+    let textToSpeak = `Question ${currentQuestionIndex + 1} of ${allQuestions.length}. ${currentQuestion.prompt}`;
     if (currentQuestion.formulaAriaLabel) {
       textToSpeak += ` Formula: ${currentQuestion.formulaAriaLabel}.`;
     }
     speak(textToSpeak);
   }, [currentQuestion, currentQuestionIndex, allQuestions.length, speak]);
 
-  // Audio assistance: speak all options
+  // Audio assistance: speak all options (Hotkey: O)
   const handleListenOptions = useCallback(() => {
     if (!currentQuestion) return;
+    if (!currentQuestion.options || currentQuestion.options.length === 0) {
+      speak('This question has no multiple choice options. Use subjective dictation or text input.');
+      return;
+    }
     const optionsText = currentQuestion.options
       .map((opt) => `Option ${opt.label}: ${opt.text}`)
       .join('. ');
     speak(`Available answer choices: ${optionsText}`);
   }, [currentQuestion, speak]);
 
-  // Hands-free voice commands hook
+  // Audio assistance: speak options slowly with deliberate pauses (Hotkey: Shift+O)
+  const handleListenOptionsSlowly = useCallback(() => {
+    if (!currentQuestion) return;
+    if (!currentQuestion.options || currentQuestion.options.length === 0) {
+      speak('This question has no multiple choice options.');
+      return;
+    }
+    const optionsText = currentQuestion.options
+      .map((opt) => `Option ${opt.label}... ${opt.text}`)
+      .join('... ... Next choice: ');
+    speak(`Reading options slowly: ${optionsText}`);
+  }, [currentQuestion, speak]);
+
+  // Audio assistance: speak question details, formula & explanation (Hotkey: E)
+  const handleListenExplanation = useCallback(() => {
+    if (!currentQuestion) return;
+    const parts: string[] = [];
+    if (currentQuestion.formulaAriaLabel) {
+      parts.push(`Mathematical formula: ${currentQuestion.formulaAriaLabel}`);
+    } else if (currentQuestion.formula) {
+      parts.push(`Mathematical expression: ${currentQuestion.formula}`);
+    }
+    if (currentQuestion.sectionTitle) {
+      parts.push(`Section: ${currentQuestion.sectionTitle}`);
+    }
+    if (currentQuestion.type) {
+      parts.push(`Question type: ${currentQuestion.type.replace('_', ' ')}`);
+    }
+    if (parts.length === 0) {
+      speak('No additional formula or explanation metadata for this question.');
+    } else {
+      speak(`Question details: ${parts.join('. ')}`);
+    }
+  }, [currentQuestion, speak]);
+
+  // Audio assistance: speak complete question prompt and options together (Hotkey: R)
+  const handleListenFullQuestion = useCallback(() => {
+    if (!currentQuestion) return;
+    let textToSpeak = `Question ${currentQuestionIndex + 1} of ${allQuestions.length}. Section: ${currentQuestion.sectionTitle}. ${currentQuestion.prompt}`;
+    if (currentQuestion.formulaAriaLabel) {
+      textToSpeak += ` Formula: ${currentQuestion.formulaAriaLabel}.`;
+    }
+    if (currentQuestion.options && currentQuestion.options.length > 0) {
+      const optionsText = currentQuestion.options
+        .map((opt) => `Option ${opt.label}: ${opt.text}`)
+        .join('. ');
+      textToSpeak += ` Available options: ${optionsText}`;
+    }
+    speak(textToSpeak);
+  }, [currentQuestion, currentQuestionIndex, allQuestions.length, speak]);
+
+  // Audio & Live Announcement: Announce remaining examination time politely (Hotkey: T)
+  const handleAnnounceRemainingTime = useCallback(() => {
+    if (remainingSeconds === null || remainingSeconds <= 0) {
+      const msg = 'Examination time has expired or is calculating.';
+      announce(msg, 'polite');
+      speak(msg);
+      return;
+    }
+    const mins = Math.floor(remainingSeconds / 60);
+    const secs = remainingSeconds % 60;
+    let timeStr = '';
+    if (mins > 0 && secs > 0) {
+      timeStr = `${mins} minute${mins === 1 ? '' : 's'} and ${secs} second${secs === 1 ? '' : 's'}`;
+    } else if (mins > 0) {
+      timeStr = `${mins} minute${mins === 1 ? '' : 's'}`;
+    } else {
+      timeStr = `${secs} second${secs === 1 ? '' : 's'}`;
+    }
+    const message = `Time remaining: ${timeStr}.`;
+    announce(message, 'polite');
+    speak(message);
+  }, [remainingSeconds, announce, speak]);
+
+  // Handle subjective / dictated answer changes
+  const handleSubjectiveAnswerChange = useCallback(
+    async (text: string) => {
+      if (!exam || !session || !currentQuestion) return;
+
+      setSyncState('SAVING');
+      try {
+        const currentAns = session.answers[currentQuestion.id];
+        const isMarked = currentAns?.isMarkedForReview || false;
+        const selectedOpts = currentAns?.selectedOptions || [];
+
+        const { session: updatedSession, syncState: newSyncState } = await examService.saveAnswer(
+          exam.id,
+          currentQuestion.id,
+          selectedOpts,
+          isMarked,
+          text
+        );
+
+        setSession(updatedSession);
+        setSyncState(newSyncState);
+      } catch (err) {
+        console.error('Error saving subjective answer', err);
+        setSyncState('SYNC_ERROR');
+      }
+    },
+    [exam, session, currentQuestion]
+  );
+
+  // Hands-free voice commands & Scribe dictation hook
   const voice = useVoiceCommands({
     onNext: handleNext,
     onPrevious: handlePrevious,
@@ -352,15 +493,38 @@ export const LiveExamSessionPage: React.FC = () => {
         } else {
           handleAnswerChange([optId]);
         }
-        announce(`Selected option ${currentQuestion.options[optIndex].label}`, 'polite');
+        announce(`Confirmed option ${currentQuestion.options[optIndex].label}`, 'polite');
       }
     },
     onMarkReview: handleToggleReview,
     onClearAnswer: handleClearAnswer,
     onSubmit: () => setIsSubmitModalOpen(true),
+    onPlayAudio: handleListenFullQuestion,
+    onPauseAudio: () => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    },
+    onAnnounceTime: handleAnnounceRemainingTime,
+    getCurrentOptions: () => {
+      if (!currentQuestion) return [];
+      return currentQuestion.options.map((opt) => ({
+        label: opt.label,
+        text: opt.text,
+      }));
+    },
+    onSubjectiveAnswerChange: handleSubjectiveAnswerChange,
   });
 
-  // Global Keyboard Shortcuts (N, P, 1-4, M, C, S, ?, R, O)
+  // Synchronize active dictatedText with question's stored text answer
+  useEffect(() => {
+    if (currentQuestion && session) {
+      const existingText = session.answers[currentQuestion.id]?.textAnswer || '';
+      voice.setDictatedText(existingText);
+    }
+  }, [currentQuestionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Global Keyboard Shortcuts (N, P, 1-4, M, C, S, ?, Q, O, Shift+O, E, R, T, V)
   useEffect(() => {
     const anyModalOpen =
       isNavigatorOpen ||
@@ -371,22 +535,43 @@ export const LiveExamSessionPage: React.FC = () => {
       isInterruptionModalOpen;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Do not trigger shortcuts when typing in inputs, textareas, or if a modal is active
+      // If voice pending selection is awaiting candidate confirmation, Enter confirms and Escape cancels
+      if (voice.pendingSelection) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          voice.confirmPendingSelection();
+          return;
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          voice.cancelPendingSelection();
+          return;
+        }
+      }
+
+      // Do not trigger global navigation shortcuts when actively typing in inputs or textareas (unless Escape or modal is open)
       const target = e.target as HTMLElement;
-      if (
+      const isTyping =
         target.tagName === 'INPUT' ||
         target.tagName === 'TEXTAREA' ||
         target.tagName === 'SELECT' ||
-        target.isContentEditable ||
-        anyModalOpen
-      ) {
+        target.isContentEditable;
+
+      if (isTyping || anyModalOpen) {
         return;
       }
 
-      // Check shortcuts
+      // Check shortcuts reference modal
       if (e.key === '?' || (e.shiftKey && e.key === '/')) {
         e.preventDefault();
         setIsShortcutsModalOpen(true);
+        return;
+      }
+
+      // Slow options read (Shift + O)
+      if (e.shiftKey && e.key.toLowerCase() === 'o') {
+        e.preventDefault();
+        handleListenOptionsSlowly();
         return;
       }
 
@@ -407,12 +592,24 @@ export const LiveExamSessionPage: React.FC = () => {
       } else if (key === 's') {
         e.preventDefault();
         setIsSubmitModalOpen(true);
-      } else if (key === 'r') {
+      } else if (key === 'q') {
         e.preventDefault();
-        handleListenQuestion();
+        handleListenQuestionOnly();
       } else if (key === 'o') {
         e.preventDefault();
         handleListenOptions();
+      } else if (key === 'e') {
+        e.preventDefault();
+        handleListenExplanation();
+      } else if (key === 'r') {
+        e.preventDefault();
+        handleListenFullQuestion();
+      } else if (key === 't') {
+        e.preventDefault();
+        handleAnnounceRemainingTime();
+      } else if (key === 'v') {
+        e.preventDefault();
+        voice.toggleListening();
       } else if (['1', '2', '3', '4'].includes(e.key)) {
         e.preventDefault();
         const optIndex = parseInt(e.key, 10) - 1;
@@ -441,12 +638,17 @@ export const LiveExamSessionPage: React.FC = () => {
     isHelpModalOpen,
     isShortcutsModalOpen,
     isInterruptionModalOpen,
+    voice,
     handleNext,
     handlePrevious,
     handleToggleReview,
     handleClearAnswer,
-    handleListenQuestion,
+    handleListenQuestionOnly,
     handleListenOptions,
+    handleListenOptionsSlowly,
+    handleListenExplanation,
+    handleListenFullQuestion,
+    handleAnnounceRemainingTime,
     handleAnswerChange,
     currentQuestion,
     session,
@@ -505,6 +707,7 @@ export const LiveExamSessionPage: React.FC = () => {
         unsyncedCount={unsyncedCount}
         currentQuestionNumber={currentQuestionIndex + 1}
         totalQuestions={exam.config.totalQuestions}
+        timeMultiplier={session.timeMultiplier}
         onExpire={handleTimerExpired}
         onRetrySync={handleRetrySync}
         onOpenAccessibility={() => setIsA11yModalOpen(true)}
@@ -590,6 +793,11 @@ export const LiveExamSessionPage: React.FC = () => {
           lastCommand={voice.lastCommand}
           errorNotice={voice.errorNotice}
           onToggle={voice.toggleListening}
+          pendingSelection={voice.pendingSelection}
+          onConfirmSelection={voice.confirmPendingSelection}
+          onCancelSelection={voice.cancelPendingSelection}
+          isDictating={voice.isDictating}
+          onStopDictating={voice.stopDictating}
           className="mb-4"
         />
 
@@ -607,6 +815,18 @@ export const LiveExamSessionPage: React.FC = () => {
           onPrevious={handlePrevious}
           onNext={handleNext}
           onSubmit={() => setIsSubmitModalOpen(true)}
+          onSubjectiveAnswerChange={handleSubjectiveAnswerChange}
+          isDictating={voice.isDictating}
+          isVoiceSupported={voice.isSupported}
+          onToggleDictation={voice.isDictating ? voice.stopDictating : voice.startDictating}
+          onReadBackDictation={voice.readBackDictation}
+          onReadLastSentence={voice.readLastSentence}
+          onDeleteLastSentence={voice.deleteLastSentence}
+          onClearDictation={voice.clearDictation}
+          onConfirmDictation={() => {
+            if (voice.isDictating) voice.stopDictating();
+            announce('Dictated answer confirmed and recorded.', 'polite');
+          }}
         />
       </main>
 

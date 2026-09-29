@@ -344,14 +344,16 @@ def seed_database():
                             )
                         )
 
-                # Assign candidates
-                for cand in candidates:
+                # Assign candidates with realistic accommodation multipliers (1.0x standard, 1.5x PwD accommodation)
+                for idx, cand in enumerate(candidates):
+                    mult = 1.5 if idx % 2 == 1 else 1.0
                     db.add(
                         ExamCandidate(
                             exam_id=exam.id,
                             candidate_id=cand.id,
                             eligibility_status=EligibilityStatus.ELIGIBLE.value,
                             attempt_status=AttemptStatus.NOT_ATTEMPTED.value,
+                            time_multiplier=mult,
                         )
                     )
 

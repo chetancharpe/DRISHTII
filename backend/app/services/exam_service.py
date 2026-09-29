@@ -198,9 +198,9 @@ def schedule_exam(db: Session, exam_id: str, schedule: ExamScheduleRequest, user
 
 
 def assign_candidates_to_exam(
-    db: Session, exam_id: str, candidate_ids: List[str], user_id: str
+    db: Session, exam_id: str, candidate_ids: List[str], user_id: str, time_multiplier: float = 1.0
 ) -> int:
-    """Assign candidate users to an examination."""
+    """Assign candidate users to an examination with optional accommodation multiplier."""
     exam = db.query(Exam).filter(Exam.id == exam_id).first()
     if not exam:
         raise EntityNotFoundException("Exam", exam_id)
@@ -222,9 +222,13 @@ def assign_candidates_to_exam(
                 candidate_id=cid,
                 eligibility_status=EligibilityStatus.ELIGIBLE.value,
                 attempt_status=AttemptStatus.NOT_ATTEMPTED.value,
+                time_multiplier=time_multiplier,
             )
             db.add(assignment)
             assigned_count += 1
+        else:
+            if time_multiplier != 1.0:
+                existing.time_multiplier = time_multiplier
 
     db.commit()
     log_audit_event(
@@ -395,6 +399,8 @@ def list_candidate_exams(
         org_name = exam.organization.name if exam.organization else "GoWow Examination Authority"
         exam_code = f"GW-{exam.id[:8].upper()}"
 
+        cand_multiplier = float(cand_assignment.time_multiplier) if (cand_assignment and cand_assignment.time_multiplier) else 1.0
+
         results.append(
             ExamCandidateResponse(
                 id=exam.id,
@@ -411,6 +417,7 @@ def list_candidate_exams(
                 total_questions=total_q,
                 is_eligible=is_eligible or True,  # Eligible if open or assigned
                 attempt_status=attempt_status,
+                time_multiplier=cand_multiplier,
                 organization_name=org_name,
                 exam_code=exam_code,
             )
@@ -432,6 +439,7 @@ def get_candidate_exam_details(db: Session, exam_id: str, candidate_id: str) -> 
     )
     is_eligible = cand_assignment is not None and cand_assignment.eligibility_status == EligibilityStatus.ELIGIBLE.value
     attempt_status = cand_assignment.attempt_status if cand_assignment else AttemptStatus.NOT_ATTEMPTED.value
+    cand_multiplier = float(cand_assignment.time_multiplier) if (cand_assignment and cand_assignment.time_multiplier) else 1.0
 
     sec_count = db.query(ExamSection).filter(ExamSection.exam_id == exam.id).count()
     total_q = sum(
@@ -456,6 +464,7 @@ def get_candidate_exam_details(db: Session, exam_id: str, candidate_id: str) -> 
         total_questions=total_q,
         is_eligible=is_eligible or True,
         attempt_status=attempt_status,
+        time_multiplier=cand_multiplier,
         organization_name=org_name,
         exam_code=exam_code,
     )
@@ -560,8 +569,25 @@ def import_candidate_roster_csv(
             new_users_count += 1
             is_new = True
 
-        # Process Accommodations
+        # Process Accommodations & Time Multiplier (1.0x, 1.5x, 2.0x)
+        multiplier_raw = row[4].strip() if len(row) > 4 else ""
+        cand_multiplier = 1.0
+        if multiplier_raw:
+            try:
+                cand_multiplier = float(multiplier_raw.lower().replace("x", "").strip())
+            except ValueError:
+                cand_multiplier = 1.0
+        elif accommodations_raw:
+            acc_clean_check = accommodations_raw.lower()
+            if "2.0x" in acc_clean_check or "2x" in acc_clean_check or "100%" in acc_clean_check or "double" in acc_clean_check:
+                cand_multiplier = 2.0
+            elif "1.5x" in acc_clean_check or "1.5" in acc_clean_check or "50%" in acc_clean_check or "extra time" in acc_clean_check:
+                cand_multiplier = 1.5
+
         applied_accommodations: List[str] = []
+        if cand_multiplier > 1.0:
+            applied_accommodations.append(f"{cand_multiplier}x Compensatory Time")
+
         if accommodations_raw:
             acc_clean = accommodations_raw.lower().replace("_", " ")
             prof = db.query(AccessibilityProfile).filter(AccessibilityProfile.user_id == user.id).first()
@@ -570,7 +596,8 @@ def import_candidate_roster_csv(
                 db.add(prof)
 
             if "extra time" in acc_clean or "50%" in acc_clean or "time" in acc_clean:
-                applied_accommodations.append("Extra Time Accommodation")
+                if f"{cand_multiplier}x Compensatory Time" not in applied_accommodations:
+                    applied_accommodations.append("Extra Time Accommodation")
             if "screen reader" in acc_clean or "blind" in acc_clean:
                 prof.screen_reader_mode = True
                 prof.audio_assistance = True
@@ -596,12 +623,14 @@ def import_candidate_roster_csv(
             .first()
         )
         if existing_enrollment:
+            existing_enrollment.time_multiplier = cand_multiplier
             results.append(
                 RosterImportResultItem(
                     name=f"{user.first_name} {user.last_name}",
                     email=user.email,
                     candidate_id=user.id,
                     status="ALREADY_ENROLLED",
+                    time_multiplier=cand_multiplier,
                     accommodations_applied=applied_accommodations,
                 )
             )
@@ -611,6 +640,7 @@ def import_candidate_roster_csv(
                 candidate_id=user.id,
                 eligibility_status=EligibilityStatus.ELIGIBLE.value,
                 attempt_status=AttemptStatus.NOT_ATTEMPTED.value,
+                time_multiplier=cand_multiplier,
             )
             db.add(enrollment)
             enrolled_count += 1
@@ -620,6 +650,7 @@ def import_candidate_roster_csv(
                     email=user.email,
                     candidate_id=user.id,
                     status="NEW_USER_ENROLLED" if is_new else "ENROLLED",
+                    time_multiplier=cand_multiplier,
                     accommodations_applied=applied_accommodations,
                 )
             )

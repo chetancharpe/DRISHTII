@@ -18,7 +18,7 @@ function getCurrentCandidate(): { name: string; email: string } {
       const parsed = JSON.parse(raw);
       if (parsed.name || parsed.email) {
         return {
-          name: parsed.name || 'Candidate User',
+          name: parsed.name || 'Candidate',
           email: parsed.email || 'candidate@drishti.org',
         };
       }
@@ -27,17 +27,47 @@ function getCurrentCandidate(): { name: string; email: string } {
     // ignore json parse error
   }
   return {
-    name: 'Chetan Charpe',
-    email: 'chetan@drishti.org',
+    name: 'Candidate',
+    email: 'candidate@drishti.org',
   };
 }
 
 export function getFallbackCandidateDashboard(user?: { name?: string; email?: string }): CandidateDashboardData {
   const current = user || getCurrentCandidate();
-  const name = current.name?.trim() || 'Candidate User';
+  const name = current.name?.trim() || 'Candidate';
   const email = current.email || 'candidate@drishti.org';
 
+  // Check if candidate has any locally stored completed mock tests or practice records
+  const completedMocks: any[] = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('gowow_mock_result_') && !key.endsWith('_reviews')) {
+        const item = localStorage.getItem(key);
+        if (item) {
+          try {
+            completedMocks.push(JSON.parse(item));
+          } catch {}
+        }
+      }
+    }
+  } catch {}
+
+  const hasActivity = completedMocks.length > 0;
+  const mockCount = completedMocks.length;
+  let totalScore = 0;
+  let totalQuestions = 0;
+
+  completedMocks.forEach((m) => {
+    totalScore += m.scorePercent || m.percentage || 0;
+    totalQuestions += m.totalQuestions || 0;
+  });
+
+  const avgScore = mockCount > 0 ? Math.round(totalScore / mockCount) : 0;
+
   return {
+    isOfflineFallback: true,
+    fallbackMessage: 'Offline / Demo Preview: Live server could not be reached. Local storage and offline mode are active.',
     profile: {
       id: 'usr-candidate-active',
       name,
@@ -45,26 +75,40 @@ export function getFallbackCandidateDashboard(user?: { name?: string; email?: st
       targetExam: 'Combined Defence Services (CDS) 2026',
       role: 'candidate',
     },
-    nextAction: {
-      id: 'next-action-01',
-      title: 'Continue your preparation',
-      subject: 'Reasoning',
-      topic: 'Coding & Decoding',
-      completedQuestions: 6,
-      totalQuestions: 10,
-      estimatedMinutesRemaining: 8,
-      ctaLabel: 'Continue Practice',
-      ctaRoute: '/candidate/practice?topic=coding-decoding',
-    },
+    nextAction: hasActivity
+      ? {
+          id: 'next-action-01',
+          title: 'Continue your preparation',
+          subject: 'Reasoning',
+          topic: 'Coding & Decoding',
+          completedQuestions: 5,
+          totalQuestions: 10,
+          estimatedMinutesRemaining: 10,
+          ctaLabel: 'Continue Practice',
+          ctaRoute: '/candidate/practice?topic=coding-decoding',
+        }
+      : {
+          id: 'next-action-new',
+          title: 'Start your preparation',
+          subject: 'General Ability',
+          topic: 'First Diagnostic Practice Set',
+          completedQuestions: 0,
+          totalQuestions: 10,
+          estimatedMinutesRemaining: 15,
+          ctaLabel: 'Start Practice',
+          ctaRoute: '/candidate/practice',
+        },
     dailyGoal: {
-      questionsCompleted: 14,
+      questionsCompleted: hasActivity ? Math.min(totalQuestions, 20) : 0,
       questionsTarget: 20,
-      timeMinutesPracticed: 35,
+      timeMinutesPracticed: hasActivity ? 25 : 0,
       targetMinutes: 45,
-      topicsCompleted: 2,
+      topicsCompleted: hasActivity ? 1 : 0,
       topicsTarget: 3,
-      streakDays: 4,
-      streakSupportiveMessage: 'Keep building your preparation routine.',
+      streakDays: hasActivity ? 1 : 0,
+      streakSupportiveMessage: hasActivity
+        ? 'Great start! Keep building your preparation routine.'
+        : "You haven't practiced today. Attempt your first practice question to start a streak.",
     },
     quickActions: [
       {
@@ -99,102 +143,95 @@ export function getFallbackCandidateDashboard(user?: { name?: string; email?: st
       },
     ],
     overviewStats: {
-      overallProgressPercent: 68,
-      questionsPracticedCount: 248,
-      mockTestsCompletedCount: 4,
-      averageScorePercent: 74,
+      overallProgressPercent: hasActivity ? Math.min(100, Math.round((totalQuestions / 100) * 100)) : 0,
+      questionsPracticedCount: totalQuestions,
+      mockTestsCompletedCount: mockCount,
+      averageScorePercent: avgScore,
     },
     subjectProgress: [
       {
         id: 'subj-math',
         subject: 'Mathematics',
-        progressPercent: 66,
-        masteredTopics: 2,
+        progressPercent: hasActivity ? 25 : 0,
+        masteredTopics: 0,
         totalTopics: 3,
         practiceRoute: '/candidate/practice?subject=mathematics',
       },
       {
         id: 'subj-english',
         subject: 'English',
-        progressPercent: 78,
-        masteredTopics: 2,
+        progressPercent: hasActivity ? 30 : 0,
+        masteredTopics: 0,
         totalTopics: 3,
         practiceRoute: '/candidate/practice?subject=english',
       },
       {
         id: 'subj-gk',
         subject: 'General Knowledge',
-        progressPercent: 49,
-        masteredTopics: 1,
+        progressPercent: hasActivity ? 15 : 0,
+        masteredTopics: 0,
         totalTopics: 3,
         practiceRoute: '/candidate/practice?subject=general-knowledge',
       },
       {
         id: 'subj-reasoning',
         subject: 'Reasoning',
-        progressPercent: 71,
-        masteredTopics: 2,
+        progressPercent: hasActivity ? 20 : 0,
+        masteredTopics: 0,
         totalTopics: 3,
         practiceRoute: '/candidate/practice?subject=reasoning',
       },
     ],
-    continueLearning: {
-      id: 'learn-01',
-      subject: 'Mathematics',
-      topic: 'Probability — Compound Events',
-      completedLessons: 4,
-      totalLessons: 6,
-      nextLessonTitle: 'Bayes Theorem & Conditional Probability',
-      continueRoute: '/candidate/learn',
-    },
+    continueLearning: hasActivity
+      ? {
+          id: 'learn-01',
+          subject: 'Mathematics',
+          topic: 'Number Systems & Algebra',
+          completedLessons: 1,
+          totalLessons: 5,
+          nextLessonTitle: 'Prime Numbers & Divisibility',
+          continueRoute: '/candidate/learn',
+        }
+      : null,
     recommendations: [
       {
         id: 'rec-01',
         subject: 'Mathematics',
-        topic: 'Percentages & Profit Loss',
+        topic: 'Percentages & Arithmetic',
         questionCount: 10,
-        difficulty: 'Medium',
-        estimatedMinutes: 15,
+        difficulty: 'Easy',
+        estimatedMinutes: 12,
         practiceRoute: '/candidate/practice?topic=percentages',
       },
       {
         id: 'rec-02',
         subject: 'Reasoning',
-        topic: 'Syllogisms & Deductions',
+        topic: 'Analogy & Classification',
         questionCount: 8,
         difficulty: 'Easy',
         estimatedMinutes: 10,
-        practiceRoute: '/candidate/practice?topic=syllogisms',
+        practiceRoute: '/candidate/practice?topic=analogy',
       },
       {
         id: 'rec-03',
         subject: 'English',
-        topic: 'Sentence Correction & Grammar',
-        questionCount: 12,
-        difficulty: 'Hard',
-        estimatedMinutes: 18,
-        practiceRoute: '/candidate/practice?topic=grammar',
+        topic: 'Vocabulary & Synonyms',
+        questionCount: 10,
+        difficulty: 'Medium',
+        estimatedMinutes: 12,
+        practiceRoute: '/candidate/practice?topic=vocabulary',
       },
     ],
     mockTests: [
       {
-        id: 'mock-01',
+        id: 'cds-full-mock-01',
         title: 'CDS General Ability Comprehensive Mock Test 1',
-        questionCount: 50,
+        questionCount: 40,
         durationMinutes: 60,
         difficulty: 'Medium',
         accessibilitySupport: 'Screen reader ready, full keyboard navigation, audio cues enabled',
-        testRoute: '/candidate/mock-tests',
+        testRoute: '/candidate/mock-tests/cds-full-mock-01',
         isNew: true,
-      },
-      {
-        id: 'mock-02',
-        title: 'Elementary Mathematics Diagnostic Assessment',
-        questionCount: 30,
-        durationMinutes: 45,
-        difficulty: 'Easy',
-        accessibilitySupport: 'Accessible math notation, large-type support, keyboard navigation',
-        testRoute: '/candidate/mock-tests',
       },
     ],
     upcomingExams: [
@@ -202,80 +239,49 @@ export function getFallbackCandidateDashboard(user?: { name?: string; email?: st
         id: 'exam-01',
         title: 'National Digital Mock Examination 2026',
         dateFormatted: '15 Oct 2026, 10:00 AM',
-        durationMinutes: 120,
+        durationMinutes: 60,
         status: 'Scheduled',
         detailsRoute: '/candidate/exams',
         registrationNumber: 'DRISHTI-2026-8821',
       },
     ],
-    recentPerformance: [
-      {
-        id: 'perf-01',
-        testTitle: 'Quantitative Aptitude Mock 1',
-        scorePercent: 78,
-        dateFormatted: 'Yesterday',
-        isPassed: true,
-        viewRoute: '/candidate/results',
-      },
-      {
-        id: 'perf-02',
-        testTitle: 'English Vocabulary & Reading Drill',
-        scorePercent: 82,
-        dateFormatted: '3 days ago',
-        isPassed: true,
-        viewRoute: '/candidate/results',
-      },
-      {
-        id: 'perf-03',
-        testTitle: 'General Knowledge Weekly Assessment',
-        scorePercent: 54,
-        dateFormatted: '5 days ago',
-        isPassed: false,
-        viewRoute: '/candidate/results',
-      },
-    ],
+    recentPerformance: completedMocks.slice(0, 3).map((m, idx) => ({
+      id: `perf-${idx}`,
+      testTitle: m.mockTestTitle || 'Mock Assessment',
+      scorePercent: m.scorePercent || m.percentage || 0,
+      dateFormatted: m.completedAt ? new Date(m.completedAt).toLocaleDateString() : 'Recent',
+      isPassed: (m.scorePercent || m.percentage || 0) >= 50,
+      viewRoute: '/candidate/results',
+    })),
     performanceTrend: {
-      testLabels: ['Test 1', 'Test 2', 'Test 3', 'Test 4', 'Test 5'],
-      scores: [62, 68, 71, 74, 78],
-      textAlternative: 'Performance has shown consistent upward improvement across the last 5 tests, rising from 62% to 78%.',
-      trendDescription: 'Your scores are steadily improving. +16% gain across recent evaluations.',
+      testLabels: completedMocks.slice(-5).map((_, idx) => `Test ${idx + 1}`),
+      scores: completedMocks.slice(-5).map((m) => m.scorePercent || m.percentage || 0),
+      textAlternative: hasActivity
+        ? `Completed ${mockCount} assessment(s) with an average score of ${avgScore}%.`
+        : 'No tests completed yet. Completed tests will appear here.',
+      trendDescription: hasActivity
+        ? `Evaluations completed: ${mockCount}. Average score: ${avgScore}%.`
+        : 'Attempt your first mock test or practice set to generate score trends.',
     },
-    weakAreas: [
-      {
-        id: 'weak-01',
-        topic: 'Modern Indian History',
-        subject: 'General Knowledge',
-        accuracyPercent: 42,
-        practiceRoute: '/candidate/practice?topic=history',
-      },
-      {
-        id: 'weak-02',
-        topic: 'Permutations & Combinations',
-        subject: 'Mathematics',
-        accuracyPercent: 48,
-        practiceRoute: '/candidate/practice?topic=permutations',
-      },
-    ],
-    recentActivity: [
-      {
-        id: 'act-01',
-        title: 'Completed 10 questions in Probability',
-        timestamp: '2 hours ago',
-        type: 'practice',
-      },
-      {
-        id: 'act-02',
-        title: 'Attempted Quantitative Aptitude Mock 1',
-        timestamp: 'Yesterday',
-        type: 'mock',
-      },
-      {
-        id: 'act-03',
-        title: 'Achieved 4-day study streak milestone',
-        timestamp: 'Today',
-        type: 'milestone',
-      },
-    ],
+    weakAreas: hasActivity
+      ? [
+          {
+            id: 'weak-01',
+            topic: 'Percentages & Arithmetic',
+            subject: 'Mathematics',
+            accuracyPercent: 45,
+            practiceRoute: '/candidate/practice?topic=percentages',
+          },
+        ]
+      : [],
+    recentActivity: hasActivity
+      ? completedMocks.slice(0, 3).map((m, idx) => ({
+          id: `act-${idx}`,
+          title: `Completed ${m.mockTestTitle || 'Mock Test'} (${m.scorePercent || 0}%)`,
+          timestamp: m.completedAt ? new Date(m.completedAt).toLocaleDateString() : 'Recently',
+          type: 'mock' as const,
+        }))
+      : [],
   };
 }
 

@@ -205,8 +205,14 @@ export const mockTestService = {
   async getMockTest(id: string): Promise<MockTest | null> {
     try {
       return await apiClient.get<MockTest>(`/mock-tests/${id}`);
-    } catch {
-      return FALLBACK_MOCK_TESTS.find((t) => t.id === id) || FALLBACK_MOCK_TESTS[0] || null;
+    } catch (err) {
+      console.warn(`Failed to fetch mock test ${id} from server, checking fallback catalog:`, err);
+      const fallback = FALLBACK_MOCK_TESTS.find((t) => t.id === id);
+      if (!fallback) {
+        console.warn(`Mock test with ID "${id}" not found.`);
+        return null;
+      }
+      return fallback;
     }
   },
 
@@ -214,7 +220,10 @@ export const mockTestService = {
    * Starts a new mock test session.
    */
   async startMockTest(testId: string): Promise<MockTestSession> {
-    const test = (await this.getMockTest(testId)) || (await this.getMockTests())[0];
+    const test = await this.getMockTest(testId);
+    if (!test) {
+      throw new Error(`Mock test with ID "${testId}" not found.`);
+    }
 
     const firstSection = test.sections[0];
     const firstQuestion = firstSection?.questions[0];
@@ -255,7 +264,9 @@ export const mockTestService = {
     try {
       localStorage.setItem(`${STORAGE_SESSION_PREFIX}${sessionId}`, JSON.stringify(session));
       localStorage.setItem('gowow_active_mock_session_id', sessionId);
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Failed to persist mock test session to localStorage:', e);
+    }
 
     return session;
   },
@@ -284,7 +295,9 @@ export const mockTestService = {
         activeSessions.set(sessionId, parsed);
         return { ...parsed };
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Failed to parse mock test session from localStorage:', e);
+    }
 
     return null;
   },
@@ -329,7 +342,9 @@ export const mockTestService = {
     activeSessions.set(sessionId, session);
     try {
       localStorage.setItem(`${STORAGE_SESSION_PREFIX}${sessionId}`, JSON.stringify(session));
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Failed to update mock test session in localStorage:', e);
+    }
 
     return { ...session };
   },
@@ -375,7 +390,9 @@ export const mockTestService = {
     activeSessions.set(sessionId, session);
     try {
       localStorage.setItem(`${STORAGE_SESSION_PREFIX}${sessionId}`, JSON.stringify(session));
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Failed to update review status in localStorage:', e);
+    }
 
     return { ...session };
   },
@@ -399,7 +416,9 @@ export const mockTestService = {
     activeSessions.set(sessionId, session);
     try {
       localStorage.setItem(`${STORAGE_SESSION_PREFIX}${sessionId}`, JSON.stringify(session));
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Failed to clear answer in localStorage:', e);
+    }
 
     return { ...session };
   },
@@ -425,7 +444,9 @@ export const mockTestService = {
     activeSessions.set(sessionId, session);
     try {
       localStorage.setItem(`${STORAGE_SESSION_PREFIX}${sessionId}`, JSON.stringify(session));
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Failed to update navigation position in localStorage:', e);
+    }
 
     return { ...session };
   },
@@ -570,7 +591,9 @@ export const mockTestService = {
       localStorage.setItem(`${STORAGE_RESULT_PREFIX}${session.sessionId}`, JSON.stringify(result));
       localStorage.setItem(`${STORAGE_RESULT_PREFIX}${session.testId}_reviews`, JSON.stringify(reviews));
       localStorage.removeItem('gowow_active_mock_session_id');
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Failed to persist mock test result in localStorage:', e);
+    }
 
     return result;
   },
@@ -595,7 +618,9 @@ export const mockTestService = {
       if (activeId === sessionId) {
         localStorage.removeItem('gowow_active_mock_session_id');
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Failed to remove mock session from localStorage:', e);
+    }
   },
 
   /**
@@ -613,7 +638,9 @@ export const mockTestService = {
         completedResults.set(sessionId, parsed);
         return { ...parsed };
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Failed to load mock result from localStorage:', e);
+    }
 
     return null;
   },
@@ -625,7 +652,9 @@ export const mockTestService = {
     try {
       const stored = localStorage.getItem(`${STORAGE_RESULT_PREFIX}${testId}_reviews`);
       if (stored) return JSON.parse(stored);
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Failed to load question reviews from localStorage:', e);
+    }
     return [];
   },
 

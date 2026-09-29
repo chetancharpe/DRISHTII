@@ -34,11 +34,11 @@ export const ExamCandidatesPage: React.FC = () => {
   const [targetCohort, setTargetCohort] = useState<string>('Main Cohort');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [csvContent, setCsvContent] = useState<string>(
-    'Name,Email,CandidateID,Accommodations\n' +
-    'Aarav Sharma,aarav.sharma@example.edu,CAND-2026-101,screen_reader;extra_time_30;audio_assistance\n' +
-    'Priya Patel,priya.patel@example.edu,CAND-2026-102,high_contrast;keyboard_navigation\n' +
-    'Rohan Deshmukh,rohan.d@example.edu,CAND-2026-103,standard\n' +
-    'Fatima Zahra,fatima.z@example.edu,CAND-2026-104,large_text;extra_time_15'
+    'Name,Email,CandidateID,Accommodations,TimeMultiplier\n' +
+    'Aarav Sharma,aarav.sharma@example.edu,CAND-2026-101,screen_reader;audio_assistance,1.5\n' +
+    'Priya Patel,priya.patel@example.edu,CAND-2026-102,high_contrast;keyboard_navigation,1.0\n' +
+    'Rohan Deshmukh,rohan.d@example.edu,CAND-2026-103,standard,1.0\n' +
+    'Fatima Zahra,fatima.z@example.edu,CAND-2026-104,large_text;extra_time_15,1.5'
   );
 
   useEffect(() => {
@@ -233,11 +233,18 @@ export const ExamCandidatesPage: React.FC = () => {
                       {rec.examStatus.replace('_', ' ')}
                     </td>
                     <td className="p-3">
-                      <span className="inline-flex items-center gap-1 font-mono text-[11px] font-bold bg-surface-elevated px-2 py-0.5 rounded border border-border text-foreground">
-                        <Shield className="w-3 h-3 text-primary" aria-hidden="true" />
-                        {rec.accessibilityStatus.replace('_', ' ')}
-                        {rec.extraTimeGrantedMinutes > 0 && ` (+${rec.extraTimeGrantedMinutes}m)`}
-                      </span>
+                      <div className="flex flex-col gap-1 items-start">
+                        <span className="inline-flex items-center gap-1 font-mono text-[11px] font-bold bg-surface-elevated px-2 py-0.5 rounded border border-border text-foreground">
+                          <Shield className="w-3 h-3 text-primary" aria-hidden="true" />
+                          {rec.accessibilityStatus.replace('_', ' ')}
+                          {rec.extraTimeGrantedMinutes > 0 && ` (+${rec.extraTimeGrantedMinutes}m)`}
+                        </span>
+                        {(rec.accessibilityStatus.toLowerCase().includes('screen_reader') || rec.accessibilityStatus.toLowerCase().includes('audio')) && (
+                          <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold bg-secondary/15 text-secondary border border-secondary/30">
+                            PwD 1.5x Time (Compensatory)
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -325,10 +332,13 @@ export const ExamCandidatesPage: React.FC = () => {
             {/* Format Instructions */}
             <div className="text-[11px] text-foreground-muted bg-surface/50 p-2.5 rounded-lg border border-border/60">
               <span className="font-bold text-foreground">Header Schema: </span>
-              <code>Name, Email, CandidateID, Accommodations</code>
+              <code>Name, Email, CandidateID, Accommodations, TimeMultiplier (optional)</code>
               <br />
               <span className="font-medium">Supported Accommodations (semicolon-separated): </span>
-              <code className="text-primary">screen_reader</code>, <code className="text-primary">high_contrast</code>, <code className="text-primary">large_text</code>, <code className="text-primary">keyboard_navigation</code>, <code className="text-primary">audio_assistance</code>, <code className="text-primary">extra_time_15|30|45|60</code>.
+              <code className="text-primary">screen_reader</code>, <code className="text-primary">high_contrast</code>, <code className="text-primary">large_text</code>, <code className="text-primary">keyboard_navigation</code>, <code className="text-primary">audio_assistance</code>, <code className="text-primary">extra_time_30</code>.
+              <br />
+              <span className="font-medium">Compensatory Multipliers: </span>
+              <code className="text-secondary font-bold">1.0</code> (Standard), <code className="text-secondary font-bold">1.5</code> (PwD 50% Extra Time), <code className="text-secondary font-bold">2.0</code> (Double Time).
             </div>
 
             {/* CSV Content Input */}

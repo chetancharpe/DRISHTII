@@ -1,13 +1,13 @@
 {
   "include": [
-    "backend",
-    "tests"
+    "app",
+    "scripts"
   ],
   "extraPaths": [
-    "backend"
+    "."
   ],
   "venvPath": ".",
-  "venv": ".venv",
+  "venv": "venv",
   "typeCheckingMode": "off",
   "reportAttributeAccessIssue": "none",
   "reportGeneralTypeIssues": "none",

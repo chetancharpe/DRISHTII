@@ -175,6 +175,7 @@ export type ExamSyncState =
 export interface ExamAnswer {
   questionId: string;
   selectedOptions: string[];
+  textAnswer?: string; // Scribe subjective / essay dictated answer
   isMarkedForReview: boolean;
   savedAt: number;
   syncState: 'synced' | 'pending' | 'failed';
@@ -199,6 +200,7 @@ export interface ExamSession {
   answers: Record<string, ExamAnswer>;
   unsyncedQuestionIds: string[];
   lastSyncTimestamp: number;
+  timeMultiplier?: number;
   submissionId?: string;
   submittedAt?: string;
 }

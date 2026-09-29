@@ -86,8 +86,13 @@ def start_exam_session(db: Session, exam_id: str, candidate_id: str) -> SessionR
         # Resume existing active session
         session = existing_session
     else:
-        # Create new server-authoritative session
-        total_seconds = exam.duration_seconds + exam.extra_time_seconds
+        # Create new server-authoritative session with candidate accommodation multiplier (1.0x, 1.5x, 2.0x)
+        candidate_multiplier = (
+            float(candidate_assignment.time_multiplier)
+            if (candidate_assignment and candidate_assignment.time_multiplier)
+            else 1.0
+        )
+        total_seconds = int(exam.duration_seconds * candidate_multiplier) + exam.extra_time_seconds
         server_start = now
         server_expiry = server_start + timedelta(seconds=total_seconds)
 
@@ -114,7 +119,12 @@ def start_exam_session(db: Session, exam_id: str, candidate_id: str) -> SessionR
             resource_type="ExamSession",
             resource_id=session.id,
             actor_id=candidate_id,
-            metadata={"exam_id": exam_id, "server_expires_at": str(server_expiry)},
+            metadata={
+                "exam_id": exam_id,
+                "server_expires_at": str(server_expiry),
+                "duration_seconds": total_seconds,
+                "time_multiplier": candidate_multiplier,
+            },
         )
 
     return get_session_detail(db, session.id, candidate_id)
@@ -203,6 +213,13 @@ def get_session_detail(db: Session, session_id: str, candidate_id: str) -> Sessi
         saved_answers[ans.question_id] = ans.selected_answer
         answer_versions[ans.question_id] = ans.version
 
+    cand_assignment = (
+        db.query(ExamCandidate)
+        .filter(ExamCandidate.exam_id == session.exam_id, ExamCandidate.candidate_id == session.candidate_id)
+        .first()
+    )
+    time_multiplier = float(cand_assignment.time_multiplier) if (cand_assignment and cand_assignment.time_multiplier) else 1.0
+
     return SessionResponse(
         id=session.id,
         exam_id=session.exam_id,
@@ -214,6 +231,7 @@ def get_session_detail(db: Session, session_id: str, candidate_id: str) -> Sessi
         remaining_seconds=remaining,
         submitted_at=session.submitted_at,
         last_sync_at=session.last_sync_at,
+        time_multiplier=time_multiplier,
         sections=section_details,
         saved_answers=saved_answers,
         answer_versions=answer_versions,

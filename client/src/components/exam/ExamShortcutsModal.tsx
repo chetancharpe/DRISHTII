@@ -46,8 +46,23 @@ export const ExamShortcutsModal: React.FC<ExamShortcutsModalProps> = ({ isOpen, 
     {
       category: 'Audio Assistance & Reading',
       items: [
-        { key: 'R', desc: 'Re-read current question stem via speech' },
-        { key: 'O', desc: 'Read answer options out loud via speech' },
+        { key: 'Q', desc: 'Read question stem only (no choices)' },
+        { key: 'O', desc: 'Read answer choices' },
+        { key: 'Shift + O', desc: 'Read answer choices slowly with pauses' },
+        { key: 'E', desc: 'Read formula, hints & question details' },
+        { key: 'R', desc: 'Read full question and all options' },
+        { key: 'T', desc: 'Announce remaining examination time' },
+      ],
+    },
+    {
+      category: 'Scribe Mode & Hands-Free Voice',
+      items: [
+        { key: 'V', desc: 'Toggle Scribe voice recognition on / off' },
+        { key: 'Say "Option B"', desc: 'Triggers confirmation prompt before recording choice' },
+        { key: 'Enter / Say "Confirm"', desc: 'Confirm pending option or dictation' },
+        { key: 'Esc / Say "Change"', desc: 'Cancel pending option' },
+        { key: 'Say "Read back"', desc: 'Scribe reads back entire subjective answer' },
+        { key: 'Say "Delete last sentence"', desc: 'Voice-directed text editing in subjective mode' },
       ],
     },
     {

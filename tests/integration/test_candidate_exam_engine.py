@@ -315,3 +315,69 @@ def test_server_authoritative_timer_expiration(exam_engine_db):
     # Session status must be marked EXPIRED by server
     exam_engine_db.refresh(expired_session)
     assert expired_session.status == SessionStatus.EXPIRED.value
+
+
+def test_candidate_accommodation_time_multiplier(exam_engine_db):
+    """Candidate-wise accommodation multiplier (1.0x vs 1.5x) calculates personalized session duration."""
+    now = datetime.now(timezone.utc)
+    accom_exam = Exam(
+        id="accom-exam-01",
+        title="Accommodated Examination",
+        description="Testing PwD 1.5x accommodation multiplier",
+        instructions="Compensatory time test",
+        duration_seconds=3600,  # 60 minutes
+        extra_time_seconds=0,
+        status=ExamStatus.LIVE.value,
+        start_at=now - timedelta(minutes=5),
+        end_at=now + timedelta(hours=5),
+    )
+    cand_std = User(
+        id="cand-std-01",
+        email="standard@test.com",
+        password_hash="hash",
+        first_name="Standard",
+        last_name="Candidate",
+        is_active=True,
+    )
+    cand_pwd = User(
+        id="cand-pwd-01",
+        email="pwd@test.com",
+        password_hash="hash",
+        first_name="PwD",
+        last_name="Candidate",
+        is_active=True,
+    )
+    exam_engine_db.add_all([accom_exam, cand_std, cand_pwd])
+    exam_engine_db.commit()
+
+    # Assign Standard candidate with 1.0x multiplier
+    ec_std = ExamCandidate(
+        exam_id=accom_exam.id,
+        candidate_id=cand_std.id,
+        eligibility_status=EligibilityStatus.ELIGIBLE.value,
+        attempt_status=AttemptStatus.NOT_ATTEMPTED.value,
+        time_multiplier=1.0,
+    )
+    # Assign PwD candidate with 1.5x multiplier (compensatory time)
+    ec_pwd = ExamCandidate(
+        exam_id=accom_exam.id,
+        candidate_id=cand_pwd.id,
+        eligibility_status=EligibilityStatus.ELIGIBLE.value,
+        attempt_status=AttemptStatus.NOT_ATTEMPTED.value,
+        time_multiplier=1.5,
+    )
+    exam_engine_db.add_all([ec_std, ec_pwd])
+    exam_engine_db.commit()
+
+    # Start session for standard candidate
+    sess_std = start_exam_session(exam_engine_db, accom_exam.id, cand_std.id)
+    # Standard candidate should receive ~3600 seconds (60 mins)
+    assert sess_std.time_multiplier == 1.0
+    assert 3590 <= sess_std.remaining_seconds <= 3605
+
+    # Start session for PwD accommodated candidate
+    sess_pwd = start_exam_session(exam_engine_db, accom_exam.id, cand_pwd.id)
+    # PwD candidate should receive ~5400 seconds (90 mins, 1.5x multiplier)
+    assert sess_pwd.time_multiplier == 1.5
+    assert 5390 <= sess_pwd.remaining_seconds <= 5405
+

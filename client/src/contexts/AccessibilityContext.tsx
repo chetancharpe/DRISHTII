@@ -70,6 +70,7 @@ export const DEFAULT_PREFERENCES: AccessibilityPreferences = {
   theme: 'system',
   audioEnabled: false,
   speechRate: 'normal',
+  speechRateMultiplier: 1.0,
   readQuestions: true,
   readOptions: true,
   readInstructions: true,
@@ -123,8 +124,18 @@ function normalizePreferences(raw: Partial<AccessibilityPreferences> | null): Ac
   // Map audio
   const audioEnabled = Boolean(raw.audioEnabled ?? raw.audioFeedbackEnabled ?? false);
 
-  // Map speech rate
-  const speechRate: SpeechRateOption = raw.speechRate || 'normal';
+  // Map speech rate and granular multiplier (0.5x to 3.0x)
+  let speechRateMultiplier = typeof raw.speechRateMultiplier === 'number'
+    ? Math.min(3.0, Math.max(0.5, raw.speechRateMultiplier))
+    : raw.speechRate === 'slow'
+    ? 0.8
+    : raw.speechRate === 'fast'
+    ? 1.3
+    : 1.0;
+
+  let speechRate: SpeechRateOption = raw.speechRate || (
+    speechRateMultiplier <= 0.85 ? 'slow' : speechRateMultiplier >= 1.25 ? 'fast' : 'normal'
+  );
 
   // Map navigation mode
   const keyboardFirst = Boolean(raw.keyboardFirst ?? raw.keyboardOnlyMode ?? false);
@@ -144,6 +155,7 @@ function normalizePreferences(raw: Partial<AccessibilityPreferences> | null): Ac
     theme,
     audioEnabled,
     speechRate,
+    speechRateMultiplier,
     readQuestions: raw.readQuestions ?? true,
     readOptions: raw.readOptions ?? true,
     readInstructions: raw.readInstructions ?? true,
@@ -243,10 +255,12 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = preferences.language === 'hi' ? 'hi-IN' : 'en-US';
 
-      // Rate mapping
-      if (preferences.speechRate === 'slow') utterance.rate = 0.8;
-      else if (preferences.speechRate === 'fast') utterance.rate = 1.3;
-      else utterance.rate = 1.0;
+      // Granular rate mapping (0.5x to 3.0x for screen reader power users)
+      const targetRate = preferences.speechRateMultiplier ?? (
+        preferences.speechRate === 'slow' ? 0.8 :
+        preferences.speechRate === 'fast' ? 1.3 : 1.0
+      );
+      utterance.rate = Math.min(3.0, Math.max(0.5, targetRate));
 
       // Dynamic voice selection matching language and user preference
       const voices = window.speechSynthesis.getVoices();
@@ -271,7 +285,7 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
 
       window.speechSynthesis.speak(utterance);
     },
-    [isSpeechSupported, preferences.language, preferences.speechRate]
+    [isSpeechSupported, preferences.language, preferences.speechRate, preferences.speechRateMultiplier, preferences.voiceURI]
   );
 
   // Sync with backend profile on mount/authentication

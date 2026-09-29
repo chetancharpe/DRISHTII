@@ -11,3 +11,4 @@ export * from './ExamInterruptionDialog';
 export * from './ExamSupportModal';
 export * from './ExamCard';
 export * from './ExamShortcutsModal';
+export * from './ExamSubjectiveDictation';

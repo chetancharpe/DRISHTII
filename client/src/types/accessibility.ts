@@ -38,6 +38,7 @@ export interface AccessibilityPreferences {
   // Audio assistance
   audioEnabled: boolean;
   speechRate: SpeechRateOption;
+  speechRateMultiplier?: number; // Granular multiplier (0.5x to 3.0x) for screen-reader users
   readQuestions: boolean;
   readOptions: boolean;
   readInstructions: boolean;

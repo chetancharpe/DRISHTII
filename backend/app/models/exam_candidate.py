@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
-from sqlalchemy import Column, DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import Column, DateTime, Float, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 
@@ -29,6 +29,7 @@ class ExamCandidate(Base):
     candidate_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     eligibility_status = Column(String(50), default=EligibilityStatus.ELIGIBLE.value, nullable=False)
     attempt_status = Column(String(50), default=AttemptStatus.NOT_ATTEMPTED.value, nullable=False)
+    time_multiplier = Column(Float, nullable=False, default=1.0)  # PwD compensatory time multiplier (e.g. 1.0, 1.5, 2.0)
     assigned_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     exam = relationship("Exam", back_populates="candidates")
