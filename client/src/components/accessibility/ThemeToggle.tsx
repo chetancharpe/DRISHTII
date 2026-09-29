@@ -53,7 +53,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
         </span>
       </div>
       <p className="text-xs text-foreground-secondary leading-relaxed">
-        Choose the appearance that feels most comfortable. When System is selected, GoWow matches your operating system.
+        Choose the appearance that feels most comfortable. When System is selected, DRISHTI matches your operating system.
       </p>
 
       <fieldset className="border-0 p-0 m-0">

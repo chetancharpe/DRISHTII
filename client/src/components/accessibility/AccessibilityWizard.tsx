@@ -123,7 +123,7 @@ export const AccessibilityWizard: React.FC<AccessibilityWizardProps> = ({
         <AccessibilityStep
           stepNumber={1}
           totalSteps={totalSteps}
-          title="Set Up GoWow for You"
+          title="Set Up DRISHTI for You"
           description="Choose the settings that make learning and examinations easier for you. You can change these preferences anytime."
           onNext={() => handleStepChange(2)}
           onSkip={handleSkip}
@@ -138,10 +138,10 @@ export const AccessibilityWizard: React.FC<AccessibilityWizardProps> = ({
                 </h3>
               </div>
               <p className="text-sm text-foreground-secondary leading-relaxed">
-                GoWow is built from the ground up for visually impaired and low-vision candidates. These settings personalize your interface with tailored font sizes, high-contrast themes, keyboard controls, and acoustic assistance.
+                DRISHTI is built from the ground up for visually impaired and low-vision candidates. These settings personalize your interface with tailored font sizes, high-contrast themes, keyboard controls, and acoustic assistance.
               </p>
               <p className="text-xs text-foreground-muted">
-                These settings personalize your experience. GoWow remains fully accessible even if you skip optional settings.
+                These settings personalize your experience. DRISHTI remains fully accessible even if you skip optional settings.
               </p>
             </div>
 
@@ -266,7 +266,7 @@ export const AccessibilityWizard: React.FC<AccessibilityWizardProps> = ({
                       <span className="text-sm font-bold text-foreground">Keyboard-First</span>
                     </div>
                     <p className="text-xs text-foreground-muted mt-2 pl-6">
-                      Use the keyboard to navigate and operate GoWow. Displays visual hotkey shortcut badges.
+                      Use the keyboard to navigate and operate DRISHTI. Displays visual hotkey shortcut badges.
                     </p>
                   </label>
                 </div>
@@ -292,7 +292,7 @@ export const AccessibilityWizard: React.FC<AccessibilityWizardProps> = ({
                     Screen-Reader Optimized Experience
                   </span>
                   <p className="text-[11px] text-foreground-muted leading-relaxed">
-                    Streamlines live-region updates and removes decorative noise. Note: The entire GoWow application is built to be screen-reader compatible by default.
+                    Streamlines live-region updates and removes decorative noise. Note: The entire DRISHTI application is built to be screen-reader compatible by default.
                   </p>
                 </div>
                 <input
@@ -372,7 +372,7 @@ export const AccessibilityWizard: React.FC<AccessibilityWizardProps> = ({
         <AccessibilityStep
           stepNumber={6}
           totalSteps={totalSteps}
-          title="Your GoWow Experience"
+          title="Your DRISHTI Experience"
           description="Verify your selected settings on a live simulated exam question. Test reading, keyboard navigation, and contrast."
           onBack={() => handleStepChange(5)}
           onNext={() => handleStepChange(7)}
@@ -394,7 +394,7 @@ export const AccessibilityWizard: React.FC<AccessibilityWizardProps> = ({
         <AccessibilityStep
           stepNumber={7}
           totalSteps={totalSteps}
-          title="Your GoWow Experience Is Ready"
+          title="Your DRISHTI Experience Is Ready"
           description="Your accessibility profile is calibrated and saved. You have complete independence to adjust your settings anytime."
           onBack={() => handleStepChange(6)}
           onNext={handleFinish}

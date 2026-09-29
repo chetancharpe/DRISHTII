@@ -121,7 +121,7 @@ export const SignupPage: React.FC = () => {
     return (
       <AuthLayout
         title="Account Created"
-        subtitle="Your GoWow account has been created successfully."
+        subtitle="Your DRISHTI account has been created successfully."
         badge="Registration Complete"
       >
         <div
@@ -173,7 +173,7 @@ export const SignupPage: React.FC = () => {
       title="Create Your Account"
       subtitle={
         role === 'candidate'
-          ? 'Join GoWow to take mock tests, learn, and excel in competitive examinations.'
+          ? 'Join DRISHTI to take mock tests, learn, and excel in competitive examinations.'
           : 'Register as an examiner to author and manage accessible examination assessments.'
       }
       badge="Step 2 of Registration"

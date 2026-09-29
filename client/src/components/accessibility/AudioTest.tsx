@@ -18,7 +18,7 @@ export const AudioTest: React.FC<AudioTestProps> = ({ className = '' }) => {
     }
 
     setTestStatus('Playing speech sample...');
-    speak('GoWow audio assistance is working.');
+    speak('DRISHTI audio assistance is working.');
   };
 
   const handleStopAudio = () => {
@@ -44,7 +44,7 @@ export const AudioTest: React.FC<AudioTestProps> = ({ className = '' }) => {
       </div>
 
       <p className="text-xs text-foreground-secondary leading-relaxed">
-        Test GoWow voice playback directly on your current speakers or headphones. Speech is strictly triggered by your command and never autoplays.
+        Test DRISHTI voice playback directly on your current speakers or headphones. Speech is strictly triggered by your command and never autoplays.
       </p>
 
       {!isSpeechSupported ? (
@@ -75,7 +75,7 @@ export const AudioTest: React.FC<AudioTestProps> = ({ className = '' }) => {
               size="sm"
               onClick={handleTestAudio}
               icon={<Volume2 className="w-4 h-4 text-primary" aria-hidden="true" />}
-              aria-label="Play acoustic speech test phrase: GoWow audio assistance is working"
+              aria-label="Play acoustic speech test phrase: DRISHTI audio assistance is working"
             >
               Test Audio
             </Button>

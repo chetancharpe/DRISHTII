@@ -296,7 +296,7 @@ export const ExaminerDashboardPage: React.FC = () => {
             </ul>
           </Card>
 
-          <Card title="Examiner Accessibility Notice" subtitle="GoWow Core Differentiator">
+          <Card title="Examiner Accessibility Notice" subtitle="DRISHTI Core Differentiator">
             <div className="p-3.5 rounded-xl bg-primary/10 border border-primary/20 text-xs text-foreground space-y-2">
               <p className="font-bold flex items-center gap-1.5 text-primary">
                 <ShieldCheck className="w-4 h-4" aria-hidden="true" />

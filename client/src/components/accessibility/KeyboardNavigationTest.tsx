@@ -89,7 +89,7 @@ export const KeyboardNavigationTest: React.FC<KeyboardNavigationTestProps> = ({ 
           <div
             tabIndex={0}
             role="region"
-            aria-label="Demonstration of GoWow high-visibility focus ring"
+            aria-label="Demonstration of DRISHTI high-visibility focus ring"
             className="px-4 py-2 rounded-md bg-surface border border-primary outline outline-3 outline-primary outline-offset-3 font-semibold text-xs text-foreground select-none"
           >
             Focused Element (3px Focus Ring)

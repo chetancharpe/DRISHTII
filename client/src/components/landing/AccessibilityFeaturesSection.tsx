@@ -72,7 +72,7 @@ export const AccessibilityFeaturesSection: React.FC = () => {
           Accessibility Built Into Every Step
         </h2>
         <p className="text-body text-foreground-secondary leading-relaxed">
-          Accessibility is not a plugin or an afterthought. Every feature in GoWow is engineered to provide equivalent, independent access to examination materials and assessments.
+          Accessibility is not a plugin or an afterthought. Every feature in DRISHTI is engineered to provide equivalent, independent access to examination materials and assessments.
         </p>
       </div>
 

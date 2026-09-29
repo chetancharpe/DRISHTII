@@ -155,7 +155,7 @@ export const AccessibilityHelpModal: React.FC<AccessibilityHelpModalProps> = ({
           >
             <h3 className="text-base font-semibold text-foreground">Global Platform Shortcuts</h3>
             <p className="text-sm text-muted-foreground">
-              These hotkeys can be pressed from any page on GoWow to jump directly to key accessibility tools.
+              These hotkeys can be pressed from any page on DRISHTI to jump directly to key accessibility tools.
             </p>
 
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -302,7 +302,7 @@ export const AccessibilityHelpModal: React.FC<AccessibilityHelpModalProps> = ({
                       </kbd>
                     </td>
                     <td className="py-2.5 px-3 text-xs text-muted-foreground">
-                      Triggers GoWow TTS to speak current question and choices.
+                      Triggers DRISHTI TTS to speak current question and choices.
                     </td>
                   </tr>
                   <tr>
@@ -331,7 +331,7 @@ export const AccessibilityHelpModal: React.FC<AccessibilityHelpModalProps> = ({
           >
             <h3 className="text-base font-semibold text-foreground">Screen Reader Recommendations</h3>
             <p className="text-sm text-muted-foreground">
-              GoWow is engineered for seamless operation with <strong>NVDA</strong> (Windows), <strong>JAWS</strong> (Windows), and <strong>VoiceOver</strong> (macOS/iOS).
+              DRISHTI is engineered for seamless operation with <strong>NVDA</strong> (Windows), <strong>JAWS</strong> (Windows), and <strong>VoiceOver</strong> (macOS/iOS).
             </p>
 
             <div className="space-y-3">
@@ -368,7 +368,7 @@ export const AccessibilityHelpModal: React.FC<AccessibilityHelpModalProps> = ({
           >
             <h3 className="text-base font-semibold text-foreground">Audio & Text-to-Speech Assistance</h3>
             <p className="text-sm text-muted-foreground">
-              For candidates who do not use an external screen reader or prefer auditory reinforcement, GoWow includes native speech synthesis.
+              For candidates who do not use an external screen reader or prefer auditory reinforcement, DRISHTI includes native speech synthesis.
             </p>
 
             <ul className="list-disc pl-5 text-sm space-y-2 text-muted-foreground">

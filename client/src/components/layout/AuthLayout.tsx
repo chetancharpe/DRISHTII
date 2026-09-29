@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Sliders, Sun, Moon, Sparkles, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { BrandLogo } from '../common/BrandLogo';
 import { useAccessibility } from '../../hooks/useAccessibility';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Modal } from '../common/Modal';
@@ -47,21 +48,10 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
           {/* Logo */}
           <Link
             to="/"
-            className="flex items-center gap-2.5 text-foreground hover:text-primary font-bold text-xl tracking-tight focus-visible:outline-offset-4"
-            aria-label="GoWow Home Page"
+            className="flex items-center gap-2.5 text-foreground hover:opacity-90 transition-opacity focus-visible:outline-offset-4"
+            aria-label="DRISHTI Home Page"
           >
-            <span
-              className="w-9 h-9 rounded-md bg-primary text-primary-contrast flex items-center justify-center font-extrabold text-lg select-none"
-              aria-hidden="true"
-            >
-              G
-            </span>
-            <div className="flex flex-col">
-              <span className="leading-tight font-extrabold tracking-tight">GoWow</span>
-              <span className="text-[10px] text-foreground-muted uppercase tracking-wider font-semibold -mt-0.5">
-                Authentication
-              </span>
-            </div>
+            <BrandLogo variant="full" size="md" />
           </Link>
 
           {/* Accessibility & Theme Quick Controls (Available without authentication!) */}
@@ -171,7 +161,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
       {/* Accessible Footer */}
       <footer className="w-full bg-surface border-t border-border py-4 px-4 sm:px-6 text-center text-xs text-foreground-muted mt-auto" role="contentinfo">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>GoWow Platform — Independent Accessible Assessment</span>
+          <span>DRISHTI Platform — Independent Accessible Assessment</span>
           <span>Designed with WCAG 2.1 AA principles in mind.</span>
         </div>
       </footer>

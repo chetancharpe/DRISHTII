@@ -118,7 +118,7 @@ export const AccessibilityGateModal: React.FC<AccessibilityGateModalProps> = ({
               <span>Publication Blocked: Unresolved Inconsistencies</span>
             </div>
             <p>
-              The GoWow platform prevents incomplete or inaccessible examinations from reaching live candidate delivery.
+              The DRISHTI platform prevents incomplete or inaccessible examinations from reaching live candidate delivery.
             </p>
             <ul className="list-disc list-inside space-y-1 ml-1 font-medium">
               {checklist.blockingErrors.map((err, i) => (

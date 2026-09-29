@@ -511,9 +511,9 @@ class ExamService {
     const unansweredCount = Math.max(0, totalQuestions - answeredCount);
     const unsynchronizedCount = session?.unsyncedQuestionIds.length || 0;
 
-    const idempotencyToken = `gowow-submit-${session?.sessionId || examId}-${Date.now()}`;
+    const idempotencyToken = `drishti-submit-${session?.sessionId || examId}-${Date.now()}`;
 
-    let submissionRef = `GOWOW-SUB-${Math.floor(100000 + Math.random() * 900000)}`;
+    let submissionRef = `DRISHTI-SUB-${Math.floor(100000 + Math.random() * 900000)}`;
     let serverNotice = 'Your examination was submitted successfully. Official results will be released after evaluation.';
     let submittedIso = new Date().toISOString();
 
@@ -617,8 +617,8 @@ class ExamService {
       ...DEMO_EXAM_01_CONFIG,
       id: bExam.id,
       title: bExam.title,
-      organization: bExam.organization_name || 'GoWow Inclusive Academy [DEMO]',
-      examCode: bExam.exam_code || `GW-${bExam.id.slice(-6).toUpperCase()}`,
+      organization: bExam.organization_name || 'DRISHTI Inclusive Academy [DEMO]',
+      examCode: bExam.exam_code || `DR-${bExam.id.slice(-6).toUpperCase()}`,
       durationMinutes: Math.round(bExam.duration_seconds / 60),
       totalQuestions: bExam.total_questions || (cachedSections ? cachedSections.flatMap((s) => s.questions).length : 6),
       sections: cachedSections || DEMO_EXAM_01_CONFIG.sections,
@@ -635,8 +635,8 @@ class ExamService {
     return {
       id: bExam.id,
       title: bExam.title,
-      organization: bExam.organization_name || 'GoWow Inclusive Academy [DEMO]',
-      examCode: bExam.exam_code || `GW-${bExam.id.slice(-6).toUpperCase()}`,
+      organization: bExam.organization_name || 'DRISHTI Inclusive Academy [DEMO]',
+      examCode: bExam.exam_code || `DR-${bExam.id.slice(-6).toUpperCase()}`,
       date: bExam.start_at
         ? new Date(bExam.start_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
         : 'Ongoing Live Window',
@@ -658,7 +658,7 @@ class ExamService {
           ? 'Candidate verified and registered for this official examination.'
           : 'Candidate is not registered or eligible for this examination.',
         candidateName: 'Candidate',
-        rollNumber: `GW-${bExam.id.slice(-4).toUpperCase()}`,
+        rollNumber: `DR-${bExam.id.slice(-4).toUpperCase()}`,
         category: 'Visual Impairment Accommodation Track',
         verificationStatus: bExam.is_eligible !== false ? 'verified' : 'ineligible',
       },
@@ -669,7 +669,7 @@ class ExamService {
         visual: 'WCAG AAA contrast ratios with customizable font scaling',
         timer: 'Authoritative server clock with 15m, 5m, and 1m warnings',
       },
-      description: bExam.description || 'Official standardized examination on GoWow platform.',
+      description: bExam.description || 'Official standardized examination on DRISHTI platform.',
       instructionsSummary,
       config,
     };

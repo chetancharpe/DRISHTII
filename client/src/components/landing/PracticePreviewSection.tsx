@@ -44,7 +44,7 @@ export const PracticePreviewSection: React.FC = () => {
             Practice That Understands Your Progress
           </h2>
           <p className="text-body text-foreground-secondary leading-relaxed mb-6">
-            Instead of solving random questions, GoWow tracks your accuracy across subjects and flags specific weak topics. You always know what to study next to maximize your examination score.
+            Instead of solving random questions, DRISHTI tracks your accuracy across subjects and flags specific weak topics. You always know what to study next to maximize your examination score.
           </p>
 
           <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 text-xs text-foreground-secondary mb-6">

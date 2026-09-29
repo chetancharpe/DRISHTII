@@ -5,6 +5,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAccessibility } from '../../hooks/useAccessibility';
 import { useTranslation } from '../../i18n';
 import { Sliders, Sun, Moon, Sparkles, Menu, X, HelpCircle, Languages } from 'lucide-react';
+import { BrandLogo } from '../common/BrandLogo';
 
 export interface NavbarProps {
   onOpenAccessibility?: () => void;
@@ -40,21 +41,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
           <Link
             to="/"
             onClick={handleLinkClick}
-            className="flex items-center gap-2.5 text-foreground hover:text-primary font-bold text-xl tracking-tight focus-visible:outline-offset-4"
-            aria-label="GoWow Home Page"
+            className="flex items-center gap-2.5 text-foreground hover:opacity-90 transition-opacity focus-visible:outline-offset-4"
+            aria-label="DRISHTI Home Page"
           >
-            <span
-              className="w-9 h-9 rounded-md bg-primary text-primary-contrast flex items-center justify-center font-extrabold text-lg select-none"
-              aria-hidden="true"
-            >
-              G
-            </span>
-            <div className="flex flex-col">
-              <span className="leading-tight font-extrabold tracking-tight">GoWow</span>
-              <span className="text-[10px] text-foreground-muted uppercase tracking-wider font-semibold -mt-0.5">
-                Accessible Exams
-              </span>
-            </div>
+            <BrandLogo variant="full" size="md" />
           </Link>
 
           {/* Desktop Navigation Links */}

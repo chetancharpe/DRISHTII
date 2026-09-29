@@ -249,8 +249,8 @@ class SpeechService {
   public testVoiceSample(lang: string, voiceURI?: string): void {
     const isHindi = lang === 'hi' || lang.startsWith('hi');
     const sampleText = isHindi
-      ? 'GoWow आपकी सुलभ परीक्षा और अभ्यास सत्र के लिए तैयार है।'
-      : 'GoWow is ready for your accessible examination and practice session.';
+      ? 'DRISHTI आपकी सुलभ परीक्षा और अभ्यास सत्र के लिए तैयार है।'
+      : 'DRISHTI is ready for your accessible examination and practice session.';
 
     this.setLanguage(lang);
     this.speak(sampleText, {

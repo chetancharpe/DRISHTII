@@ -101,7 +101,7 @@ export const ExamSupportModal: React.FC<ExamSupportModalProps> = ({
               <span>Network & Synchronization</span>
             </h3>
             <p className="text-foreground-secondary leading-relaxed">
-              If your connection drops, GoWow continues to log your answers locally and displays an "Offline" badge. Once reconnected, click "Retry" to synchronize all pending responses with the server.
+              If your connection drops, DRISHTI continues to log your answers locally and displays an "Offline" badge. Once reconnected, click "Retry" to synchronize all pending responses with the server.
             </p>
           </div>
 
@@ -117,7 +117,7 @@ export const ExamSupportModal: React.FC<ExamSupportModalProps> = ({
             <div className="mt-1 p-2.5 rounded-lg bg-surface border border-border text-[11px] font-mono text-foreground">
               Examination Authority: {organization} (Demo Desk)
               <br />
-              Candidate Assistance ID: GOWOW-HELP-8942
+              Candidate Assistance ID: DRISHTI-HELP-8942
             </div>
             <p className="text-[10px] text-foreground-secondary italic">
               Note: Technical support staff cannot assist with examination subject questions or hints.

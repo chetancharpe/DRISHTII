@@ -205,7 +205,7 @@ export const ExamInstructionsPage: React.FC = () => {
               If your device freezes or your internet connection drops, do not panic. Your answers are cached locally and will automatically synchronize when reconnected. Click the <strong>Help</strong> icon during the exam to view platform guidelines and authority support contact data.
             </p>
             <p className="text-foreground-secondary text-[11px]">
-              Authority Desk: {exam.organization} • Support Reference: GOWOW-EXAM-DESK
+              Authority Desk: {exam.organization} • Support Reference: DRISHTI-EXAM-DESK
             </p>
           </div>
         </section>

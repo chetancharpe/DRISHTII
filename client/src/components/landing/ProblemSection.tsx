@@ -84,13 +84,13 @@ export const ProblemSection: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: The GoWow Standard */}
+        {/* Right Column: The DRISHTI Standard */}
         <div className="p-6 sm:p-8 rounded-2xl border-2 border-primary/40 bg-gradient-to-b from-surface-elevated to-surface flex flex-col gap-6 shadow-md">
           <div className="flex items-center gap-2.5 pb-4 border-b border-border">
             <CheckCircle2 className="w-6 h-6 text-status-success shrink-0" aria-hidden="true" />
             <div>
               <h3 className="text-lg font-bold text-foreground">
-                The GoWow Standard
+                The DRISHTI Standard
               </h3>
               <p className="text-xs text-primary font-semibold">
                 Accessibility engineered into core architecture

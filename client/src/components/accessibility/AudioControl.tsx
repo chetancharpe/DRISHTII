@@ -62,7 +62,7 @@ export const AudioControl: React.FC<AudioControlProps> = ({ className = '' }) =>
         <BookOpen className="w-4 h-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
         <p>
           <strong className="text-foreground font-semibold">Screen Reader Compatibility: </strong>
-          GoWow is designed to work seamlessly with your device's native screen reader (NVDA, JAWS, VoiceOver, TalkBack). Audio assistance is an additional optional feature.
+          DRISHTI is designed to work seamlessly with your device's native screen reader (NVDA, JAWS, VoiceOver, TalkBack). Audio assistance is an additional optional feature.
         </p>
       </div>
 

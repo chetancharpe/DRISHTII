@@ -107,7 +107,7 @@ export const ForgotPasswordPage: React.FC = () => {
         <div>
           <h2 className="text-xl font-bold text-foreground">Forgot Password</h2>
           <p className="text-xs text-foreground-muted mt-0.5 leading-relaxed">
-            Enter the email associated with your GoWow account. We will simulate sending a secure reset link.
+            Enter the email associated with your DRISHTI account. We will simulate sending a secure reset link.
           </p>
         </div>
 

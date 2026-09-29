@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { BrandLogo } from '../common/BrandLogo';
 
 export interface FooterProps {
   onOpenAccessibility?: () => void;
@@ -13,15 +14,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenAccessibility, onOpenHelp 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 text-sm">
           {/* Brand Column */}
           <div className="col-span-2 flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <span
-                className="w-7 h-7 rounded bg-primary text-primary-contrast flex items-center justify-center font-extrabold text-sm"
-                aria-hidden="true"
-              >
-                G
-              </span>
-              <span className="text-xl font-bold text-foreground tracking-tight">GoWow</span>
-            </div>
+            <BrandLogo variant="full" size="md" />
             <p className="text-xs text-foreground-secondary leading-relaxed max-w-sm">
               An accessibility-first digital examination and preparation platform helping visually impaired and low-vision candidates independently prepare, practice, and excel in competitive examinations.
             </p>
@@ -147,9 +140,9 @@ export const Footer: React.FC<FooterProps> = ({ onOpenAccessibility, onOpenHelp 
 
         {/* Bottom Bar */}
         <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-foreground-muted">
-          <p>© {new Date().getFullYear()} GoWow Platform. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} DRISHTI Platform. All rights reserved.</p>
           <p className="text-[11px]">
-            GoWow is designed and tested against WCAG 2.1 AA requirements.
+            DRISHTI is designed and tested against WCAG 2.1 AA requirements.
           </p>
         </div>
       </div>

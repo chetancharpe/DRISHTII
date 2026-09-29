@@ -69,7 +69,7 @@ export const CandidateExperienceSection: React.FC = () => {
           Everything You Need to Prepare With Confidence
         </h2>
         <p className="text-body text-foreground-secondary leading-relaxed">
-          GoWow provides a unified learning and testing environment where visually impaired and low-vision candidates independently prepare, practice, sit for exams, and review diagnostic scorecards.
+          DRISHTI provides a unified learning and testing environment where visually impaired and low-vision candidates independently prepare, practice, sit for exams, and review diagnostic scorecards.
         </p>
       </div>
 

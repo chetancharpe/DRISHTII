@@ -183,7 +183,7 @@ export const ExamMonitorPage: React.FC = () => {
         <div className="space-y-1">
           <span className="font-bold block text-sm">Privacy & Accessible Proctoring Standard</span>
           <p className="text-foreground-muted leading-relaxed">
-            GoWow strictly prohibits webcam surveillance, facial recognition, keystroke logging, emotion AI,
+            DRISHTI strictly prohibits webcam surveillance, facial recognition, keystroke logging, emotion AI,
             and microphone monitoring. We monitor aggregate network connection health and server time synchronization
             to ensure visually impaired candidates can complete examinations with full dignity and peace of mind.
           </p>

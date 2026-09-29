@@ -24,7 +24,7 @@ export const IndependenceSection: React.FC = () => {
           Designed for Independent Examination
         </h2>
         <p className="text-body text-foreground-secondary leading-relaxed">
-          GoWow brings accessibility into the complete examination journey — from preparation and practice to the final result.
+          DRISHTI brings accessibility into the complete examination journey — from preparation and practice to the final result.
         </p>
       </div>
 

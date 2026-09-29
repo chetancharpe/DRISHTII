@@ -2,7 +2,7 @@
  * Shared Application Constants
  */
 
-export const APP_NAME = 'GoWow';
+export const APP_NAME = 'DRISHTI';
 export const APP_TAGLINE = 'Accessible Examination & Practice Learning Platform';
 
 export const USER_ROLES = {

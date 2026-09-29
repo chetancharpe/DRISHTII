@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useAccessibility } from '../../hooks/useAccessibility';
+import { BrandLogo } from '../common/BrandLogo';
 import {
   LayoutDashboard,
   BookOpen,
@@ -77,7 +78,12 @@ export const Sidebar: React.FC = () => {
       className="w-64 bg-surface border-r border-border p-4 flex flex-col justify-between shrink-0 hidden md:flex"
       aria-label={`${roleDisplayName} Navigation`}
     >
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-4">
+        {/* Brand Header */}
+        <div className="px-2 pb-1">
+          <BrandLogo variant="full" size="sm" />
+        </div>
+
         {/* Navigation Section Title */}
         <div className="text-[11px] font-mono font-bold uppercase tracking-wider text-primary px-2">
           {roleDisplayName}

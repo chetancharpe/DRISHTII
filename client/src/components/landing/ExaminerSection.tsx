@@ -72,7 +72,7 @@ export const ExaminerSection: React.FC = () => {
           Make Your Exams Accessible From the Start
         </h2>
         <p className="text-body text-foreground-secondary leading-relaxed">
-          Creating accessible examination papers should not require retrofitting or tedious manual conversion. GoWow provides educational institutions with built-in authoring tools that output screen-reader ready tests automatically.
+          Creating accessible examination papers should not require retrofitting or tedious manual conversion. DRISHTI provides educational institutions with built-in authoring tools that output screen-reader ready tests automatically.
         </p>
       </div>
 

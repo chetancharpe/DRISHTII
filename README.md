@@ -1,4 +1,4 @@
-# GoWow — Accessible Examination & Practice Learning Platform
+# DRISHTI — Accessible Examination & Practice Learning Platform
 
 [![Accessibility: WCAG 2.1 AA](https://img.shields.io/badge/Accessibility-WCAG%202.1%20AA-blue.svg)](docs/accessibility.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -6,19 +6,19 @@
 [![Node: 20+](https://img.shields.io/badge/Node-20%2B-brightgreen.svg)](client/)
 
 > **"Enable visually impaired and low-vision candidates to independently learn, practice, and participate in digital examinations."**  
-> *GoWow is designed and tested against WCAG 2.1 AA requirements.*
+> *DRISHTI is designed and tested against WCAG 2.1 AA requirements.*
 
 ---
 
 ## 1. Project Overview
 
-**GoWow** is an accessibility-first digital examination, preparation, and pedagogical evaluation platform engineered specifically for blind, low-vision, and keyboard-reliant test-takers. It provides complete candidate autonomy—from onboarding and personalized accessibility calibration to timed mock examinations, offline connection recovery, live competitive exam completion, and detailed diagnostic scorecards.
+**DRISHTI** is an accessibility-first digital examination, preparation, and pedagogical evaluation platform engineered specifically for blind, low-vision, and keyboard-reliant test-takers. It provides complete candidate autonomy—from onboarding and personalized accessibility calibration to timed mock examinations, offline connection recovery, live competitive exam completion, and detailed diagnostic scorecards.
 
 ---
 
 ## 2. Production Architecture
 
-GoWow enforces a reliable, maintainable 3-tier architecture with zero unnecessary microservices:
+DRISHTI enforces a reliable, maintainable 3-tier architecture with zero unnecessary microservices:
 
 ```
 ┌────────────────────────────────────────────────────────┐

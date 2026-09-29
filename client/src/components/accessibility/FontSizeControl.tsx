@@ -38,7 +38,7 @@ export const FontSizeControl: React.FC<FontSizeControlProps> = ({
         </h3>
       </div>
       <p className="text-xs text-foreground-secondary leading-relaxed">
-        Choose a text size that is comfortable to read. GoWow scales content fluidly to prevent horizontal scrolling or cut-off text.
+        Choose a text size that is comfortable to read. DRISHTI scales content fluidly to prevent horizontal scrolling or cut-off text.
       </p>
 
       {/* Accessible Radio Selection Options */}

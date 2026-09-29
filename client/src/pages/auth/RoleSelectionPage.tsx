@@ -43,7 +43,7 @@ export const RoleSelectionPage: React.FC = () => {
   return (
     <AuthLayout
       title="Choose Your Role"
-      subtitle="Select how you plan to use GoWow. We will tailor your registration and accessibility settings accordingly."
+      subtitle="Select how you plan to use DRISHTI. We will tailor your registration and accessibility settings accordingly."
       badge="Step 1 of Registration"
     >
       <div className="flex flex-col gap-6">
@@ -59,7 +59,7 @@ export const RoleSelectionPage: React.FC = () => {
         {/* Accessible Radio Cards */}
         <div
           role="radiogroup"
-          aria-label="Select your GoWow account role"
+          aria-label="Select your DRISHTI account role"
           className="flex flex-col gap-4"
         >
           {roles.map((r) => {
