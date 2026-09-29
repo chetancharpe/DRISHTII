@@ -12,7 +12,8 @@
 
 import { tokenStorage } from '../utils/tokenStorage';
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+const rawBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1').trim().replace(/\/+$/, '');
+export const API_BASE_URL = rawBaseUrl.endsWith('/api/v1') ? rawBaseUrl : `${rawBaseUrl}/api/v1`;
 
 export interface BackendErrorShape {
   error: {
@@ -108,7 +109,7 @@ export async function apiClient<T>(endpoint: string, options: ApiRequestOptions 
   const {
     token,
     skipAuth = false,
-    timeoutMs = 15000,
+    timeoutMs = 45000,
     retries = 2,
     headers = {},
     ...rest

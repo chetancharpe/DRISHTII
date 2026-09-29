@@ -27,9 +27,13 @@ from app.core.middleware import (
 from app.db.base import Base
 from app.db.database import engine
 
-# Auto-create tables only when ENVIRONMENT=development and Alembic is not being used
-if settings.ENVIRONMENT.lower() == "development" and not os.environ.get("USE_ALEMBIC"):
-    Base.metadata.create_all(bind=engine)
+# Auto-create tables if they do not exist (idempotent, safe in all environments)
+if not os.environ.get("USE_ALEMBIC"):
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        import logging
+        logging.getLogger("uvicorn.error").warning(f"Schema auto-creation check: {e}")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

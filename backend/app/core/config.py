@@ -46,9 +46,11 @@ class Settings(BaseSettings):
     @field_validator("CORS_ORIGINS", mode="before")
     def parse_cors_origins(cls, v):
         if isinstance(v, str) and not v.startswith("["):
-            origins = [origin.strip() for origin in v.split(",") if origin.strip()]
+            origins = [origin.strip().rstrip("/") for origin in v.split(",") if origin.strip()]
             return origins
-        elif isinstance(v, (list, str)):
+        elif isinstance(v, list):
+            return [str(o).strip().rstrip("/") for o in v if str(o).strip()]
+        elif isinstance(v, str):
             return v
         raise ValueError("Invalid format for CORS_ORIGINS")
 
