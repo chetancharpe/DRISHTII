@@ -5,6 +5,8 @@
   "description": "GoWow — Accessible Examination & Practice Learning Platform for visually impaired and low-vision candidates.",
   "scripts": {
     "dev": "npm --prefix client run dev",
+    "dev:client": "npm --prefix client run dev",
+    "dev:backend": "cd backend && venv\\Scripts\\python.exe -m uvicorn app.main:app --port 8000 --reload",
     "build": "npm --prefix client run build",
     "preview": "npm --prefix client run preview",
     "lint": "npm --prefix client run lint",

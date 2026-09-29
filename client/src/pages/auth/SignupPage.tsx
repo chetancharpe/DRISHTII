@@ -7,7 +7,7 @@ import { Input } from '../../components/common/Input';
 import { Select } from '../../components/common/Select';
 import { Checkbox } from '../../components/common/Checkbox';
 import { Button } from '../../components/common/Button';
-import { CheckCircle2, ArrowRight, Check, X } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Check, X, AlertCircle } from 'lucide-react';
 
 export const SignupPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -25,6 +25,7 @@ export const SignupPage: React.FC = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSuccess, setIsSuccess] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const { signup, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -90,17 +91,25 @@ export const SignupPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
     if (!validate()) return;
 
-    await signup({
-      name,
-      email,
-      role,
-      organization: role === 'examiner' ? organization : undefined,
-      preferredLanguage,
-    });
+    try {
+      await signup({
+        name,
+        email,
+        password,
+        role,
+        organization: role === 'examiner' ? organization : undefined,
+        preferredLanguage,
+      });
 
-    setIsSuccess(true);
+      setIsSuccess(true);
+    } catch (err: any) {
+      setFormError(
+        err?.message || 'Unable to complete registration. Please verify your details and try again.'
+      );
+    }
   };
 
   const handleProceedToAccessibility = () => {
@@ -208,6 +217,18 @@ export const SignupPage: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Global Live Region Form Error Alert */}
+        {formError && (
+          <div
+            role="alert"
+            aria-live="polite"
+            className="p-3.5 rounded-lg border border-status-error bg-status-error-bg text-xs font-semibold text-status-error flex items-start gap-2"
+          >
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+            <span>{formError}</span>
+          </div>
+        )}
 
         {/* Full Name */}
         <Input

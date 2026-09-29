@@ -68,6 +68,7 @@ export const authService = {
     lastName: string;
     email: string;
     password?: string;
+    role?: string;
   }): Promise<{ user: User; token: string }> {
     const res = await apiClient<BackendTokenResponse>('/auth/register', {
       method: 'POST',
@@ -77,6 +78,7 @@ export const authService = {
         last_name: data.lastName.trim(),
         email: data.email.trim().toLowerCase(),
         password: data.password || 'CandidateSecure123!',
+        role: data.role ? data.role.toUpperCase() : 'CANDIDATE',
       }),
     });
 

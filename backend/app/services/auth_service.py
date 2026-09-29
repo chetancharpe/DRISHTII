@@ -109,8 +109,12 @@ def register_user(db: Session, register_data: RegisterRequest) -> TokenResponse:
     db.add(new_user)
     db.flush()
 
-    # 3. Public registration is ALWAYS CANDIDATE role (prevents role escalation)
-    target_role_name = RoleEnum.CANDIDATE.value
+    # 3. Public registration allows CANDIDATE or EXAMINER (prevents role escalation to ADMIN)
+    requested_role = (register_data.role or RoleEnum.CANDIDATE.value).upper()
+    if requested_role in [RoleEnum.CANDIDATE.value, RoleEnum.EXAMINER.value]:
+        target_role_name = requested_role
+    else:
+        target_role_name = RoleEnum.CANDIDATE.value
     role_obj = db.query(Role).filter(Role.name == target_role_name).first()
     if not role_obj:
         role_obj = Role(name=target_role_name, description=f"{target_role_name} platform role")

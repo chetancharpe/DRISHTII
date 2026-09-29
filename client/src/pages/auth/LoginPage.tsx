@@ -51,8 +51,10 @@ export const LoginPage: React.FC = () => {
       } else {
         navigate('/candidate/dashboard');
       }
-    } catch {
-      setFormError("We couldn't sign you in. Check your email and password and try again.");
+    } catch (err: any) {
+      setFormError(
+        err?.message || "We couldn't sign you in. Check your email and password and try again."
+      );
     }
   };
 

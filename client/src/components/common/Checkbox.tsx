@@ -20,7 +20,12 @@ export const Checkbox: React.FC<CheckboxProps> = ({
   const descId = `${checkboxId}-desc`;
 
   return (
-    <div className={`flex items-start gap-3 py-1 cursor-pointer select-none ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}>
+    <label
+      htmlFor={checkboxId}
+      className={`flex items-start gap-3 py-1 cursor-pointer select-none ${
+        disabled ? 'opacity-50 cursor-not-allowed' : ''
+      } ${className}`}
+    >
       <div className="relative flex items-center justify-center min-h-[44px] min-w-[24px]">
         <input
           id={checkboxId}
@@ -31,21 +36,24 @@ export const Checkbox: React.FC<CheckboxProps> = ({
           className="peer sr-only"
           {...props}
         />
-        <div className="w-5 h-5 rounded border border-border-strong bg-surface transition-colors duration-fast peer-checked:bg-primary peer-checked:border-primary peer-focus-visible:outline peer-focus-visible:outline-3 peer-focus-visible:outline-offset-3 peer-focus-visible:outline-focus flex items-center justify-center">
+        <div
+          aria-hidden="true"
+          className="w-5 h-5 rounded border border-border-strong bg-surface transition-colors duration-fast peer-checked:bg-primary peer-checked:border-primary peer-focus-visible:outline peer-focus-visible:outline-3 peer-focus-visible:outline-offset-3 peer-focus-visible:outline-focus flex items-center justify-center"
+        >
           {checked && <Check className="w-3.5 h-3.5 text-primary-contrast stroke-[3]" aria-hidden="true" />}
         </div>
       </div>
 
       <div className="flex flex-col pt-2.5">
-        <label htmlFor={checkboxId} className="text-sm font-semibold text-foreground cursor-pointer">
+        <span className="text-sm font-semibold text-foreground">
           {label}
-        </label>
+        </span>
         {description && (
           <p id={descId} className="text-xs text-foreground-muted mt-0.5">
             {description}
           </p>
         )}
       </div>
-    </div>
+    </label>
   );
 };
