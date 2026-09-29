@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Input } from '../../components/common/Input';
@@ -8,6 +8,9 @@ import { Button } from '../../components/common/Button';
 import { AlertCircle, ArrowRight, UserCheck } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const isSessionExpired = searchParams.get('session_expired') === 'true';
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -89,6 +92,18 @@ export const LoginPage: React.FC = () => {
           >
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
             <span>{formError}</span>
+          </div>
+        )}
+
+        {/* Session Expired Notice */}
+        {isSessionExpired && !formError && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="p-3.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-xs font-semibold text-amber-800 dark:text-amber-300 flex items-start gap-2"
+          >
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+            <span>Your session has expired. Please sign in with your credentials to continue.</span>
           </div>
         )}
 
