@@ -894,8 +894,8 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
         label: 'CDS Full Practice Examination — 01',
         description: 'Full-length 6-question simulation covering English, Math, and GK under standard timing',
         aliases: ['full mock', 'full test', 'cds mock', 'cds full mock', 'cds', 'full', 'option 1', 'pehla'],
-        action: (c) => c.navigate('/candidate/mock-tests/cds-full-mock-01'),
-        confirmSpeech: 'Opening CDS Full Practice Examination 1.',
+        action: (c) => c.navigate('/candidate/mock-tests/cds-full-mock-01/session'),
+        confirmSpeech: 'Starting CDS Full Practice Examination 1. Loading questions.',
       },
       {
         id: 'math-mock',
@@ -903,8 +903,8 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
         label: 'Elementary Mathematics Subject Mock Test',
         description: 'Dedicated Mathematics mock covering Arithmetic, Algebra, and Geometry with formulas',
         aliases: ['math mock', 'mathematics mock', 'maths mock', 'ganit mock', 'math test', 'math', 'maths', 'mathematics', 'ganit', 'option 2', 'dusra'],
-        action: (c) => c.navigate('/candidate/mock-tests/mock-math-01'),
-        confirmSpeech: 'Opening Elementary Mathematics Subject Mock Test.',
+        action: (c) => c.navigate('/candidate/mock-tests/mock-math-01/session'),
+        confirmSpeech: 'Starting Elementary Mathematics Mock Test. Loading questions.',
       },
       {
         id: 'english-mock',
@@ -912,8 +912,8 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
         label: 'English Language & Comprehension Mock Test',
         description: 'Dedicated English mock evaluating Grammar rules, Vocabulary, and Reading Comprehension',
         aliases: ['english mock', 'english test', 'angrezi mock', 'comprehension mock', 'english', 'angrezi', 'option 3', 'teesra'],
-        action: (c) => c.navigate('/candidate/mock-tests/mock-eng-01'),
-        confirmSpeech: 'Opening English Language & Comprehension Mock Test.',
+        action: (c) => c.navigate('/candidate/mock-tests/mock-eng-01/session'),
+        confirmSpeech: 'Starting English Language Mock Test. Loading questions.',
       },
       {
         id: 'gk-mock',
@@ -921,8 +921,8 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
         label: 'General Knowledge & Defense Mock Test',
         description: 'Subject-wise mock covering Indian Polity, Modern History, General Science, and Defense Affairs',
         aliases: ['gk mock', 'general knowledge mock', 'defense mock', 'samanya gyan mock', 'gk', 'general knowledge', 'samanya gyan', 'defense', 'option 4', 'chautha'],
-        action: (c) => c.navigate('/candidate/mock-tests/mock-gk-01'),
-        confirmSpeech: 'Opening General Knowledge & Defense Mock Test.',
+        action: (c) => c.navigate('/candidate/mock-tests/mock-gk-01/session'),
+        confirmSpeech: 'Starting General Knowledge and Defense Mock Test. Loading questions.',
       },
       {
         id: 'reasoning-mock',
@@ -930,8 +930,8 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
         label: 'Reasoning Ability & Mental Aptitude Mock Test',
         description: 'Subject-wise mock testing Deductive Logic, Coding-Decoding, Number Series, and Direction Sense',
         aliases: ['reasoning mock', 'logic mock', 'tarkik mock', 'mental ability mock', 'reasoning', 'logic', 'tarkik', 'option 5', 'paanchwa'],
-        action: (c) => c.navigate('/candidate/mock-tests/mock-reas-01'),
-        confirmSpeech: 'Opening Reasoning Ability & Mental Aptitude Mock Test.',
+        action: (c) => c.navigate('/candidate/mock-tests/mock-reas-01/session'),
+        confirmSpeech: 'Starting Reasoning Ability Mock Test. Loading questions.',
       },
       {
         id: 'history',
@@ -954,14 +954,14 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
     ];
 
     const introSpeech =
-      `Mock Tests Portal. Here are your 5 subject-wise and full examinations: ` +
+      `Mock Tests Portal. Here are your 5 examinations ready to take: ` +
       `Option 1: CDS Full Practice Examination 1. ` +
       `Option 2: Elementary Mathematics Mock Test. ` +
       `Option 3: English Language Mock Test. ` +
       `Option 4: General Knowledge and Defense Mock Test. ` +
       `Option 5: Reasoning Ability Mock Test. ` +
       `Option 6: Attempt History. ` +
-      `Say Option 1 through 5, or say Math Mock, English Mock, GK Mock, or Reasoning Mock to open any subject test.`;
+      `Say Option 1 through 5, or say Math Mock, English Mock, GK Mock, or Reasoning Mock to start the test immediately.`;
 
     const elementsSummary =
       `Mock Tests: 1. Full CDS Mock, 2. Mathematics Mock, 3. English Mock, 4. GK Mock, 5. Reasoning Mock, 6. History, 7. Dashboard. Say Option 1 through 7.`;

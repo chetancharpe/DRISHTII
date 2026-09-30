@@ -4,6 +4,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { AccessibilityProvider } from './contexts/AccessibilityContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { AppRoutes } from './routes/AppRoutes';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 export const App: React.FC = () => {
   return (
@@ -11,7 +12,12 @@ export const App: React.FC = () => {
       <ThemeProvider>
         <AccessibilityProvider>
           <AuthProvider>
-            <AppRoutes />
+            <ErrorBoundary
+              fallbackTitle="Mock Test Application Error"
+              fallbackMessage="The application recovered safely. Click below to reload or return to the mock test catalog."
+            >
+              <AppRoutes />
+            </ErrorBoundary>
           </AuthProvider>
         </AccessibilityProvider>
       </ThemeProvider>
@@ -20,3 +26,4 @@ export const App: React.FC = () => {
 };
 
 export default App;
+

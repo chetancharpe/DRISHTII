@@ -146,7 +146,7 @@ export const MockTestInstructionsPage: React.FC = () => {
           </h2>
           <ul className="flex flex-col gap-2 list-disc pl-5 text-foreground-secondary">
             <li>
-              Total Questions: <strong className="text-foreground">{test.totalQuestions}</strong> distributed across {test.sections?.length || 0} sections ({test.sections?.map((s) => s.name || s.title || 'Section').join(', ') || 'Comprehensive'}).
+              Total Questions: <strong className="text-foreground">{test.totalQuestions ?? 6}</strong> distributed across {test.sections?.length || 0} sections ({test.sections?.map((s) => s?.name || (s as any)?.title || 'Section').join(', ') || 'Comprehensive'}).
             </li>
             <li>
               Total Duration: <strong className="text-foreground">{test.durationMinutes} minutes</strong>.

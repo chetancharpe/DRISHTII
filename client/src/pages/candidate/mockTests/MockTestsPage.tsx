@@ -4,6 +4,7 @@ import { MockTest, MockTestSession } from '../../../types/mockTest';
 import { mockTestService, FALLBACK_MOCK_TESTS } from '../../../services/mockTestService';
 import { MockTestCard } from '../../../components/mockTest/MockTestCard';
 import { MockTestDiscardModal } from '../../../components/mockTest/MockTestDiscardModal';
+import { useAccessibility } from '../../../contexts/AccessibilityContext';
 import {
   ShieldAlert,
   Sparkles,
@@ -12,17 +13,54 @@ import {
   Trash2,
   Clock,
   Loader2,
+  Volume2,
 } from 'lucide-react';
 
 export const MockTestsPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const testQuery = searchParams.get('test')?.toLowerCase() || '';
+  const { speak, announce } = useAccessibility();
 
   // Initialize immediately with rich fallback catalog so the page NEVER displays a blank screen
   const [tests, setTests] = useState<MockTest[]>(() => FALLBACK_MOCK_TESTS);
   const [activeSession, setActiveSession] = useState<MockTestSession | null>(null);
   const [isDiscardModalOpen, setIsDiscardModalOpen] = useState(false);
   const [isLoading] = useState(false);
+
+  // Spoken voice guidance for available mock test sections
+  const handleReadAvailableMocks = React.useCallback(() => {
+    const listSpeech =
+      'Mock Tests Directory. 5 examinations are ready: ' +
+      'Option 1: CDS Full Practice Examination 1. ' +
+      'Option 2: Elementary Mathematics Mock Test. ' +
+      'Option 3: English Language Mock Test. ' +
+      'Option 4: General Knowledge and Defense Mock Test. ' +
+      'Option 5: Reasoning Ability Mock Test. ' +
+      'Option 6: Attempt History. ' +
+      'Say Option 1 through 5, or say Math Mock, English Mock, GK Mock, or Reasoning Mock to start testing immediately.';
+    speak(listSpeech);
+    announce(listSpeech, 'polite');
+  }, [speak, announce]);
+
+  // Read out available tests on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      handleReadAvailableMocks();
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [handleReadAvailableMocks]);
+
+  // Alt+R hotkey to re-read mock tests catalog
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && (e.key.toLowerCase() === 'r' || e.key === 'R')) {
+        e.preventDefault();
+        handleReadAvailableMocks();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleReadAvailableMocks]);
 
   // Filters state
   const [selectedExam, setSelectedExam] = useState<string>('all');
@@ -144,13 +182,25 @@ export const MockTestsPage: React.FC = () => {
           </p>
         </div>
 
-        <Link
-          to="/candidate/mock-tests/history"
-          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-surface border border-border hover:bg-surface-elevated text-xs font-semibold text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] transition-colors self-start sm:self-auto"
-        >
-          <History className="w-4 h-4 text-foreground-muted" aria-hidden="true" />
-          <span>Attempt History</span>
-        </Link>
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={handleReadAvailableMocks}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg bg-surface border border-border hover:bg-surface-elevated text-xs font-semibold text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] transition-colors shadow-sm"
+            aria-label="Listen to available mock examinations list (Alt+R)"
+          >
+            <Volume2 className="w-4 h-4 text-primary" aria-hidden="true" />
+            <span>Listen to Mocks (Alt+R)</span>
+          </button>
+
+          <Link
+            to="/candidate/mock-tests/history"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-surface border border-border hover:bg-surface-elevated text-xs font-semibold text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] transition-colors"
+          >
+            <History className="w-4 h-4 text-foreground-muted" aria-hidden="true" />
+            <span>Attempt History</span>
+          </Link>
+        </div>
       </header>
 
       {/* In-Progress Session Resume Banner (Requirement #46) */}

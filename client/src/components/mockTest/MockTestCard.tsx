@@ -104,14 +104,21 @@ export const MockTestCard: React.FC<MockTestCardProps> = ({ test }) => {
       </div>
 
       {/* Action CTA */}
-      <div className="pt-5 mt-auto">
+      <div className="pt-4 mt-auto flex items-center gap-2">
+        <Link
+          to={`/candidate/mock-tests/${test.id || 'cds-full-mock-01'}/session`}
+          className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-primary hover:bg-primary-hover active:bg-primary-hover text-primary-contrast font-bold text-xs min-h-[42px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm transition-colors"
+          aria-label={`Start ${title}`}
+        >
+          <span>Start Test</span>
+          <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+        </Link>
         <Link
           to={`/candidate/mock-tests/${test.id || 'cds-full-mock-01'}`}
-          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-surface hover:bg-surface-elevated active:bg-surface-elevated border border-border hover:border-primary/40 text-foreground font-bold text-xs min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors"
-          aria-label={`View details for ${title}`}
+          className="inline-flex items-center justify-center px-3 py-2.5 rounded-lg bg-surface hover:bg-surface-elevated active:bg-surface-elevated border border-border hover:border-primary/40 text-foreground font-semibold text-xs min-h-[42px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors"
+          aria-label={`View syllabus and overview for ${title}`}
         >
-          <span>View Test Details</span>
-          <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+          <span>Details</span>
         </Link>
       </div>
     </Card>

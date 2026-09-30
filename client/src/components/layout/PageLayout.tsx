@@ -65,8 +65,8 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
             fullWidth ? 'w-full' : 'p-4 sm:p-6 lg:p-8'
           }`}
         >
-          {isCandidateRoute && <CandidateVoiceAssistant />}
           <ErrorBoundary>
+            {isCandidateRoute && <CandidateVoiceAssistant />}
             {children}
           </ErrorBoundary>
         </main>

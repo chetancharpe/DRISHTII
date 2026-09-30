@@ -97,24 +97,24 @@ export const MockTestDetailsPage: React.FC = () => {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
           <div className="p-3.5 rounded-xl border border-border bg-surface flex flex-col">
             <span className="text-[10px] uppercase font-bold text-foreground-secondary">Questions</span>
-            <span className="font-mono text-lg font-bold text-foreground">{test.totalQuestions}</span>
+            <span className="font-mono text-lg font-bold text-foreground">{test.totalQuestions ?? 6}</span>
           </div>
 
           <div className="p-3.5 rounded-xl border border-border bg-surface flex flex-col">
             <span className="text-[10px] uppercase font-bold text-foreground-secondary">Duration</span>
-            <span className="font-mono text-lg font-bold text-foreground">{test.durationMinutes} min</span>
+            <span className="font-mono text-lg font-bold text-foreground">{test.durationMinutes ?? 45} min</span>
           </div>
 
           <div className="p-3.5 rounded-xl border border-border bg-surface flex flex-col">
             <span className="text-[10px] uppercase font-bold text-foreground-secondary">Marking Scheme</span>
             <span className="font-mono text-xs font-bold text-foreground mt-1">
-              +{test.markingScheme.correctMarks} / -{test.markingScheme.incorrectPenalty}
+              +{test.markingScheme?.correctMarks ?? 1} / -{test.markingScheme?.incorrectPenalty ?? 0.33}
             </span>
           </div>
 
           <div className="p-3.5 rounded-xl border border-border bg-surface flex flex-col">
             <span className="text-[10px] uppercase font-bold text-foreground-secondary">Difficulty</span>
-            <span className="text-xs font-bold text-foreground capitalize mt-1">{test.difficulty}</span>
+            <span className="text-xs font-bold text-foreground capitalize mt-1">{test.difficulty || 'medium'}</span>
           </div>
         </div>
       </header>
@@ -126,12 +126,12 @@ export const MockTestDetailsPage: React.FC = () => {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {(test.sections || []).map((sec, idx) => {
-            const secName = sec.name || (sec as any).title || `Section ${idx + 1}`;
-            const secCode = sec.code || (sec as any).sectionCode || `SEC${idx + 1}`;
-            const totalQ = sec.totalQuestions ?? (sec as any).total_questions ?? (sec as any).questionCount ?? sec.questions?.length ?? 2;
+            const secName = sec?.name || (sec as any)?.title || `Section ${idx + 1}`;
+            const secCode = sec?.code || (sec as any)?.sectionCode || `SEC${idx + 1}`;
+            const totalQ = sec?.totalQuestions ?? (sec as any)?.total_questions ?? (sec as any)?.questionCount ?? sec?.questions?.length ?? 2;
             return (
               <div
-                key={sec.id || `sec-${idx}`}
+                key={sec?.id || `sec-${idx}`}
                 className="p-4 rounded-xl border border-border bg-surface flex flex-col gap-1.5"
               >
                 <div className="flex items-center justify-between">
@@ -140,7 +140,7 @@ export const MockTestDetailsPage: React.FC = () => {
                     {secCode}
                   </span>
                 </div>
-                <p className="text-xs text-foreground-secondary">{sec.description || 'Section assessment module'}</p>
+                <p className="text-xs text-foreground-secondary">{sec?.description || 'Section assessment module'}</p>
                 <span className="text-[11px] font-semibold text-foreground mt-1">
                   {totalQ} questions
                 </span>
@@ -227,13 +227,21 @@ export const MockTestDetailsPage: React.FC = () => {
           </p>
         </div>
 
-        <Link
-          to={`/candidate/mock-tests/${test.id}/instructions`}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-hover text-primary-contrast font-bold text-xs min-h-[48px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm transition-colors flex-shrink-0"
-        >
-          <span>Continue to Instructions</span>
-          <ArrowRight className="w-4 h-4" aria-hidden="true" />
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            to={`/candidate/mock-tests/${test.id || 'cds-full-mock-01'}/session`}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-hover text-primary-contrast font-bold text-xs min-h-[48px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm transition-colors flex-shrink-0"
+          >
+            <span>Start Mock Test Now</span>
+            <ArrowRight className="w-4 h-4" aria-hidden="true" />
+          </Link>
+          <Link
+            to={`/candidate/mock-tests/${test.id || 'cds-full-mock-01'}/instructions`}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-surface hover:bg-surface-elevated border border-border text-foreground font-semibold text-xs min-h-[44px]"
+          >
+            <span>Read Instructions</span>
+          </Link>
+        </div>
       </div>
     </div>
   );

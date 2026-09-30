@@ -1033,10 +1033,10 @@ function normalizeMockTest(rawTest: any): MockTest {
     difficulty: testObj.difficulty || 'medium',
     status: testObj.status || 'not_started',
     isRecommended: testObj.isRecommended ?? testObj.is_recommended ?? false,
-    markingScheme: testObj.markingScheme || testObj.marking_scheme || {
-      correctMarks: 1,
-      incorrectPenalty: 0.33,
-      unansweredMarks: 0,
+    markingScheme: {
+      correctMarks: testObj.markingScheme?.correctMarks ?? testObj.marking_scheme?.correct_marks ?? 1,
+      incorrectPenalty: testObj.markingScheme?.incorrectPenalty ?? testObj.marking_scheme?.incorrect_penalty ?? 0.33,
+      unansweredMarks: testObj.markingScheme?.unansweredMarks ?? testObj.marking_scheme?.unanswered_marks ?? 0,
     },
     instructionsSummary: testObj.instructionsSummary || testObj.instructions_summary || [
       'Each question has four options with exactly one correct answer.',

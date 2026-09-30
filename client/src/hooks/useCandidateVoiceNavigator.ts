@@ -546,8 +546,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
-        navigate('/candidate/mock-tests/mock-math-01');
-        speak('Opening Elementary Mathematics Subject Mock Test.');
+        navigate('/candidate/mock-tests/mock-math-01/session');
+        speak('Opening Elementary Mathematics Subject Mock Test. Loading question one.');
         announce('Navigating to Elementary Mathematics Mock Test.', 'polite');
         setLastActionFeedback('Navigating to Mathematics Mock Test.');
         setLiveTranscript('');
@@ -561,8 +561,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
-        navigate('/candidate/mock-tests/mock-eng-01');
-        speak('Opening English Language and Comprehension Mock Test.');
+        navigate('/candidate/mock-tests/mock-eng-01/session');
+        speak('Opening English Language Mock Test. Loading question one.');
         announce('Navigating to English Mock Test.', 'polite');
         setLastActionFeedback('Navigating to English Mock Test.');
         setLiveTranscript('');
@@ -576,8 +576,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
-        navigate('/candidate/mock-tests/mock-gk-01');
-        speak('Opening General Knowledge and Defense Mock Test.');
+        navigate('/candidate/mock-tests/mock-gk-01/session');
+        speak('Opening General Knowledge and Defense Mock Test. Loading question one.');
         announce('Navigating to General Knowledge Mock Test.', 'polite');
         setLastActionFeedback('Navigating to GK Mock Test.');
         setLiveTranscript('');
@@ -591,8 +591,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
-        navigate('/candidate/mock-tests/mock-reas-01');
-        speak('Opening Reasoning Ability and Aptitude Mock Test.');
+        navigate('/candidate/mock-tests/mock-reas-01/session');
+        speak('Opening Reasoning Ability Mock Test. Loading question one.');
         announce('Navigating to Reasoning Mock Test.', 'polite');
         setLastActionFeedback('Navigating to Reasoning Mock Test.');
         setLiveTranscript('');
@@ -606,8 +606,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
-        navigate('/candidate/mock-tests/cds-full-mock-01');
-        speak('Opening CDS Full Practice Examination.');
+        navigate('/candidate/mock-tests/cds-full-mock-01/session');
+        speak('Opening CDS Full Practice Examination. Loading question one.');
         announce('Navigating to CDS Full Mock Test.', 'polite');
         setLastActionFeedback('Navigating to CDS Full Mock Test.');
         setLiveTranscript('');
@@ -968,7 +968,33 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
                 lower === 'progress' ||
                 lower === 'stop' ||
                 lower === 'continue' ||
-                lower === 'continue practice'
+                lower === 'continue practice' ||
+                lower === 'mock' ||
+                lower === 'mocks' ||
+                lower === 'mock test' ||
+                lower === 'mock tests' ||
+                lower === 'math mock' ||
+                lower === 'english mock' ||
+                lower === 'gk mock' ||
+                lower === 'reasoning mock' ||
+                lower === 'full mock' ||
+                lower === 'option 1' ||
+                lower === 'option 2' ||
+                lower === 'option 3' ||
+                lower === 'option 4' ||
+                lower === 'option 5' ||
+                lower === 'option 6' ||
+                lower === 'option 7' ||
+                lower === 'option a' ||
+                lower === 'option b' ||
+                lower === 'option c' ||
+                lower === 'option d' ||
+                lower === 'next' ||
+                lower === 'previous' ||
+                lower === 'submit' ||
+                lower === 'read question' ||
+                lower === 'explain' ||
+                lower === 'repeat'
               ) {
                 executeCommand(interim.trim());
               }

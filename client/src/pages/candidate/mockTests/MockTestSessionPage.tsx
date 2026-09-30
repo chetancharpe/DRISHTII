@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MockTest, MockTestSession } from '../../../types/mockTest';
-import { mockTestService } from '../../../services/mockTestService';
+import { mockTestService, findFallbackMockTest } from '../../../services/mockTestService';
 import { MockTestTimer } from '../../../components/mockTest/MockTestTimer';
 import { MockTestSectionNav } from '../../../components/mockTest/MockTestSectionNav';
 import { MockTestQuestionCard } from '../../../components/mockTest/MockTestQuestionCard';
@@ -15,6 +15,7 @@ import {
   LayoutGrid,
   Send,
   Loader2,
+  Volume2,
 } from 'lucide-react';
 import { useAccessibility } from '../../../contexts/AccessibilityContext';
 
@@ -23,7 +24,7 @@ export const MockTestSessionPage: React.FC = () => {
   const navigate = useNavigate();
   const { openCalibration, announce, speak } = useAccessibility();
 
-  const [test, setTest] = useState<MockTest | null>(null);
+  const [test, setTest] = useState<MockTest | null>(() => (testId ? findFallbackMockTest(testId) : null));
   const [session, setSession] = useState<MockTestSession | null>(null);
   const [activeSectionId, setActiveSectionId] = useState<string>('');
   const [activeQuestionId, setActiveQuestionId] = useState<string>('');
@@ -48,10 +49,8 @@ export const MockTestSessionPage: React.FC = () => {
           mockTestService.getActiveSession(),
         ]);
 
-        if (!testData) {
-          throw new Error('Test not found');
-        }
-        setTest(testData);
+        const currentTestData = testData || findFallbackMockTest(testId);
+        setTest(currentTestData);
 
         let currentSess = activeSess;
         if (!currentSess || currentSess.testId !== testId || currentSess.status === 'submitted') {
@@ -59,13 +58,17 @@ export const MockTestSessionPage: React.FC = () => {
         }
 
         setSession(currentSess);
-        const initialSection = testData.sections?.[0];
+        const initialSection = currentTestData.sections?.[0];
         const initialQuestion = initialSection?.questions?.[0];
         setActiveSectionId(currentSess.currentSectionId || initialSection?.id || '');
         setActiveQuestionId(currentSess.currentQuestionId || initialQuestion?.id || '');
         secondsRemainingRef.current = currentSess.secondsRemaining;
       } catch (e) {
-        console.error('Session loading error', e);
+        console.error('Session loading error, applying local fallback:', e);
+        const fallbackTest = findFallbackMockTest(testId);
+        setTest(fallbackTest);
+        const fallbackSession = await mockTestService.startMockTest(testId);
+        setSession(fallbackSession);
       } finally {
         setIsLoading(false);
       }
@@ -137,12 +140,17 @@ export const MockTestSessionPage: React.FC = () => {
 
     const updated = await mockTestService.saveMockAnswer(session.sessionId, currentQuestion.id, updatedIds, 1);
     setSession(updated);
+
+    const optObj = currentQuestion.options.find((o) => o.id === optionId);
+    const optLabel = optObj ? `Option ${optObj.label}: ${optObj.text}` : `Option ${optionId}`;
+    announce(`Selected ${optLabel}. Say Next for next question, or Submit to finish.`, 'polite');
   };
 
   const handleClearOption = async () => {
     if (!test || !session || !currentQuestion) return;
     const updated = await mockTestService.saveMockAnswer(session.sessionId, currentQuestion.id, [], 1);
     setSession(updated);
+    announce('Cleared answer selection for this question.', 'polite');
   };
 
   const handleToggleMarkReview = async () => {
@@ -318,20 +326,6 @@ export const MockTestSessionPage: React.FC = () => {
       announce('Answer cleared for this question.', 'polite');
     };
 
-    const handleVoiceReadQuestion = () => {
-      if (!currentQuestion || isPaused) return;
-      const formulaText = currentQuestion.formula ? `Formula: ${currentQuestion.formula.accessibleText}. ` : '';
-      const tableText = currentQuestion.table
-        ? `Table: ${currentQuestion.table.caption}. Headers: ${currentQuestion.table.headers.join(', ')}. `
-        : '';
-      const optionsText = currentQuestion.options
-        ? currentQuestion.options.map((o) => `Option ${o.label}: ${o.text}`).join('. ')
-        : '';
-      speak(
-        `Question ${globalQuestionNumber} of ${test?.totalQuestions || sectionQuestions.length}. ${currentQuestion.text}. ${formulaText}${tableText}${optionsText}`
-      );
-    };
-
     const handleVoiceSubmit = () => {
       setIsSubmitModalOpen(true);
       announce('Submission confirmation dialog opened. Say Confirm to submit mock test.', 'assertive');
@@ -342,7 +336,7 @@ export const MockTestSessionPage: React.FC = () => {
     window.addEventListener('drishti:mock-previous', handleVoicePrevious);
     window.addEventListener('drishti:mock-mark-review', handleVoiceToggleMark);
     window.addEventListener('drishti:mock-clear', handleVoiceClear);
-    window.addEventListener('drishti:mock-read-question', handleVoiceReadQuestion);
+    window.addEventListener('drishti:mock-read-question', readActiveQuestion);
     window.addEventListener('drishti:mock-submit', handleVoiceSubmit);
 
     return () => {
@@ -351,10 +345,51 @@ export const MockTestSessionPage: React.FC = () => {
       window.removeEventListener('drishti:mock-previous', handleVoicePrevious);
       window.removeEventListener('drishti:mock-mark-review', handleVoiceToggleMark);
       window.removeEventListener('drishti:mock-clear', handleVoiceClear);
-      window.removeEventListener('drishti:mock-read-question', handleVoiceReadQuestion);
+      window.removeEventListener('drishti:mock-read-question', readActiveQuestion);
       window.removeEventListener('drishti:mock-submit', handleVoiceSubmit);
     };
   });
+
+  const readActiveQuestion = useCallback(() => {
+    if (!currentQuestion || isPaused) return;
+    const formulaText = currentQuestion.formula ? `Formula: ${currentQuestion.formula.accessibleText}. ` : '';
+    const tableText = currentQuestion.table
+      ? `Table: ${currentQuestion.table.caption}. Headers: ${currentQuestion.table.headers.join(', ')}. `
+      : '';
+    const optionsText = (currentQuestion.options || [])
+      .map((o) => `Option ${o.label}: ${o.text}`)
+      .join('. ');
+    const totalQ = test?.totalQuestions || sectionQuestions.length;
+    const fullText = `Question ${globalQuestionNumber} of ${totalQ}. ${currentQuestion.text}. ${formulaText}${tableText} Choices: ${optionsText}. Say Option A, B, C, or D to answer. Say Next for next question.`;
+    speak(fullText);
+    announce(`Question ${globalQuestionNumber}: ${currentQuestion.text}`, 'polite');
+  }, [currentQuestion, isPaused, globalQuestionNumber, test?.totalQuestions, sectionQuestions.length, speak, announce]);
+
+  // Auto-read question and choices when session loads or question index changes
+  const prevQuestionIdRef = useRef<string>('');
+  useEffect(() => {
+    if (isLoading || !test || !currentQuestion || isPaused) return;
+    if (prevQuestionIdRef.current === currentQuestion.id) return;
+    prevQuestionIdRef.current = currentQuestion.id;
+
+    const timer = setTimeout(() => {
+      readActiveQuestion();
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [isLoading, test, currentQuestion?.id, isPaused, readActiveQuestion]);
+
+  // Alt+R hotkey to re-read current question and choices
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && (e.key.toLowerCase() === 'r' || e.key === 'R')) {
+        e.preventDefault();
+        readActiveQuestion();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [readActiveQuestion]);
 
   // Early loading return after all React hooks have been unconditionally registered
   if (isLoading || !test || !session) {
@@ -422,6 +457,17 @@ export const MockTestSessionPage: React.FC = () => {
           >
             <SlidersHorizontal className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
             <span>A11y</span>
+          </button>
+
+          {/* Read Question and Choices Aloud CTA */}
+          <button
+            type="button"
+            onClick={readActiveQuestion}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-surface hover:bg-surface-elevated text-xs font-semibold text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[38px] transition-colors shadow-sm"
+            aria-label="Listen to active question and options aloud (Alt+R)"
+          >
+            <Volume2 className="w-4 h-4 text-primary" aria-hidden="true" />
+            <span className="hidden sm:inline">Read Question (Alt+R)</span>
           </button>
 
           {/* Explicit Submit Mock Test CTA (Requirement #32) */}
