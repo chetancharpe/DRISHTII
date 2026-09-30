@@ -30,6 +30,8 @@ export const CandidateVoiceAssistant: React.FC = () => {
     liveTranscript,
     lastTranscript,
     lastActionFeedback,
+    activeSectionName,
+    activeElementCount,
     toggleListening,
     requestMicPermission,
     speakPageGuidance,
@@ -119,6 +121,12 @@ export const CandidateVoiceAssistant: React.FC = () => {
                   : 'Paused (Alt+V)'}
               </span>
 
+              {activeSectionName && (
+                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                  {activeSectionName} ({activeElementCount} options)
+                </span>
+              )}
+
               {hasPermissionError && (
                 <button
                   type="button"
@@ -157,7 +165,7 @@ export const CandidateVoiceAssistant: React.FC = () => {
                 </span>
               ) : isListening ? (
                 <span className="text-foreground-secondary truncate">
-                  Speak any command (e.g., &ldquo;Learn&rdquo;, &ldquo;Practice&rdquo;, &ldquo;Exams&rdquo;, &ldquo;Continue Practice&rdquo;)
+                  Say &ldquo;Option 1&rdquo; to &ldquo;Option {activeElementCount}&rdquo; or speak item name (e.g. &ldquo;विकल्प 1&rdquo;, &ldquo;समझाओ&rdquo;)
                 </span>
               ) : (
                 <span className="text-foreground-muted truncate">
