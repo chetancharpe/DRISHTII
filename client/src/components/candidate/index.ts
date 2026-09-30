@@ -16,3 +16,4 @@ export * from './RecentActivityTimeline';
 export * from './AccessibilityStatusCard';
 export * from './DashboardSkeleton';
 export * from './DashboardErrorState';
+export * from './CandidateVoiceAssistant';

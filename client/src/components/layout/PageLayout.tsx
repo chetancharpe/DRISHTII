@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Navbar } from './Navbar';
 import { Sidebar } from './Sidebar';
 import { Footer } from './Footer';
 import { Modal } from '../common/Modal';
 import { AccessibilityPanel } from '../accessibility/AccessibilityPanel';
 import { AccessibilityHelpModal } from '../accessibility/AccessibilityHelpModal';
+import { CandidateVoiceAssistant } from '../candidate/CandidateVoiceAssistant';
 import { useKeyboardNavigation } from '../../hooks/useKeyboardNavigation';
 import { useAccessibility } from '../../hooks/useAccessibility';
 
@@ -19,6 +21,8 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
   showSidebar = false,
   fullWidth = false,
 }) => {
+  const location = useLocation();
+  const isCandidateRoute = location.pathname.startsWith('/candidate');
   const { isCalibrationOpen, openCalibration, closeCalibration } = useAccessibility();
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
@@ -60,6 +64,7 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
             fullWidth ? 'w-full' : 'p-4 sm:p-6 lg:p-8'
           }`}
         >
+          {isCandidateRoute && <CandidateVoiceAssistant />}
           {children}
         </main>
       </div>
