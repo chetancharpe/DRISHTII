@@ -51,50 +51,12 @@ export const PracticeSessionPage: React.FC = () => {
     loadSession();
   }, [sessionId]);
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center p-16 gap-3" role="status">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" aria-hidden="true" />
-        <p className="text-xs font-semibold text-foreground-secondary">
-          Initializing practice session...
-        </p>
-      </div>
-    );
-  }
-
-  if (error || !session) {
-    return (
-      <div className="p-8 rounded-xl border border-border bg-surface text-center flex flex-col items-center gap-4 max-w-md mx-auto">
-        <p className="text-sm font-bold text-foreground">{error || 'Session not found.'}</p>
-        <Link
-          to="/candidate/practice"
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-contrast text-xs font-bold min-h-[40px]"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
-          <span>Return to Practice Menu</span>
-        </Link>
-      </div>
-    );
-  }
-
-  const currentQuestion = session.questions[currentIdx];
-  const savedAnswer = session.answers[currentQuestion?.id];
-
-  // Count answered, skipped, remaining
-  let answeredCount = 0;
-  let skippedCount = 0;
-
-  session.questions.forEach((q) => {
-    const a = session.answers[q.id];
-    if (a?.isSubmitted) answeredCount++;
-    else if (a?.isSkipped) skippedCount++;
-  });
-
-  const remainingCount = session.totalQuestions - answeredCount - skippedCount;
-  const unansweredCount = session.totalQuestions - answeredCount;
+  const currentQuestion = session?.questions?.[currentIdx];
+  const savedAnswer = currentQuestion ? session?.answers?.[currentQuestion.id] : undefined;
 
   // Handlers with assertive error feedback
   const handleSubmitAnswer = async (questionId: string, selectedOptionIds: string[]) => {
+    if (!session) return;
     setActionError(null);
     try {
       const res = await practiceService.submitAnswer(
@@ -113,6 +75,7 @@ export const PracticeSessionPage: React.FC = () => {
   };
 
   const handleSkipQuestion = async (questionId: string) => {
+    if (!session) return;
     setActionError(null);
     try {
       const updated = await practiceService.skipQuestion(session.id, questionId);
@@ -129,7 +92,7 @@ export const PracticeSessionPage: React.FC = () => {
   };
 
   const handleNext = () => {
-    if (currentIdx < session.totalQuestions - 1) {
+    if (session && currentIdx < session.totalQuestions - 1) {
       setCurrentIdx((prev) => prev + 1);
     }
   };
@@ -141,6 +104,7 @@ export const PracticeSessionPage: React.FC = () => {
   };
 
   const handleConfirmFinish = async () => {
+    if (!session) return;
     setIsFinishModalOpen(false);
     setActionError(null);
     try {
@@ -167,6 +131,45 @@ export const PracticeSessionPage: React.FC = () => {
     },
     onSubmit: () => setIsFinishModalOpen(true),
   });
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-16 gap-3" role="status">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" aria-hidden="true" />
+        <p className="text-xs font-semibold text-foreground-secondary">
+          Initializing practice session...
+        </p>
+      </div>
+    );
+  }
+
+  if (error || !session || !currentQuestion) {
+    return (
+      <div className="p-8 rounded-xl border border-border bg-surface text-center flex flex-col items-center gap-4 max-w-md mx-auto">
+        <p className="text-sm font-bold text-foreground">{error || 'Session not found.'}</p>
+        <Link
+          to="/candidate/practice"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-contrast text-xs font-bold min-h-[40px]"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
+          <span>Return to Practice Menu</span>
+        </Link>
+      </div>
+    );
+  }
+
+  // Count answered, skipped, remaining
+  let answeredCount = 0;
+  let skippedCount = 0;
+
+  session.questions.forEach((q) => {
+    const a = session.answers[q.id];
+    if (a?.isSubmitted) answeredCount++;
+    else if (a?.isSkipped) skippedCount++;
+  });
+
+  const remainingCount = session.totalQuestions - answeredCount - skippedCount;
+  const unansweredCount = session.totalQuestions - answeredCount;
 
   return (
     <div className="flex flex-col gap-6 max-w-6xl mx-auto">
