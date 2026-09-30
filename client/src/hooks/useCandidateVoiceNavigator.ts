@@ -157,37 +157,46 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
     }
   }, []);
 
-  // 5. Intelligent Multi-lingual Command Matcher
+  // 5. High-Precision Command Matcher (Word Boundaries & Intent Filter)
   const executeCommand = useCallback(
     (rawTranscript: string) => {
-      const text = rawTranscript
+      const cleanText = rawTranscript
         .toLowerCase()
         .replace(/[.,!?;:'"-]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
 
-      if (!text) return;
+      if (!cleanText) return;
+
+      const words = cleanText.split(/\s+/).filter(Boolean);
 
       // Debounce: prevent executing the same utterance twice within 1.5s
       const now = Date.now();
-      if (text === lastExecutedTextRef.current && now - lastExecutedTimeRef.current < 1500) {
+      if (cleanText === lastExecutedTextRef.current && now - lastExecutedTimeRef.current < 1500) {
         return;
       }
 
       setLastTranscript(rawTranscript);
 
+      // Conversational Filter:
+      // If the candidate speaks a sentence of 4 or more words, it must contain a clear command intent verb:
+      // e.g. "open", "go to", "take me to", "navigate", "show", "start", "kholo", "chalo", "jao", "drishti", "please"
+      // Otherwise, it is casual background conversation and should NOT trigger accidental navigation!
+      const isLongUtterance = words.length >= 4;
+      const hasCommandIntent =
+        /\b(open|go to|take me to|navigate|show|start|kholo|chalo|jao|drishti|please|karna|chahiye)\b/i.test(
+          cleanText
+        );
+
+      // Special exemption for long exact command phrases like "take me to examinations" or "start recommended practice"
+      if (isLongUtterance && !hasCommandIntent) {
+        setLastActionFeedback(`Conversational speech noted: "${rawTranscript}". Say a direct command like "Learn" or "Open Practice".`);
+        return;
+      }
+
       // A. Stop speech synthesis on "stop" / "mute"
-      if (
-        text.includes('stop') ||
-        text.includes('mute') ||
-        text.includes('quiet') ||
-        text.includes('silence') ||
-        text.includes('chup') ||
-        text.includes('shant') ||
-        text.includes('ruko') ||
-        text.includes('band karo')
-      ) {
-        lastExecutedTextRef.current = text;
+      if (/\b(stop|mute|quiet|silence|chup|shant|ruko|band karo)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         stopSpeaking();
         playEarcon('pause');
@@ -197,14 +206,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
       }
 
       // B. Microphone Controls
-      if (
-        text.includes('stop listening') ||
-        text.includes('turn off mic') ||
-        text.includes('mic band') ||
-        text.includes('pause voice') ||
-        text.includes('pause mic')
-      ) {
-        lastExecutedTextRef.current = text;
+      if (/\b(stop listening|turn off mic|mic band|pause voice|pause mic)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         setIsListening(false);
         try {
@@ -219,15 +222,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
       }
 
       // C. Help & Commands
-      if (
-        text.includes('help') ||
-        text.includes('madad') ||
-        text.includes('command') ||
-        text.includes('what can i say') ||
-        text.includes('kya bolu') ||
-        text.includes('options')
-      ) {
-        lastExecutedTextRef.current = text;
+      if (/\b(help|madad|commands?|what can i say|kya bolu|options)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         speakAvailableCommands();
         setLiveTranscript('');
@@ -235,34 +231,20 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
       }
 
       // D. Page Orientation
-      if (
-        text.includes('where am i') ||
-        text.includes('kahan') ||
-        text.includes('read page') ||
-        text.includes('read summary') ||
-        text.includes('current page') ||
-        text.includes('what page') ||
-        text.includes('status')
-      ) {
-        lastExecutedTextRef.current = text;
+      if (/\b(where am i|kahan hu|read page|read summary|current page|what page|status)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         speakPageGuidance();
         setLiveTranscript('');
         return;
       }
 
-      // E. Continue Practice / Start Recommended (Priority over Learn/Practice)
+      // E. Continue Practice / Start Recommended Practice (Higher priority than generic practice)
       if (
-        text.includes('continue practice') ||
-        text.includes('start practice set') ||
-        text.includes('recommended practice') ||
-        text.includes('start recommended') ||
-        text.includes('start practice') ||
-        text.includes('begin practice') ||
-        text.includes('resume practice') ||
-        (text.includes('continue') && !text.includes('learning'))
+        /\b(continue practice|start practice set|recommended practice|start recommended|begin practice|resume practice)\b/i.test(cleanText) ||
+        (/\bcontinue\b/i.test(cleanText) && !/\blearning\b/i.test(cleanText))
       ) {
-        lastExecutedTextRef.current = text;
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         speak('Starting practice session.');
@@ -274,13 +256,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
       }
 
       // F. Demo Exam
-      if (
-        text.includes('start demo exam') ||
-        text.includes('demo exam') ||
-        text.includes('take exam') ||
-        text.includes('start examination')
-      ) {
-        lastExecutedTextRef.current = text;
+      if (/\b(start demo exam|demo exam|take exam|start examination)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         speak('Entering exam verification room for Demo Examination.');
@@ -291,18 +268,9 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      // G. LEARN: Learn / Curriculum / Study / Padhai / Sikho
-      if (
-        text.includes('learn') ||
-        text.includes('curriculum') ||
-        text.includes('study') ||
-        text.includes('syllabus') ||
-        text.includes('padho') ||
-        text.includes('sikho') ||
-        text.includes('lern') ||
-        text.includes('lan')
-      ) {
-        lastExecutedTextRef.current = text;
+      // G. LEARN: Learn / Curriculum / Syllabus / Padho / Sikho
+      if (/\b(learn|curriculum|syllabus|padho|sikho|padhai|learning)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/learn');
@@ -313,15 +281,9 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      // H. DASHBOARD: Dashboard / Home / Ghar / Wapas
-      if (
-        text.includes('dashboard') ||
-        text.includes('home') ||
-        text.includes('main menu') ||
-        text.includes('ghar') ||
-        text.includes('wapas')
-      ) {
-        lastExecutedTextRef.current = text;
+      // H. DASHBOARD: Dashboard / Home / Main Menu / Ghar / Wapas
+      if (/\b(dashboard|home|main menu|ghar|wapas)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/dashboard');
@@ -332,14 +294,9 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      // I. PRACTICE: Practice / Pratice / Question / Sawal
-      if (
-        text.includes('practice') ||
-        text.includes('pratice') ||
-        text.includes('question') ||
-        text.includes('sawal')
-      ) {
-        lastExecutedTextRef.current = text;
+      // I. PRACTICE: Practice / Questions / Sawal
+      if (/\b(practice|questions?|sawal)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/practice');
@@ -351,8 +308,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
       }
 
       // J. MOCK TESTS
-      if (text.includes('mock')) {
-        lastExecutedTextRef.current = text;
+      if (/\b(mock|mocks|mock tests?)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/mock-tests');
@@ -363,13 +320,9 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      // K. EXAMS
-      if (
-        text.includes('exam') ||
-        text.includes('pariksha') ||
-        text.includes('test')
-      ) {
-        lastExecutedTextRef.current = text;
+      // K. EXAMS: Exams / Examinations / Pariksha
+      if (/\b(exams?|examinations?|pariksha)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/exams');
@@ -380,15 +333,9 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      // L. RESULTS
-      if (
-        text.includes('result') ||
-        text.includes('score') ||
-        text.includes('mark') ||
-        text.includes('grade') ||
-        text.includes('parinam')
-      ) {
-        lastExecutedTextRef.current = text;
+      // L. RESULTS: Results / Scorecard / Marks / Parinam
+      if (/\b(results?|scores?|scorecards?|marks?|grades?|parinam)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/results');
@@ -399,15 +346,9 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      // M. PROGRESS
-      if (
-        text.includes('progress') ||
-        text.includes('streak') ||
-        text.includes('growth') ||
-        text.includes('performance') ||
-        text.includes('tarakki')
-      ) {
-        lastExecutedTextRef.current = text;
+      // M. PROGRESS: Progress / Performance / Streak / Tarakki
+      if (/\b(progress|performance|streaks?|growth|tarakki)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/progress');
@@ -419,15 +360,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
       }
 
       // N. ACCESSIBILITY CALIBRATION
-      if (
-        text.includes('accessib') ||
-        text.includes('calibration') ||
-        text.includes('contrast') ||
-        text.includes('font size') ||
-        text.includes('text size') ||
-        text.includes('bada karo')
-      ) {
-        lastExecutedTextRef.current = text;
+      if (/\b(accessibility|calibration|contrast|font size|text size|bada karo)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         openCalibration();
@@ -439,12 +373,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
       }
 
       // O. SETTINGS
-      if (
-        text.includes('setting') ||
-        text.includes('profile') ||
-        text.includes('account')
-      ) {
-        lastExecutedTextRef.current = text;
+      if (/\b(settings?|profiles?|accounts?)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/settings');
@@ -456,8 +386,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
       }
 
       // P. SUBJECTS
-      if (text.includes('math') || text.includes('ganit')) {
-        lastExecutedTextRef.current = text;
+      if (/\b(mathematics|maths?|ganit)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/learn/mathematics');
@@ -468,8 +398,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      if (text.includes('english') || text.includes('angrezi')) {
-        lastExecutedTextRef.current = text;
+      if (/\b(english|angrezi)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/learn/english');
@@ -480,14 +410,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      if (
-        text.includes('general knowledge') ||
-        text.includes(' gk') ||
-        text.startsWith('gk') ||
-        text.includes('current affairs') ||
-        text.includes('samanya gyan')
-      ) {
-        lastExecutedTextRef.current = text;
+      if (/\b(general knowledge|gk|current affairs|samanya gyan)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/learn/general-knowledge');
@@ -498,12 +422,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      if (
-        text.includes('reasoning') ||
-        text.includes('logic') ||
-        text.includes('tarkik')
-      ) {
-        lastExecutedTextRef.current = text;
+      if (/\b(reasoning|logic|tarkik)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/learn/reasoning');
@@ -515,8 +435,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
       }
 
       // Q. SPECIFIC TOPICS
-      if (text.includes('percent') || text.includes('pratishat')) {
-        lastExecutedTextRef.current = text;
+      if (/\b(percentages?|pratishat)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/learn/mathematics/percentages');
@@ -527,8 +447,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      if (text.includes('algebra') || text.includes('beejganit')) {
-        lastExecutedTextRef.current = text;
+      if (/\b(algebra|beejganit)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/learn/mathematics/algebra');
@@ -539,8 +459,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      if (text.includes('geometry') || text.includes('jyamiti')) {
-        lastExecutedTextRef.current = text;
+      if (/\b(geometry|jyamiti)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/learn/mathematics/geometry');
@@ -551,8 +471,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      if (text.includes('comprehension') || text.includes('passage')) {
-        lastExecutedTextRef.current = text;
+      if (/\b(reading comprehension|comprehension|passage)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/learn/english/reading-comprehension');
@@ -563,8 +483,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      if (text.includes('grammar') || text.includes('vyakaran')) {
-        lastExecutedTextRef.current = text;
+      if (/\b(grammar|vyakaran)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/learn/english/grammar-rules');
@@ -575,8 +495,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      if (text.includes('vocabulary') || text.includes('vocab') || text.includes('words')) {
-        lastExecutedTextRef.current = text;
+      if (/\b(vocabulary|vocab)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/learn/english/vocabulary-building');
@@ -587,8 +507,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      if (text.includes('history') || text.includes('itihas')) {
-        lastExecutedTextRef.current = text;
+      if (/\b(modern history|history|itihas)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/learn/general-knowledge/modern-history');
@@ -599,8 +519,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      if (text.includes('polity') || text.includes('constitution') || text.includes('samvidhan')) {
-        lastExecutedTextRef.current = text;
+      if (/\b(indian polity|polity|constitution|samvidhan)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/learn/general-knowledge/indian-polity');
@@ -611,8 +531,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      if (text.includes('geography') || text.includes('bhugol')) {
-        lastExecutedTextRef.current = text;
+      if (/\b(physical geography|geography|bhugol)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/learn/general-knowledge/physical-geography');
@@ -623,8 +543,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      if (text.includes('coding') || text.includes('decoding')) {
-        lastExecutedTextRef.current = text;
+      if (/\b(coding and decoding|coding decoding)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/learn/reasoning/coding-decoding');
@@ -635,8 +555,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      if (text.includes('series')) {
-        lastExecutedTextRef.current = text;
+      if (/\b(number series|series)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         navigate('/candidate/learn/reasoning/number-series');
@@ -648,14 +568,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
       }
 
       // R. LOGOUT
-      if (
-        text.includes('logout') ||
-        text.includes('log out') ||
-        text.includes('sign out') ||
-        text.includes('signout') ||
-        text.includes('bahar')
-      ) {
-        lastExecutedTextRef.current = text;
+      if (/\b(logout|log out|sign out|signout|bahar niklo)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('pause');
         speak('Signing you out of Drishti.');
@@ -668,7 +582,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
 
       // Unrecognized phrase: gentle earcon + feedback
       playEarcon('error');
-      setLastActionFeedback(`Heard: "${rawTranscript}". Say 'Help' for command list.`);
+      setLastActionFeedback(`Heard: "${rawTranscript}". Say e.g. 'Learn' or 'Practice'.`);
     },
     [navigate, openCalibration, speak, stopSpeaking, announce, logout, speakAvailableCommands, speakPageGuidance]
   );
@@ -727,20 +641,30 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
             setLiveTranscript(activeText);
           }
 
+          // Strict trigger logic:
+          // 1. If final transcript is available, execute with full word boundary matching
           if (final.trim()) {
             executeCommand(final.trim());
           } else if (interim.trim()) {
-            const lower = interim.toLowerCase();
-            // Immediate trigger on single action keywords
-            if (
-              lower.includes('learn') ||
-              lower.includes('practice') ||
-              lower.includes('dashboard') ||
-              lower.includes('exam') ||
-              lower.includes('result') ||
-              lower.includes('stop')
-            ) {
-              executeCommand(interim.trim());
+            // 2. For interim speech: ONLY trigger if it is a crisp, standalone 1-or-2 word command
+            // This prevents triggering mid-sentence while someone is speaking longer phrases!
+            const words = interim.trim().toLowerCase().split(/\s+/);
+            if (words.length <= 2) {
+              const lower = interim.trim().toLowerCase();
+              if (
+                lower === 'learn' ||
+                lower === 'practice' ||
+                lower === 'dashboard' ||
+                lower === 'exams' ||
+                lower === 'exam' ||
+                lower === 'results' ||
+                lower === 'progress' ||
+                lower === 'stop' ||
+                lower === 'continue' ||
+                lower === 'continue practice'
+              ) {
+                executeCommand(interim.trim());
+              }
             }
           }
         };
