@@ -61,7 +61,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
   const getPageGuidance = useCallback((path: string): string => {
     if (path.startsWith('/candidate/dashboard')) {
       const name = user?.name ? user.name.split(' ')[0] : 'Candidate';
-      return `Welcome to your Workspace, ${name}. Say 'Continue Practice' to start your recommended Coding and Decoding session, or say 'Learn', 'Practice', 'Mock Tests', 'Exams', 'Results', or say 'Help' for all voice commands.`;
+      return `Welcome to your Workspace, ${name}. Say 'Learn' to explore curriculum, 'Continue Practice' to start questions, or say 'Exams', 'Results', 'Progress', or 'Help'.`;
     }
     if (path.startsWith('/candidate/learn')) {
       if (path.includes('mathematics')) {
@@ -112,18 +112,16 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
   const speakAvailableCommands = useCallback(() => {
     playEarcon('action');
     const helpText =
-      "Here are the voice commands you can say at any time: " +
-      "Say 'Dashboard' to go to home. " +
+      "Voice commands: " +
       "Say 'Learn' to view curriculum subjects. " +
       "Say 'Practice' to practice questions. " +
-      "Say 'Continue Practice' to start your recommended practice set. " +
-      "Say 'Exams' to view official examinations. " +
-      "Say 'Mock Tests' for simulated tests. " +
+      "Say 'Dashboard' to go home. " +
+      "Say 'Exams' to view examinations. " +
+      "Say 'Mock Tests' for mock tests. " +
       "Say 'Results' for scorecards. " +
       "Say 'Progress' for analytics. " +
-      "Say 'Accessibility' to adjust text size and contrast. " +
-      "Say 'Read Page' to hear screen summary. " +
-      "Say 'Stop' to silence audio, or say 'Stop Listening' to pause microphone.";
+      "Say 'Accessibility' for sensory controls. " +
+      "Say 'Stop' to silence audio.";
     speak(helpText);
     announce(helpText, 'polite');
     setLastActionFeedback('Reading voice commands list.');
@@ -138,7 +136,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
     setLastActionFeedback('Speaking page orientation guide.');
   }, [getPageGuidance, location.pathname, speak, announce]);
 
-  // 4. Request microphone permission explicitly
+  // 4. Request microphone permission explicitly via getUserMedia
   const requestMicPermission = useCallback(async (): Promise<boolean> => {
     if (
       typeof navigator === 'undefined' ||
@@ -253,7 +251,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      // E. Continue Practice / Start Recommended (High priority)
+      // E. Continue Practice / Start Recommended (Priority over Learn/Practice)
       if (
         text.includes('continue practice') ||
         text.includes('start practice set') ||
@@ -293,7 +291,29 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      // G. Main Sections
+      // G. LEARN: Learn / Curriculum / Study / Padhai / Sikho
+      if (
+        text.includes('learn') ||
+        text.includes('curriculum') ||
+        text.includes('study') ||
+        text.includes('syllabus') ||
+        text.includes('padho') ||
+        text.includes('sikho') ||
+        text.includes('lern') ||
+        text.includes('lan')
+      ) {
+        lastExecutedTextRef.current = text;
+        lastExecutedTimeRef.current = now;
+        playEarcon('action');
+        navigate('/candidate/learn');
+        speak('Opening Learning Curriculum.');
+        announce('Navigating to Learning Curriculum.', 'polite');
+        setLastActionFeedback('Navigating to Learn.');
+        setLiveTranscript('');
+        return;
+      }
+
+      // H. DASHBOARD: Dashboard / Home / Ghar / Wapas
       if (
         text.includes('dashboard') ||
         text.includes('home') ||
@@ -312,25 +332,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      if (
-        text.includes('learn') ||
-        text.includes('curriculum') ||
-        text.includes('study') ||
-        text.includes('syllabus') ||
-        text.includes('padho') ||
-        text.includes('sikho')
-      ) {
-        lastExecutedTextRef.current = text;
-        lastExecutedTimeRef.current = now;
-        playEarcon('action');
-        navigate('/candidate/learn');
-        speak('Opening Learning Curriculum.');
-        announce('Navigating to Learning Curriculum.', 'polite');
-        setLastActionFeedback('Navigating to Learn.');
-        setLiveTranscript('');
-        return;
-      }
-
+      // I. PRACTICE: Practice / Pratice / Question / Sawal
       if (
         text.includes('practice') ||
         text.includes('pratice') ||
@@ -348,6 +350,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
+      // J. MOCK TESTS
       if (text.includes('mock')) {
         lastExecutedTextRef.current = text;
         lastExecutedTimeRef.current = now;
@@ -360,6 +363,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
+      // K. EXAMS
       if (
         text.includes('exam') ||
         text.includes('pariksha') ||
@@ -376,6 +380,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
+      // L. RESULTS
       if (
         text.includes('result') ||
         text.includes('score') ||
@@ -394,6 +399,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
+      // M. PROGRESS
       if (
         text.includes('progress') ||
         text.includes('streak') ||
@@ -412,6 +418,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
+      // N. ACCESSIBILITY CALIBRATION
       if (
         text.includes('accessib') ||
         text.includes('calibration') ||
@@ -431,6 +438,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
+      // O. SETTINGS
       if (
         text.includes('setting') ||
         text.includes('profile') ||
@@ -447,7 +455,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      // H. Subjects
+      // P. SUBJECTS
       if (text.includes('math') || text.includes('ganit')) {
         lastExecutedTextRef.current = text;
         lastExecutedTimeRef.current = now;
@@ -506,7 +514,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      // I. Specific Topics
+      // Q. SPECIFIC TOPICS
       if (text.includes('percent') || text.includes('pratishat')) {
         lastExecutedTextRef.current = text;
         lastExecutedTimeRef.current = now;
@@ -639,7 +647,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      // J. Logout
+      // R. LOGOUT
       if (
         text.includes('logout') ||
         text.includes('log out') ||
@@ -665,107 +673,124 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
     [navigate, openCalibration, speak, stopSpeaking, announce, logout, speakAvailableCommands, speakPageGuidance]
   );
 
-  // 6. Speech Recognition Lifecycle (Continuous auto-restart with interim results)
+  // 6. Resilient Speech Recognition Engine (Fresh Instance Per Cycle)
   useEffect(() => {
-    if (!isSupported || !isListening) {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.abort();
-        } catch {}
-      }
-      setIsActuallyRecognizing(false);
-      return;
-    }
+    if (!isSupported) return;
+
+    let isComponentMounted = true;
+    let restartTimer: any = null;
 
     const SpeechRecognitionClass =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    const recognition = new SpeechRecognitionClass();
-    recognition.continuous = true;
-    recognition.interimResults = true; // Ultra-fast real-time speech feedback
-    recognition.lang = 'en-IN';
+    function createAndStartRecognition() {
+      if (!isComponentMounted || !isListeningRef.current) return;
 
-    recognition.onstart = () => {
-      setIsActuallyRecognizing(true);
-      setHasPermissionError(false);
-    };
-
-    recognition.onresult = (event: any) => {
-      let interim = '';
-      let final = '';
-
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        const item = event.results[i];
-        if (item.isFinal) {
-          final += item[0].transcript;
-        } else {
-          interim += item[0].transcript;
-        }
+      // Clean up previous instance cleanly
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.onend = null;
+          recognitionRef.current.onerror = null;
+          recognitionRef.current.abort();
+        } catch {}
+        recognitionRef.current = null;
       }
 
-      const activeText = (final || interim).trim();
-      if (activeText) {
-        setLiveTranscript(activeText);
-      }
+      try {
+        const recognition = new SpeechRecognitionClass();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
 
-      // If final transcript is available, execute immediately
-      if (final.trim()) {
-        executeCommand(final.trim());
-      } else if (interim.trim()) {
-        // Quick match for single-word urgent commands (e.g. "stop", "dashboard", "practice", "learn")
-        const lower = interim.toLowerCase().trim();
-        if (
-          lower === 'stop' ||
-          lower === 'mute' ||
-          lower === 'dashboard' ||
-          lower === 'learn' ||
-          lower === 'practice' ||
-          lower === 'exams' ||
-          lower === 'results' ||
-          lower === 'progress' ||
-          lower === 'continue practice'
-        ) {
-          executeCommand(interim.trim());
-        }
-      }
-    };
+        recognition.onstart = () => {
+          if (!isComponentMounted) return;
+          setIsActuallyRecognizing(true);
+          setHasPermissionError(false);
+        };
 
-    recognition.onerror = (event: any) => {
-      if (event.error === 'not-allowed') {
-        console.warn('Candidate voice: microphone permission denied.');
+        recognition.onresult = (event: any) => {
+          if (!isComponentMounted) return;
+          let interim = '';
+          let final = '';
+
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            const item = event.results[i];
+            if (item.isFinal) {
+              final += item[0].transcript;
+            } else {
+              interim += item[0].transcript;
+            }
+          }
+
+          const activeText = (final || interim).trim();
+          if (activeText) {
+            setLiveTranscript(activeText);
+          }
+
+          if (final.trim()) {
+            executeCommand(final.trim());
+          } else if (interim.trim()) {
+            const lower = interim.toLowerCase();
+            // Immediate trigger on single action keywords
+            if (
+              lower.includes('learn') ||
+              lower.includes('practice') ||
+              lower.includes('dashboard') ||
+              lower.includes('exam') ||
+              lower.includes('result') ||
+              lower.includes('stop')
+            ) {
+              executeCommand(interim.trim());
+            }
+          }
+        };
+
+        recognition.onerror = (event: any) => {
+          if (!isComponentMounted) return;
+          if (event.error === 'not-allowed') {
+            setHasPermissionError(true);
+            setIsActuallyRecognizing(false);
+          }
+        };
+
+        recognition.onend = () => {
+          if (!isComponentMounted) return;
+          setIsActuallyRecognizing(false);
+          // Auto-restart with fresh instance
+          if (isListeningRef.current) {
+            clearTimeout(restartTimer);
+            restartTimer = setTimeout(() => {
+              if (isComponentMounted && isListeningRef.current) {
+                createAndStartRecognition();
+              }
+            }, 300);
+          }
+        };
+
+        recognition.start();
+        recognitionRef.current = recognition;
+      } catch (err) {
+        // If initial start without user gesture fails, flag permission error so UI shows button
         setHasPermissionError(true);
         setIsActuallyRecognizing(false);
-      } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
-        console.warn('Candidate voice recognition notice:', event.error);
       }
-    };
+    }
 
-    recognition.onend = () => {
-      setIsActuallyRecognizing(false);
-      // Auto-restart if user still wants voice active and permission wasn't revoked
-      if (isListeningRef.current) {
-        setTimeout(() => {
-          if (isListeningRef.current) {
-            try {
-              recognition.start();
-            } catch {}
-          }
-        }, 300);
-      }
-    };
-
-    recognitionRef.current = recognition;
-
-    try {
-      recognition.start();
-    } catch (err) {
-      console.warn('Initial recognition.start() notice:', err);
+    if (isListening) {
+      createAndStartRecognition();
     }
 
     return () => {
-      try {
-        recognition.abort();
-      } catch {}
+      isComponentMounted = false;
+      clearTimeout(restartTimer);
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.onend = null;
+          recognitionRef.current.onerror = null;
+          recognitionRef.current.abort();
+        } catch {}
+        recognitionRef.current = null;
+      }
       setIsActuallyRecognizing(false);
     };
   }, [isSupported, isListening, executeCommand]);
@@ -809,7 +834,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         sessionStorage.setItem('drishti_candidate_voice_active', 'true');
       } catch {}
       playEarcon('listen');
-      speak('Voice assistant active. Say a command or say Help.');
+      speak('Voice assistant active. Say Learn, Practice, or Dashboard.');
       announce('Voice assistant active.', 'polite');
       setLastActionFeedback('Voice listening active (Alt+V to pause).');
     } else {
@@ -835,10 +860,32 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         e.preventDefault();
         speakPageGuidance();
       }
+      // Instant access shortcuts:
+      // Alt + L -> Learn
+      if (e.altKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        playEarcon('action');
+        navigate('/candidate/learn');
+        speak('Opening Learn curriculum.');
+      }
+      // Alt + D -> Dashboard
+      if (e.altKey && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        playEarcon('action');
+        navigate('/candidate/dashboard');
+        speak('Opening Candidate Dashboard.');
+      }
+      // Alt + P -> Practice
+      if (e.altKey && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        playEarcon('action');
+        navigate('/candidate/practice');
+        speak('Opening Practice Hub.');
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [toggleListening, speakPageGuidance]);
+  }, [toggleListening, speakPageGuidance, navigate, speak]);
 
   return {
     isListening,

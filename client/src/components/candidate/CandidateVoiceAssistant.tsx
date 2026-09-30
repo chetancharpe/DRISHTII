@@ -56,7 +56,7 @@ export const CandidateVoiceAssistant: React.FC = () => {
       <section
         role="region"
         aria-label="Candidate Hands-Free Voice Assistant and Spoken Guidance"
-        className="w-full mb-6 rounded-2xl border-2 border-primary/30 bg-surface-elevated/95 backdrop-blur-md shadow-md p-3.5 sm:p-4 text-foreground flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 transition-all"
+        className="sticky top-2 z-40 w-full mb-6 rounded-2xl border-2 border-primary/40 bg-surface-elevated/98 backdrop-blur-md shadow-lg p-3.5 sm:p-4 text-foreground flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 transition-all"
       >
         {/* Left: Status and Live Feedback */}
         <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">

@@ -72,18 +72,6 @@ export const LoginPage: React.FC = () => {
     setFormError(null);
   };
 
-  const handleVoiceCandidateLogin = async () => {
-    fillDemoAccount('candidate1@gowow.org', 'CandidateSecure123!');
-    try {
-      const loggedInUser = await login('candidate1@gowow.org', 'CandidateSecure123!');
-      if (loggedInUser.role === 'candidate') {
-        navigate('/candidate/dashboard');
-      }
-    } catch (err: any) {
-      setFormError(err?.message || 'Voice login failed. Please try again.');
-    }
-  };
-
   const startVoiceLogin = async () => {
     if (typeof window === 'undefined') return;
     const SpeechClass =
@@ -119,11 +107,27 @@ export const LoginPage: React.FC = () => {
           lower.includes('candidate') ||
           lower.includes('sign in') ||
           lower.includes('login') ||
-          lower.includes('chalo')
+          lower.includes('chalo') ||
+          lower.includes('learn') ||
+          lower.includes('practice') ||
+          lower.includes('dashboard')
         ) {
-          recognition.abort();
+          try {
+            recognition.abort();
+          } catch {}
           setIsVoiceListening(false);
-          handleVoiceCandidateLogin();
+          fillDemoAccount('candidate1@gowow.org', 'CandidateSecure123!');
+          login('candidate1@gowow.org', 'CandidateSecure123!').then(() => {
+            if (lower.includes('learn')) {
+              navigate('/candidate/learn');
+            } else if (lower.includes('practice')) {
+              navigate('/candidate/practice');
+            } else {
+              navigate('/candidate/dashboard');
+            }
+          }).catch((err: any) => {
+            setFormError(err?.message || 'Login failed.');
+          });
         }
       };
 
