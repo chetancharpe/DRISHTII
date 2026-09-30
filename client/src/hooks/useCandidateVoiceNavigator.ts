@@ -297,7 +297,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
 
       // C1. Active Mock Test Session (when on /candidate/mock-tests/.../session)
       if (location.pathname.includes('/candidate/mock-tests/') && location.pathname.includes('/session')) {
-        if (/\b(option a|first option|pehla option)\b/i.test(cleanText) || cleanText === 'a') {
+        if (/\b(option a|select a|choose a|answer a|first option|pehla option|vikalp a|vikalp 1)\b/i.test(cleanText) || cleanText === 'a' || cleanText === 'option 1' || cleanText === '1') {
           lastExecutedTextRef.current = cleanText;
           lastExecutedTimeRef.current = now;
           playEarcon('action');
@@ -305,7 +305,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
           setLastActionFeedback('Voice: Option A');
           return;
         }
-        if (/\b(option b|second option|dusra option)\b/i.test(cleanText) || cleanText === 'b') {
+        if (/\b(option b|select b|choose b|answer b|second option|dusra option|vikalp b|vikalp 2)\b/i.test(cleanText) || cleanText === 'b' || cleanText === 'option 2' || cleanText === '2') {
           lastExecutedTextRef.current = cleanText;
           lastExecutedTimeRef.current = now;
           playEarcon('action');
@@ -313,7 +313,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
           setLastActionFeedback('Voice: Option B');
           return;
         }
-        if (/\b(option c|third option|teesra option)\b/i.test(cleanText) || cleanText === 'c') {
+        if (/\b(option c|select c|choose c|answer c|third option|teesra option|vikalp c|vikalp 3)\b/i.test(cleanText) || cleanText === 'c' || cleanText === 'option 3' || cleanText === '3') {
           lastExecutedTextRef.current = cleanText;
           lastExecutedTimeRef.current = now;
           playEarcon('action');
@@ -321,7 +321,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
           setLastActionFeedback('Voice: Option C');
           return;
         }
-        if (/\b(option d|fourth option|chautha option)\b/i.test(cleanText) || cleanText === 'd') {
+        if (/\b(option d|select d|choose d|answer d|fourth option|chautha option|vikalp d|vikalp 4)\b/i.test(cleanText) || cleanText === 'd' || cleanText === 'option 4' || cleanText === '4') {
           lastExecutedTextRef.current = cleanText;
           lastExecutedTimeRef.current = now;
           playEarcon('action');
@@ -329,7 +329,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
           setLastActionFeedback('Voice: Option D');
           return;
         }
-        if (/\b(read question|sawal padho|repeat question|explain question|question sunao|options padho|read options)\b/i.test(cleanText)) {
+        if (/\b(read question|sawal padho|repeat question|explain question|question sunao|options padho|read options|repeat|dobara|fir se|phir se)\b/i.test(cleanText)) {
           lastExecutedTextRef.current = cleanText;
           lastExecutedTimeRef.current = now;
           playEarcon('recognize');
@@ -337,7 +337,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
           setLastActionFeedback('Voice: Reading question');
           return;
         }
-        if (/\b(next question|agla sawal|next|agla)\b/i.test(cleanText)) {
+        if (/\b(next question|agla sawal|next|agla|aage)\b/i.test(cleanText)) {
           lastExecutedTextRef.current = cleanText;
           lastExecutedTimeRef.current = now;
           playEarcon('action');
@@ -345,7 +345,7 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
           setLastActionFeedback('Voice: Next question');
           return;
         }
-        if (/\b(previous question|pichhla sawal|previous|back|piche)\b/i.test(cleanText)) {
+        if (/\b(previous question|pichhla sawal|previous|back|piche|pehle ka)\b/i.test(cleanText)) {
           lastExecutedTextRef.current = cleanText;
           lastExecutedTimeRef.current = now;
           playEarcon('action');
@@ -1065,6 +1065,12 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
     if (
       location.pathname.includes('/candidate/practice/session/') &&
       !location.pathname.includes('/result')
+    ) {
+      return;
+    }
+    if (
+      location.pathname.includes('/candidate/mock-tests/') &&
+      location.pathname.includes('/session')
     ) {
       return;
     }

@@ -238,10 +238,17 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
     }, 4000);
   }, []);
 
-  // 4. Speech Synthesis Service (Manual user action only, never autoplays)
+  // 4. Speech Synthesis Service (Manual user action & automated exam readout)
+  const speakTimeoutRef = useRef<number | null>(null);
+
   const stopSpeaking = useCallback(() => {
+    if (speakTimeoutRef.current) {
+      window.clearTimeout(speakTimeoutRef.current);
+      speakTimeoutRef.current = null;
+    }
     if (isSpeechSupported) {
       window.speechSynthesis.cancel();
+      (window as any).__drishti_active_utterance = null;
       setIsSpeaking(false);
     }
   }, [isSpeechSupported]);
@@ -249,6 +256,11 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
   const speak = useCallback(
     (text: string) => {
       if (!isSpeechSupported || !text.trim()) return;
+
+      if (speakTimeoutRef.current) {
+        window.clearTimeout(speakTimeoutRef.current);
+        speakTimeoutRef.current = null;
+      }
 
       window.speechSynthesis.cancel();
 
@@ -279,11 +291,26 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
         if (languageMatch) utterance.voice = languageMatch;
       }
 
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
+      // Maintain active reference on window to prevent Chromium garbage collection bug
+      (window as any).__drishti_active_utterance = utterance;
 
-      window.speechSynthesis.speak(utterance);
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => {
+        (window as any).__drishti_active_utterance = null;
+        setIsSpeaking(false);
+      };
+      utterance.onerror = () => {
+        (window as any).__drishti_active_utterance = null;
+        setIsSpeaking(false);
+      };
+
+      // 40ms tick to allow Chromium speech engine cancel IPC to settle before speaking
+      speakTimeoutRef.current = window.setTimeout(() => {
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+        window.speechSynthesis.speak(utterance);
+      }, 40);
     },
     [isSpeechSupported, preferences.language, preferences.speechRate, preferences.speechRateMultiplier, preferences.voiceURI]
   );

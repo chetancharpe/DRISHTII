@@ -42,15 +42,7 @@ export const MockTestsPage: React.FC = () => {
     announce(listSpeech, 'polite');
   }, [speak, announce]);
 
-  // Read out available tests on mount
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      handleReadAvailableMocks();
-    }, 600);
-    return () => clearTimeout(timer);
-  }, [handleReadAvailableMocks]);
-
-  // Alt+R hotkey to re-read mock tests catalog
+  // Alt+R hotkey to re-read mock tests catalog on demand
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.altKey && (e.key.toLowerCase() === 'r' || e.key === 'R')) {

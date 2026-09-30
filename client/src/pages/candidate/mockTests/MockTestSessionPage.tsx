@@ -143,6 +143,7 @@ export const MockTestSessionPage: React.FC = () => {
 
     const optObj = currentQuestion.options.find((o) => o.id === optionId);
     const optLabel = optObj ? `Option ${optObj.label}: ${optObj.text}` : `Option ${optionId}`;
+    speak(`Selected Option ${optObj?.label || optionId}. Say Next for next question.`);
     announce(`Selected ${optLabel}. Say Next for next question, or Submit to finish.`, 'polite');
   };
 
@@ -150,6 +151,7 @@ export const MockTestSessionPage: React.FC = () => {
     if (!test || !session || !currentQuestion) return;
     const updated = await mockTestService.saveMockAnswer(session.sessionId, currentQuestion.id, [], 1);
     setSession(updated);
+    speak('Answer cleared for this question.');
     announce('Cleared answer selection for this question.', 'polite');
   };
 
@@ -158,7 +160,9 @@ export const MockTestSessionPage: React.FC = () => {
     const updated = await mockTestService.toggleMarkForReview(session.sessionId, currentQuestion.id);
     setSession(updated);
     const nextMarked = updated.answers[currentQuestion.id]?.markedForReview;
-    announce(nextMarked ? 'Question marked for review.' : 'Review mark removed.', 'polite');
+    const msg = nextMarked ? 'Question marked for review.' : 'Review mark removed.';
+    speak(msg);
+    announce(msg, 'polite');
   };
 
   const handleSelectQuestion = (qId: string) => {
@@ -193,10 +197,12 @@ export const MockTestSessionPage: React.FC = () => {
           mockTestService.updateNavigationPosition(session.sessionId, nextSec.id, nextFirstQ.id, secondsRemainingRef.current);
         } else {
           setIsSubmitModalOpen(true);
+          speak('End of test reached. Say Confirm to submit your mock test.');
         }
       } else {
         // Last question of entire test -> open submit modal
         setIsSubmitModalOpen(true);
+        speak('End of test reached. Say Confirm to submit your mock test.');
       }
     }
   };
@@ -246,7 +252,43 @@ export const MockTestSessionPage: React.FC = () => {
     currentQuestionIndex === sectionQuestions.length - 1 &&
     safeSections[safeSections.length - 1]?.id === currentSection.id;
 
-  // Accessible keyboard shortcuts: Alt+1..4 for options, Alt+N for next, Alt+P for prev, Alt+M for mark review, Alt+C for clear
+  // Automated Spoken Question & Choices Readout
+  const readActiveQuestion = useCallback(() => {
+    if (!currentQuestion || isPaused) return;
+    const formulaText = currentQuestion.formula ? `Formula: ${currentQuestion.formula.accessibleText}. ` : '';
+    const tableText = currentQuestion.table
+      ? `Table: ${currentQuestion.table.caption}. Headers: ${currentQuestion.table.headers.join(', ')}. `
+      : '';
+    const optionsText = (currentQuestion.options || [])
+      .map((o) => `Option ${o.label}: ${o.text}`)
+      .join('. ');
+    const totalQ = test?.totalQuestions || sectionQuestions.length;
+    const secName = currentSection.name ? `Section ${currentSection.name}. ` : '';
+    const fullText = `Question ${globalQuestionNumber} of ${totalQ}. ${secName}${currentQuestion.text}. ${formulaText}${tableText} Choices: ${optionsText}. Say Option A, Option B, Option C, or Option D to answer. Say Next for next question.`;
+    speak(fullText);
+    announce(`Question ${globalQuestionNumber}: ${currentQuestion.text}`, 'polite');
+  }, [currentQuestion, isPaused, globalQuestionNumber, test?.totalQuestions, currentSection.name, sectionQuestions.length, speak, announce]);
+
+  const readActiveQuestionRef = useRef(readActiveQuestion);
+  readActiveQuestionRef.current = readActiveQuestion;
+
+  // Auto-read question and choices when session loads or question index changes
+  const lastSpokenQuestionKeyRef = useRef<string>('');
+  useEffect(() => {
+    if (isLoading || !test || !currentQuestion || isPaused) return;
+
+    const currentKey = `${test.id}-${currentQuestion.id}-${globalQuestionNumber}`;
+    if (lastSpokenQuestionKeyRef.current === currentKey) return;
+
+    const timer = setTimeout(() => {
+      lastSpokenQuestionKeyRef.current = currentKey;
+      readActiveQuestionRef.current();
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [isLoading, test?.id, currentQuestion?.id, isPaused, globalQuestionNumber]);
+
+  // Accessible keyboard shortcuts: Alt+1..4 for options, Alt+N for next, Alt+P for prev, Alt+M for mark review, Alt+C for clear, Alt+R to read
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!test || !session || !currentQuestion || isPaused) return;
@@ -275,13 +317,16 @@ export const MockTestSessionPage: React.FC = () => {
         } else if (e.key === 'c' || e.key === 'C') {
           e.preventDefault();
           handleClearOption();
+        } else if (e.key === 'r' || e.key === 'R') {
+          e.preventDefault();
+          readActiveQuestion();
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  });
+  }, [test, session, currentQuestion, isPaused, readActiveQuestion]);
 
   // Voice action event listeners for full hands-free / speech control in mock test
   useEffect(() => {
@@ -301,7 +346,6 @@ export const MockTestSessionPage: React.FC = () => {
 
       if (matchedOption) {
         handleSaveOption(matchedOption.id, currentQuestion.type === 'multiple_choice');
-        announce(`Selected Option ${matchedOption.label}: ${matchedOption.text}`, 'polite');
       }
     };
 
@@ -323,12 +367,16 @@ export const MockTestSessionPage: React.FC = () => {
     const handleVoiceClear = () => {
       if (isPaused) return;
       handleClearOption();
-      announce('Answer cleared for this question.', 'polite');
     };
 
     const handleVoiceSubmit = () => {
       setIsSubmitModalOpen(true);
+      speak('Submission confirmation dialog opened. Say Confirm to submit mock test.');
       announce('Submission confirmation dialog opened. Say Confirm to submit mock test.', 'assertive');
+    };
+
+    const handleVoiceRead = () => {
+      readActiveQuestion();
     };
 
     window.addEventListener('drishti:mock-select-option', handleVoiceSelectOption as EventListener);
@@ -336,7 +384,7 @@ export const MockTestSessionPage: React.FC = () => {
     window.addEventListener('drishti:mock-previous', handleVoicePrevious);
     window.addEventListener('drishti:mock-mark-review', handleVoiceToggleMark);
     window.addEventListener('drishti:mock-clear', handleVoiceClear);
-    window.addEventListener('drishti:mock-read-question', readActiveQuestion);
+    window.addEventListener('drishti:mock-read-question', handleVoiceRead);
     window.addEventListener('drishti:mock-submit', handleVoiceSubmit);
 
     return () => {
@@ -345,51 +393,10 @@ export const MockTestSessionPage: React.FC = () => {
       window.removeEventListener('drishti:mock-previous', handleVoicePrevious);
       window.removeEventListener('drishti:mock-mark-review', handleVoiceToggleMark);
       window.removeEventListener('drishti:mock-clear', handleVoiceClear);
-      window.removeEventListener('drishti:mock-read-question', readActiveQuestion);
+      window.removeEventListener('drishti:mock-read-question', handleVoiceRead);
       window.removeEventListener('drishti:mock-submit', handleVoiceSubmit);
     };
-  });
-
-  const readActiveQuestion = useCallback(() => {
-    if (!currentQuestion || isPaused) return;
-    const formulaText = currentQuestion.formula ? `Formula: ${currentQuestion.formula.accessibleText}. ` : '';
-    const tableText = currentQuestion.table
-      ? `Table: ${currentQuestion.table.caption}. Headers: ${currentQuestion.table.headers.join(', ')}. `
-      : '';
-    const optionsText = (currentQuestion.options || [])
-      .map((o) => `Option ${o.label}: ${o.text}`)
-      .join('. ');
-    const totalQ = test?.totalQuestions || sectionQuestions.length;
-    const fullText = `Question ${globalQuestionNumber} of ${totalQ}. ${currentQuestion.text}. ${formulaText}${tableText} Choices: ${optionsText}. Say Option A, B, C, or D to answer. Say Next for next question.`;
-    speak(fullText);
-    announce(`Question ${globalQuestionNumber}: ${currentQuestion.text}`, 'polite');
-  }, [currentQuestion, isPaused, globalQuestionNumber, test?.totalQuestions, sectionQuestions.length, speak, announce]);
-
-  // Auto-read question and choices when session loads or question index changes
-  const prevQuestionIdRef = useRef<string>('');
-  useEffect(() => {
-    if (isLoading || !test || !currentQuestion || isPaused) return;
-    if (prevQuestionIdRef.current === currentQuestion.id) return;
-    prevQuestionIdRef.current = currentQuestion.id;
-
-    const timer = setTimeout(() => {
-      readActiveQuestion();
-    }, 600);
-
-    return () => clearTimeout(timer);
-  }, [isLoading, test, currentQuestion?.id, isPaused, readActiveQuestion]);
-
-  // Alt+R hotkey to re-read current question and choices
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey && (e.key.toLowerCase() === 'r' || e.key === 'R')) {
-        e.preventDefault();
-        readActiveQuestion();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [readActiveQuestion]);
+  }, [currentQuestion, isPaused, readActiveQuestion]);
 
   // Early loading return after all React hooks have been unconditionally registered
   if (isLoading || !test || !session) {
