@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { MockTest } from '../../../types/mockTest';
-import { mockTestService } from '../../../services/mockTestService';
+import { mockTestService, findFallbackMockTest } from '../../../services/mockTestService';
 import {
   ArrowLeft,
   ArrowRight,
@@ -16,25 +16,28 @@ export const MockTestInstructionsPage: React.FC = () => {
   const navigate = useNavigate();
   const { speak, preferences } = useAccessibility();
 
-  const [test, setTest] = useState<MockTest | null>(null);
+  const [test, setTest] = useState<MockTest | null>(() => (testId ? findFallbackMockTest(testId) : null));
   const [hasAgreed, setHasAgreed] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
     async function loadTest() {
       if (!testId) return;
       try {
-        setIsLoading(true);
         const data = await mockTestService.getMockTest(testId);
-        setTest(data);
+        if (isMounted && data) {
+          setTest(data);
+        }
       } catch (e) {
-        console.error(e);
-      } finally {
-        setIsLoading(false);
+        console.warn('Could not refresh test in instructions page:', e);
       }
     }
     loadTest();
+    return () => {
+      isMounted = false;
+    };
   }, [testId]);
 
   const handleStart = async () => {
@@ -55,6 +58,33 @@ export const MockTestInstructionsPage: React.FC = () => {
       `Before You Begin. Test instructions for ${test.title}. Total questions: ${test.totalQuestions}. Duration: ${test.durationMinutes} minutes. Correct answers receive 1 mark. Incorrect answers incur 0.33 negative mark penalty. You can freely navigate between sections and mark questions for review before submitting.`
     );
   };
+
+  useEffect(() => {
+    const onVoiceStartTest = async () => {
+      if (!test) return;
+      setHasAgreed(true);
+      try {
+        setIsStarting(true);
+        await mockTestService.startMockTest(test.id);
+        navigate(`/candidate/mock-tests/${test.id}/session`);
+      } catch (e) {
+        console.error('Failed to start mock session via voice', e);
+        setIsStarting(false);
+      }
+    };
+
+    const onVoiceReadInstructions = () => {
+      handleReadInstructions();
+    };
+
+    window.addEventListener('drishti:mock-start-test', onVoiceStartTest);
+    window.addEventListener('drishti:mock-read-instructions', onVoiceReadInstructions);
+
+    return () => {
+      window.removeEventListener('drishti:mock-start-test', onVoiceStartTest);
+      window.removeEventListener('drishti:mock-read-instructions', onVoiceReadInstructions);
+    };
+  }, [test, navigate]);
 
   if (isLoading || !test) {
     return (
@@ -116,7 +146,7 @@ export const MockTestInstructionsPage: React.FC = () => {
           </h2>
           <ul className="flex flex-col gap-2 list-disc pl-5 text-foreground-secondary">
             <li>
-              Total Questions: <strong className="text-foreground">{test.totalQuestions}</strong> distributed across {test.sections.length} sections ({test.sections.map((s) => s.name).join(', ')}).
+              Total Questions: <strong className="text-foreground">{test.totalQuestions}</strong> distributed across {test.sections?.length || 0} sections ({test.sections?.map((s) => s.name || s.title || 'Section').join(', ') || 'Comprehensive'}).
             </li>
             <li>
               Total Duration: <strong className="text-foreground">{test.durationMinutes} minutes</strong>.
@@ -161,7 +191,7 @@ export const MockTestInstructionsPage: React.FC = () => {
               <strong className="text-foreground">Clear Selection:</strong> Click &ldquo;Clear Selection&rdquo; to erase an existing choice on a question.
             </li>
             <li>
-              <strong className="text-foreground">Marking Scheme:</strong> Correct responses receive <strong className="text-success font-bold">+{test.markingScheme.correctMarks} mark</strong>. Incorrect attempts incur a penalty of <strong className="text-amber-600 dark:text-amber-400 font-bold">-{test.markingScheme.incorrectPenalty} mark</strong>. Unanswered questions receive 0 marks with no penalty.
+              <strong className="text-foreground">Marking Scheme:</strong> Correct responses receive <strong className="text-success font-bold">+{test.markingScheme?.correctMarks ?? 1} mark</strong>. Incorrect attempts incur a penalty of <strong className="text-amber-600 dark:text-amber-400 font-bold">-{test.markingScheme?.incorrectPenalty ?? 0.33} mark</strong>. Unanswered questions receive 0 marks with no penalty.
             </li>
           </ul>
         </section>

@@ -100,7 +100,8 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
       "Say 'Practice' to practice questions. " +
       "Say 'Dashboard' to go home. " +
       "Say 'Exams' to view examinations. " +
-      "Say 'Mock Tests' for mock tests. " +
+      "Say 'Mock Tests' for mock tests catalog. " +
+      "Say 'Math Mock', 'English Mock', 'GK Mock', 'Reasoning Mock', or 'Full Mock' for subject tests. " +
       "Say 'Results' for scorecards. " +
       "Say 'Progress' for analytics. " +
       "Say 'Explain' to describe this section. " +
@@ -294,6 +295,110 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         }
       }
 
+      // C1. Active Mock Test Session (when on /candidate/mock-tests/.../session)
+      if (location.pathname.includes('/candidate/mock-tests/') && location.pathname.includes('/session')) {
+        if (/\b(option a|first option|pehla option)\b/i.test(cleanText) || cleanText === 'a') {
+          lastExecutedTextRef.current = cleanText;
+          lastExecutedTimeRef.current = now;
+          playEarcon('action');
+          window.dispatchEvent(new CustomEvent('drishti:mock-select-option', { detail: { label: 'A' } }));
+          setLastActionFeedback('Voice: Option A');
+          return;
+        }
+        if (/\b(option b|second option|dusra option)\b/i.test(cleanText) || cleanText === 'b') {
+          lastExecutedTextRef.current = cleanText;
+          lastExecutedTimeRef.current = now;
+          playEarcon('action');
+          window.dispatchEvent(new CustomEvent('drishti:mock-select-option', { detail: { label: 'B' } }));
+          setLastActionFeedback('Voice: Option B');
+          return;
+        }
+        if (/\b(option c|third option|teesra option)\b/i.test(cleanText) || cleanText === 'c') {
+          lastExecutedTextRef.current = cleanText;
+          lastExecutedTimeRef.current = now;
+          playEarcon('action');
+          window.dispatchEvent(new CustomEvent('drishti:mock-select-option', { detail: { label: 'C' } }));
+          setLastActionFeedback('Voice: Option C');
+          return;
+        }
+        if (/\b(option d|fourth option|chautha option)\b/i.test(cleanText) || cleanText === 'd') {
+          lastExecutedTextRef.current = cleanText;
+          lastExecutedTimeRef.current = now;
+          playEarcon('action');
+          window.dispatchEvent(new CustomEvent('drishti:mock-select-option', { detail: { label: 'D' } }));
+          setLastActionFeedback('Voice: Option D');
+          return;
+        }
+        if (/\b(read question|sawal padho|repeat question|explain question|question sunao|options padho|read options)\b/i.test(cleanText)) {
+          lastExecutedTextRef.current = cleanText;
+          lastExecutedTimeRef.current = now;
+          playEarcon('recognize');
+          window.dispatchEvent(new CustomEvent('drishti:mock-read-question'));
+          setLastActionFeedback('Voice: Reading question');
+          return;
+        }
+        if (/\b(next question|agla sawal|next|agla)\b/i.test(cleanText)) {
+          lastExecutedTextRef.current = cleanText;
+          lastExecutedTimeRef.current = now;
+          playEarcon('action');
+          window.dispatchEvent(new CustomEvent('drishti:mock-next'));
+          setLastActionFeedback('Voice: Next question');
+          return;
+        }
+        if (/\b(previous question|pichhla sawal|previous|back|piche)\b/i.test(cleanText)) {
+          lastExecutedTextRef.current = cleanText;
+          lastExecutedTimeRef.current = now;
+          playEarcon('action');
+          window.dispatchEvent(new CustomEvent('drishti:mock-previous'));
+          setLastActionFeedback('Voice: Previous question');
+          return;
+        }
+        if (/\b(mark for review|mark review|review|flag|bookmark|yaad rakhna)\b/i.test(cleanText)) {
+          lastExecutedTextRef.current = cleanText;
+          lastExecutedTimeRef.current = now;
+          playEarcon('action');
+          window.dispatchEvent(new CustomEvent('drishti:mock-mark-review'));
+          setLastActionFeedback('Voice: Marked for review');
+          return;
+        }
+        if (/\b(clear option|clear selection|clear answer|clear|mitao|reset)\b/i.test(cleanText)) {
+          lastExecutedTextRef.current = cleanText;
+          lastExecutedTimeRef.current = now;
+          playEarcon('action');
+          window.dispatchEvent(new CustomEvent('drishti:mock-clear'));
+          setLastActionFeedback('Voice: Cleared option');
+          return;
+        }
+        if (/\b(finish test|submit test|submit mock|finish mock|submit|khatam)\b/i.test(cleanText)) {
+          lastExecutedTextRef.current = cleanText;
+          lastExecutedTimeRef.current = now;
+          playEarcon('action');
+          window.dispatchEvent(new CustomEvent('drishti:mock-submit'));
+          setLastActionFeedback('Voice: Submit mock test');
+          return;
+        }
+      }
+
+      // C2. Active Mock Test Instructions (when on /candidate/mock-tests/.../instructions)
+      if (location.pathname.includes('/candidate/mock-tests/') && location.pathname.includes('/instructions')) {
+        if (/\b(start test|begin test|start mock|begin mock|start|begin|shuru karo|agree and start|launch test|launch)\b/i.test(cleanText)) {
+          lastExecutedTextRef.current = cleanText;
+          lastExecutedTimeRef.current = now;
+          playEarcon('action');
+          window.dispatchEvent(new CustomEvent('drishti:mock-start-test'));
+          setLastActionFeedback('Voice: Starting mock test');
+          return;
+        }
+        if (/\b(read instructions|listen instructions|instructions padho|nirdesh padho|summary)\b/i.test(cleanText)) {
+          lastExecutedTextRef.current = cleanText;
+          lastExecutedTimeRef.current = now;
+          playEarcon('recognize');
+          window.dispatchEvent(new CustomEvent('drishti:mock-read-instructions'));
+          setLastActionFeedback('Voice: Reading test instructions');
+          return;
+        }
+      }
+
       // D. Universal Section Explanation & Orientation
       if (/\b(explain|sare element explain karo|explain elements|explain page|explain section|kahan hu|where am i|what is on this page|status)\b/i.test(cleanText)) {
         lastExecutedTextRef.current = cleanText;
@@ -433,8 +538,84 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
+      // J0. SUBJECT-SPECIFIC MOCK TESTS (High Priority before generic mock and subject learn)
+      // Mathematics Mock
+      if (
+        /\b(maths?|mathematics|ganit)\b.*?\b(mock|test)\b|\b(mock|test)\b.*?\b(maths?|mathematics|ganit)\b/i.test(cleanText)
+      ) {
+        lastExecutedTextRef.current = cleanText;
+        lastExecutedTimeRef.current = now;
+        playEarcon('action');
+        navigate('/candidate/mock-tests/mock-math-01');
+        speak('Opening Elementary Mathematics Subject Mock Test.');
+        announce('Navigating to Elementary Mathematics Mock Test.', 'polite');
+        setLastActionFeedback('Navigating to Mathematics Mock Test.');
+        setLiveTranscript('');
+        return;
+      }
+
+      // English Mock
+      if (
+        /\b(english|angrezi)\b.*?\b(mock|test)\b|\b(mock|test)\b.*?\b(english|angrezi)\b/i.test(cleanText)
+      ) {
+        lastExecutedTextRef.current = cleanText;
+        lastExecutedTimeRef.current = now;
+        playEarcon('action');
+        navigate('/candidate/mock-tests/mock-eng-01');
+        speak('Opening English Language and Comprehension Mock Test.');
+        announce('Navigating to English Mock Test.', 'polite');
+        setLastActionFeedback('Navigating to English Mock Test.');
+        setLiveTranscript('');
+        return;
+      }
+
+      // GK Mock
+      if (
+        /\b(gk|general knowledge|samanya gyan|current affairs|defense)\b.*?\b(mock|test)\b|\b(mock|test)\b.*?\b(gk|general knowledge|samanya gyan|current affairs|defense)\b/i.test(cleanText)
+      ) {
+        lastExecutedTextRef.current = cleanText;
+        lastExecutedTimeRef.current = now;
+        playEarcon('action');
+        navigate('/candidate/mock-tests/mock-gk-01');
+        speak('Opening General Knowledge and Defense Mock Test.');
+        announce('Navigating to General Knowledge Mock Test.', 'polite');
+        setLastActionFeedback('Navigating to GK Mock Test.');
+        setLiveTranscript('');
+        return;
+      }
+
+      // Reasoning Mock
+      if (
+        /\b(reasoning|logic|tarkik|aptitude)\b.*?\b(mock|test)\b|\b(mock|test)\b.*?\b(reasoning|logic|tarkik|aptitude)\b/i.test(cleanText)
+      ) {
+        lastExecutedTextRef.current = cleanText;
+        lastExecutedTimeRef.current = now;
+        playEarcon('action');
+        navigate('/candidate/mock-tests/mock-reas-01');
+        speak('Opening Reasoning Ability and Aptitude Mock Test.');
+        announce('Navigating to Reasoning Mock Test.', 'polite');
+        setLastActionFeedback('Navigating to Reasoning Mock Test.');
+        setLiveTranscript('');
+        return;
+      }
+
+      // CDS Full Mock
+      if (
+        /\b(cds|full)\b.*?\b(mock|test)\b|\b(mock|test)\b.*?\b(cds|full)\b/i.test(cleanText)
+      ) {
+        lastExecutedTextRef.current = cleanText;
+        lastExecutedTimeRef.current = now;
+        playEarcon('action');
+        navigate('/candidate/mock-tests/cds-full-mock-01');
+        speak('Opening CDS Full Practice Examination.');
+        announce('Navigating to CDS Full Mock Test.', 'polite');
+        setLastActionFeedback('Navigating to CDS Full Mock Test.');
+        setLiveTranscript('');
+        return;
+      }
+
       // J. MOCK TESTS
-      if (/\b(mock|mocks|mock tests?)\b/i.test(cleanText)) {
+      if (/\b(mock|mocks|mock tests?|test series)\b/i.test(cleanText)) {
         lastExecutedTextRef.current = cleanText;
         lastExecutedTimeRef.current = now;
         playEarcon('action');

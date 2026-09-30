@@ -143,3 +143,66 @@ class AccessibilityAuditReport(BaseModel):
     findings: List[AccessibilityAuditFinding]
     scorecard_status: str  # PASS, ATTENTION_NEEDED, FAIL
 
+
+# ========================================================
+# AI Accessibility & Interaction Monitoring Schemas
+# ========================================================
+
+class AccessibilityEventType(str):
+    CAMERA_CONNECTED = "CAMERA_CONNECTED"
+    CANDIDATE_DETECTED = "CANDIDATE_DETECTED"
+    CANDIDATE_ABSENT = "CANDIDATE_ABSENT"
+    POSITION_SHIFTED = "POSITION_SHIFTED"
+    GESTURE_DETECTED = "GESTURE_DETECTED"
+    KEYBOARD_ACTION = "KEYBOARD_ACTION"
+    HELP_REQUESTED = "HELP_REQUESTED"
+    VOICE_FEEDBACK = "VOICE_FEEDBACK"
+
+
+class AccessibilityEventCreate(BaseModel):
+    eventType: str
+    gesture: Optional[str] = None
+    confidence: Optional[float] = None
+    questionId: Optional[str] = None
+    key: Optional[str] = None
+    timestamp: Optional[int] = None
+    sessionId: Optional[str] = None
+    details: Optional[dict] = None
+
+
+class AccessibilityEventResponse(BaseModel):
+    status: str = "success"
+    event_id: str
+    received_at: datetime
+    eventType: str
+    action_taken: Optional[str] = None
+
+
+class CandidatePresenceResult(BaseModel):
+    present: bool
+    face_count: int = 0
+    distance_status: str = "normal"  # "normal", "too_far", "too_close"
+    position_shift: float = 0.0      # Normalized offset from center [-1.0 to 1.0]
+    absence_duration_seconds: float = 0.0
+    alert_triggered: bool = False
+    alert_message: Optional[str] = None
+    timestamp: int
+
+
+class GestureClassificationResult(BaseModel):
+    gesture: str                     # "OPTION_1", "OPTION_2", "OPTION_3", "OPTION_4", "HELP", "CONFIRM", "UNKNOWN"
+    confidence: float
+    fingers_extended: List[str] = [] # e.g. ["INDEX", "MIDDLE"]
+    action: Optional[str] = None     # e.g. "select_option_2"
+    timestamp: int
+
+
+class ChildModeSettings(BaseModel):
+    larger_controls: bool = True
+    slower_voice: bool = True
+    simplified_navigation: bool = True
+    gesture_interaction: bool = True
+    voice_first_interaction: bool = True
+    speech_rate_multiplier: float = 0.8
+
+

@@ -83,4 +83,23 @@ export const accessibilityApi = {
       return null;
     }
   },
+
+  /**
+   * Dispatches AI Accessibility & Interaction Monitoring telemetry events (Requirement #9).
+   * Strict privacy: Only metadata is sent; no webcam video or biometric data.
+   */
+  async postMonitoringEvent(
+    event: import('../../types/accessibilityMonitoring').AccessibilityEventPayload,
+    token?: string
+  ): Promise<{ status: string; event_id: string } | null> {
+    try {
+      return await apiClient<{ status: string; event_id: string }>('/accessibility/events', {
+        method: 'POST',
+        token,
+        body: JSON.stringify(event),
+      });
+    } catch {
+      return null;
+    }
+  },
 };

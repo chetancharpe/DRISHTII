@@ -38,6 +38,31 @@ def get_current_user(
     return user
 
 
+def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    """Validate Bearer JWT if present; returns User entity or None without raising 401."""
+    if not credentials or not credentials.credentials:
+        return None
+
+    payload = decode_token(credentials.credentials)
+    if not payload or payload.get("type") != "access":
+        return None
+
+    user_id = payload.get("sub")
+    if not user_id:
+        return None
+
+    user = db.query(User).filter(User.id == user_id, User.is_active == True).first()
+    if not user:
+        return None
+
+    setattr(user, "token_role", payload.get("role", RoleEnum.CANDIDATE.value))
+    setattr(user, "token_permissions", payload.get("permissions", []))
+    return user
+
+
 def require_role(allowed_roles: List[str]):
     """Enforce endpoint access by role name."""
     def role_checker(current_user: User = Depends(get_current_user)) -> User:

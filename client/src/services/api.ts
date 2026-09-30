@@ -51,6 +51,7 @@ export interface ApiRequestOptions extends RequestInit {
   skipAuth?: boolean;
   timeoutMs?: number;
   retries?: number;
+  noRedirectOn401?: boolean;
 }
 
 // Plain-language translations for technical error codes to ensure screen-reader friendliness
@@ -167,7 +168,14 @@ export async function apiClient<T>(endpoint: string, options: ApiRequestOptions 
       const response = await executeRequest();
 
       // Handle 401 Unauthorized token expiration with one-time rotation
-      if (response.status === 401 && !skipAuth && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/refresh')) {
+      if (
+        response.status === 401 &&
+        !skipAuth &&
+        !options.noRedirectOn401 &&
+        !endpoint.startsWith('/mock-tests') &&
+        !endpoint.includes('/auth/login') &&
+        !endpoint.includes('/auth/refresh')
+      ) {
         if (!isRefreshing) {
           isRefreshing = true;
           refreshPromise = attemptTokenRefresh().finally(() => {

@@ -44,6 +44,7 @@ export interface MockTestQuestion {
 export interface MockTestSection {
   id: string;
   name: string;
+  title?: string;
   code: string;
   description: string;
   totalQuestions: number;

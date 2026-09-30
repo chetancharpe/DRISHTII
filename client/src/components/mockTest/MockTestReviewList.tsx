@@ -11,10 +11,11 @@ interface MockTestReviewListProps {
   reviews: MockTestQuestionReview[];
 }
 
-export const MockTestReviewList: React.FC<MockTestReviewListProps> = ({ reviews }) => {
+export const MockTestReviewList: React.FC<MockTestReviewListProps> = ({ reviews = [] }) => {
   const [activeFilter, setActiveFilter] = useState<'all' | 'incorrect' | 'unanswered' | 'marked'>('all');
 
-  const filteredReviews = reviews.filter((r) => {
+  const safeReviews = reviews || [];
+  const filteredReviews = safeReviews.filter((r) => {
     if (activeFilter === 'incorrect') return r.status === 'incorrect';
     if (activeFilter === 'unanswered') return r.status === 'unanswered';
     if (activeFilter === 'marked') return r.markedForReview;
@@ -121,7 +122,7 @@ export const MockTestReviewList: React.FC<MockTestReviewListProps> = ({ reviews 
                       Question {rev.questionNumber}
                     </span>
                     <span className="text-xs text-foreground-secondary font-medium">
-                      {rev.sectionName}
+                      {rev.sectionName || 'Section'}
                     </span>
                   </div>
 

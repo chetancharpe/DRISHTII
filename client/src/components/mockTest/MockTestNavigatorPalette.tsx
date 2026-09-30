@@ -14,8 +14,8 @@ interface MockTestNavigatorPaletteProps {
 }
 
 export const MockTestNavigatorPalette: React.FC<MockTestNavigatorPaletteProps> = ({
-  questions,
-  answers,
+  questions = [],
+  answers = {},
   currentQuestionId,
   onSelectQuestion,
 }) => {

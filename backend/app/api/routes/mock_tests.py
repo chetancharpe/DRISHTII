@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.api.deps import get_current_user, get_db
+from app.api.deps import get_current_user, get_current_user_optional, get_db
 from app.core.curriculum import MOCK_TESTS_MASTER
 from app.models.learning_profile import LearningActivity
 from app.models.user import User
@@ -15,6 +15,7 @@ from app.schemas.mock_test import (
     MockTestQuestionReview,
     MockTestQuestionSanitized,
     MockTestResultResponse,
+    MockTestSectionHeader,
     MockTestSectionSanitized,
     MockTestSubmitRequest,
     SectionPerformance,
@@ -26,11 +27,23 @@ router = APIRouter(prefix="/mock-tests", tags=["Mock Test Engine"])
 
 @router.get("", response_model=List[MockTestListItem])
 def list_mock_tests(
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """Retrieve list of available mock tests."""
     results = []
     for test in MOCK_TESTS_MASTER:
+        sections_summary = [
+            MockTestSectionHeader(
+                id=s["id"],
+                name=s["name"],
+                title=s["name"],
+                code=s["code"],
+                description=s["description"],
+                totalQuestions=s["totalQuestions"],
+                questions=[],
+            )
+            for s in test.get("sections", [])
+        ]
         results.append(
             MockTestListItem(
                 id=test["id"],
@@ -46,15 +59,111 @@ def list_mock_tests(
                 markingScheme=test["markingScheme"],
                 instructionsSummary=test["instructionsSummary"],
                 accessibilityHighlights=test["accessibilityHighlights"],
+                sections=sections_summary,
             )
         )
+    return results
+
+
+@router.get("/history", response_model=List[MockTestHistoryItemResponse])
+def get_mock_test_history(
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db),
+):
+    """Retrieve historical mock tests completed by the candidate."""
+    activities = []
+    if current_user:
+        activities = (
+            db.query(LearningActivity)
+            .filter(LearningActivity.user_id == current_user.id, LearningActivity.activity_type == "mock_completed")
+            .order_by(LearningActivity.timestamp.desc())
+            .limit(10)
+            .all()
+        )
+
+    results = []
+    for act in activities:
+        meta = act.metadata_json or {}
+        time_mins = act.duration_seconds // 60
+        time_secs = act.duration_seconds % 60
+        pct = float(meta.get("percentage", 75.0))
+        score_val = float(meta.get("score", 4.5))
+        test_title = meta.get("title", "CDS Mock Test").replace("Finished ", "")
+        results.append(
+            MockTestHistoryItemResponse(
+                id=act.id,
+                attemptId=act.id,
+                sessionId=f"mock-sess-{act.resource_id or 'cds-full-mock-01'}",
+                testId=act.resource_id or "cds-full-mock-01",
+                title=test_title,
+                testTitle=test_title,
+                examName="CDS (Combined Defence Services)",
+                date=act.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                completedAt=act.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                formattedDate=act.timestamp.strftime("%d %b %Y"),
+                scoreFormatted=f"{score_val:.1f} marks",
+                score=score_val,
+                maxScore=6.0,
+                percentage=pct,
+                scorePercentage=pct,
+                isPassed=meta.get("passed", pct >= 50.0),
+                timeUsedFormatted=f"{time_mins}m {time_secs}s",
+                status="completed",
+            )
+        )
+
+    # If no activities in DB yet, provide realistic historical demo entries
+    if not results:
+        results = [
+            MockTestHistoryItemResponse(
+                id="mock-hist-01",
+                attemptId="mock-hist-01",
+                sessionId="mock-sess-cds-full-mock-01-demo1",
+                testId="cds-full-mock-01",
+                title="CDS Full Practice Examination — 01",
+                testTitle="CDS Full Practice Examination — 01",
+                examName="CDS (Combined Defence Services)",
+                date="2026-09-26 14:30:00",
+                completedAt="2026-09-26 14:30:00",
+                formattedDate="26 Sep 2026",
+                scoreFormatted="4.5 / 6.0",
+                score=4.5,
+                maxScore=6.0,
+                percentage=75.0,
+                scorePercentage=75.0,
+                isPassed=True,
+                timeUsedFormatted="32m 45s",
+                status="completed",
+            ),
+            MockTestHistoryItemResponse(
+                id="mock-hist-02",
+                attemptId="mock-hist-02",
+                sessionId="mock-sess-cds-gk-assessment-02-demo2",
+                testId="cds-gk-assessment-02",
+                title="General Knowledge & Current Affairs Drill",
+                testTitle="General Knowledge & Current Affairs Drill",
+                examName="CDS (Combined Defence Services)",
+                date="2026-09-22 10:15:00",
+                completedAt="2026-09-22 10:15:00",
+                formattedDate="22 Sep 2026",
+                scoreFormatted="3.0 / 4.0",
+                score=3.0,
+                maxScore=4.0,
+                percentage=75.0,
+                scorePercentage=75.0,
+                isPassed=True,
+                timeUsedFormatted="21m 10s",
+                status="completed",
+            ),
+        ]
+
     return results
 
 
 @router.get("/{test_id}", response_model=MockTestDetailResponse)
 def get_mock_test_detail(
     test_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
     Retrieve mock test sections and questions for test attempt.
@@ -79,12 +188,15 @@ def get_mock_test_detail(
                     difficulty=q.get("difficulty", "medium"),
                     options=options,
                     audioText=q.get("audioText"),
+                    formula=q.get("formula"),
+                    table=q.get("table"),
                 )
             )
         sanitized_sections.append(
             MockTestSectionSanitized(
                 id=sec["id"],
                 name=sec["name"],
+                title=sec["name"],
                 code=sec["code"],
                 description=sec["description"],
                 totalQuestions=sec["totalQuestions"],
@@ -113,7 +225,7 @@ def get_mock_test_detail(
 @router.post("/submit", response_model=MockTestResultResponse)
 def submit_mock_test(
     submission: MockTestSubmitRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     """
@@ -181,6 +293,10 @@ def submit_mock_test(
                     total_score -= penalty
                     section_map[sec["id"]]["score"] -= penalty
 
+            q_options = [
+                MockTestQuestionOption(id=opt["id"], label=opt["label"], text=opt["text"])
+                for opt in q.get("options", [])
+            ]
             reviews.append(
                 MockTestQuestionReview(
                     questionId=q["id"],
@@ -189,6 +305,7 @@ def submit_mock_test(
                     sectionId=sec["id"],
                     selectedOptionIds=selected,
                     correctOptionIds=correct_opts,
+                    options=q_options,
                     isCorrect=is_correct,
                     isSkipped=is_skipped,
                     markedForReview=is_marked,
@@ -223,29 +340,31 @@ def submit_mock_test(
     now = utc_now()
     result_id = f"res-mock-{uuid.uuid4().hex[:8]}"
 
-    # Record learning activity
-    act = LearningActivity(
-        user_id=current_user.id,
-        activity_type="mock_completed",
-        resource_id=test["id"],
-        duration_seconds=time_used,
-        timestamp=now,
-        metadata_json={
-            "title": f"Finished {test['title']}",
-            "score": total_score,
-            "percentage": percentage,
-            "passed": is_passed,
-        },
-    )
-    db.add(act)
-    db.commit()
+    # Record learning activity if user is authenticated
+    candidate_id = current_user.id if current_user else "candidate-user"
+    if current_user:
+        act = LearningActivity(
+            user_id=current_user.id,
+            activity_type="mock_completed",
+            resource_id=test["id"],
+            duration_seconds=time_used,
+            timestamp=now,
+            metadata_json={
+                "title": f"Finished {test['title']}",
+                "score": total_score,
+                "percentage": percentage,
+                "passed": is_passed,
+            },
+        )
+        db.add(act)
+        db.commit()
 
     return MockTestResultResponse(
         resultId=result_id,
         testId=test["id"],
         testTitle=test["title"],
-        candidateId=current_user.id,
-        completedAt=now.strftime("%Y-%m-%d %H:%M:%S UTC"),
+        candidateId=candidate_id,
+         completedAt=now.strftime("%Y-%m-%d %H:%M:%S UTC"),
         durationSeconds=submission.duration_seconds,
         timeUsedSeconds=time_used,
         totalQuestions=test["totalQuestions"],
@@ -260,69 +379,6 @@ def submit_mock_test(
         isPassed=is_passed,
         passingPercentage=50.0,
         sections=sections_perf,
+        sectionPerformances=sections_perf,
         reviews=reviews,
     )
-
-
-@router.get("/history", response_model=List[MockTestHistoryItemResponse])
-def get_mock_test_history(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """Retrieve historical mock tests completed by the candidate."""
-    activities = (
-        db.query(LearningActivity)
-        .filter(LearningActivity.user_id == current_user.id, LearningActivity.activity_type == "mock_completed")
-        .order_by(LearningActivity.timestamp.desc())
-        .limit(10)
-        .all()
-    )
-
-    results = []
-    for act in activities:
-        meta = act.metadata_json or {}
-        time_mins = act.duration_seconds // 60
-        time_secs = act.duration_seconds % 60
-        pct = meta.get("percentage", 75.0)
-        results.append(
-            MockTestHistoryItemResponse(
-                id=act.id,
-                testId=act.resource_id or "cds-full-mock-01",
-                title=meta.get("title", "CDS Mock Test"),
-                completedAt=act.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-                formattedDate=act.timestamp.strftime("%d %b %Y"),
-                scoreFormatted=f"{meta.get('score', 4.5)} / 6.0",
-                scorePercentage=pct,
-                isPassed=meta.get("passed", pct >= 50.0),
-                timeUsedFormatted=f"{time_mins}m {time_secs}s",
-            )
-        )
-
-    # If no activities in DB yet, provide realistic historical demo entries
-    if not results:
-        results = [
-            MockTestHistoryItemResponse(
-                id="mock-hist-01",
-                testId="cds-full-mock-01",
-                title="CDS Full Practice Examination — 01",
-                completedAt="2026-09-26 14:30:00",
-                formattedDate="26 Sep 2026",
-                scoreFormatted="4.5 / 6.0",
-                scorePercentage=75.0,
-                isPassed=True,
-                timeUsedFormatted="32m 45s",
-            ),
-            MockTestHistoryItemResponse(
-                id="mock-hist-02",
-                testId="cds-full-mock-01",
-                title="CDS General Knowledge Practice",
-                completedAt="2026-09-22 10:15:00",
-                formattedDate="22 Sep 2026",
-                scoreFormatted="3.8 / 6.0",
-                scorePercentage=63.3,
-                isPassed=True,
-                timeUsedFormatted="28m 10s",
-            ),
-        ]
-
-    return results

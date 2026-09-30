@@ -9,11 +9,14 @@ interface MockTestSectionNavProps {
 }
 
 export const MockTestSectionNav: React.FC<MockTestSectionNavProps> = ({
-  sections,
+  sections = [],
   activeSectionId,
-  answers,
+  answers = {},
   onSelectSection,
 }) => {
+  const safeSections = Array.isArray(sections) ? sections : [];
+  const safeAnswers = answers || {};
+
   return (
     <nav aria-label="Examination sections" className="w-full">
       <div
@@ -21,17 +24,21 @@ export const MockTestSectionNav: React.FC<MockTestSectionNavProps> = ({
         aria-label="Test sections"
         className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-border scrollbar-none"
       >
-        {sections.map((section) => {
+        {safeSections.map((section) => {
           const isActive = section.id === activeSectionId;
+          const questions = section.questions || [];
 
           // Count answered questions in this section
           let answeredCount = 0;
-          section.questions.forEach((q) => {
-            const ans = answers[q.id];
+          questions.forEach((q) => {
+            const ans = safeAnswers[q?.id];
             if (ans?.status === 'answered' || ans?.status === 'answered_marked_for_review') {
               answeredCount++;
             }
           });
+
+          const sectionName = section.name || (section as any).title || 'Section';
+          const totalQ = section.totalQuestions ?? (section as any).questionCount ?? questions.length;
 
           return (
             <button
@@ -48,7 +55,7 @@ export const MockTestSectionNav: React.FC<MockTestSectionNavProps> = ({
                   : 'border-transparent text-foreground-secondary hover:text-foreground hover:bg-surface-elevated/40'
               }`}
             >
-              <span>{section.name}</span>
+              <span>{sectionName}</span>
               <span
                 className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
                   isActive
@@ -56,7 +63,7 @@ export const MockTestSectionNav: React.FC<MockTestSectionNavProps> = ({
                     : 'bg-surface-elevated border-border text-foreground-secondary'
                 }`}
               >
-                {answeredCount}/{section.totalQuestions}
+                {answeredCount}/{totalQ}
               </span>
             </button>
           );

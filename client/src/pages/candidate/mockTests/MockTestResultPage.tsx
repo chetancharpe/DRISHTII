@@ -19,7 +19,7 @@ export const MockTestResultPage: React.FC = () => {
       try {
         setIsLoading(true);
         // Find recent session result or demo fallback
-        const data = await mockTestService.getMockResult(`mock-sess-${testId}`);
+        const data = await mockTestService.getMockResult(testId);
         if (!data) {
           setError('Mock examination result could not be located.');
         } else {

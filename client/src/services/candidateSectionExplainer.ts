@@ -729,56 +729,242 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
     return { id: 'exams-portal', name: 'Official Examinations Portal', introSpeech, elementsSummary, elements };
   }
 
-  // 10. MOCK TESTS PORTAL
+  // 10A. MOCK TESTS ACTIVE SESSION
+  if (path.includes('/candidate/mock-tests/') && path.includes('/session')) {
+    const elements: SectionElement[] = [
+      {
+        id: 'read-question',
+        number: 1,
+        label: 'Read Current Question',
+        description: 'Audibly read question statement, table, formulas, and options',
+        aliases: ['read question', 'repeat question', 'sawal padho', 'question sunao', 'option 1'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:mock-read-question')),
+        confirmSpeech: 'Reading question statement and choices.',
+      },
+      {
+        id: 'select-option-a',
+        number: 2,
+        label: 'Select Option A',
+        description: 'Choose option A for current question',
+        aliases: ['option a', 'first option', 'pehla option', 'select a', 'option 2'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:mock-select-option', { detail: { label: 'A' } })),
+        confirmSpeech: 'Selected Option A.',
+      },
+      {
+        id: 'select-option-b',
+        number: 3,
+        label: 'Select Option B',
+        description: 'Choose option B for current question',
+        aliases: ['option b', 'second option', 'dusra option', 'select b', 'option 3'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:mock-select-option', { detail: { label: 'B' } })),
+        confirmSpeech: 'Selected Option B.',
+      },
+      {
+        id: 'select-option-c',
+        number: 4,
+        label: 'Select Option C',
+        description: 'Choose option C for current question',
+        aliases: ['option c', 'third option', 'teesra option', 'select c', 'option 4'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:mock-select-option', { detail: { label: 'C' } })),
+        confirmSpeech: 'Selected Option C.',
+      },
+      {
+        id: 'select-option-d',
+        number: 5,
+        label: 'Select Option D',
+        description: 'Choose option D for current question',
+        aliases: ['option d', 'fourth option', 'chautha option', 'select d', 'option 5'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:mock-select-option', { detail: { label: 'D' } })),
+        confirmSpeech: 'Selected Option D.',
+      },
+      {
+        id: 'next-question',
+        number: 6,
+        label: 'Next Question',
+        description: 'Advance to the next question in the mock examination',
+        aliases: ['next', 'next question', 'agla sawal', 'agla', 'option 6'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:mock-next')),
+        confirmSpeech: 'Next question.',
+      },
+      {
+        id: 'submit-test',
+        number: 7,
+        label: 'Submit Mock Test',
+        description: 'Finish and submit mock examination for evaluation',
+        aliases: ['submit', 'submit test', 'finish test', 'submit mock', 'khatam', 'option 7'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:mock-submit')),
+        confirmSpeech: 'Opening submission confirmation dialog.',
+      },
+    ];
+
+    const introSpeech =
+      'Mock Test Session in progress. Say Option A, B, C, or D to answer. Say Next or Previous to navigate. Say Read Question to hear details, Mark for Review to flag, or Submit to finish.';
+    const elementsSummary =
+      'Mock Session: 1. Read Question, 2. Option A, 3. Option B, 4. Option C, 5. Option D, 6. Next Question, 7. Submit Test.';
+
+    return { id: 'mock-session', name: 'Mock Test Examination Session', introSpeech, elementsSummary, elements };
+  }
+
+  // 10B. MOCK TESTS INSTRUCTIONS
+  if (path.includes('/candidate/mock-tests/') && path.includes('/instructions')) {
+    const elements: SectionElement[] = [
+      {
+        id: 'start-mock',
+        number: 1,
+        label: 'Start Mock Examination',
+        description: 'Acknowledge rules and launch timed mock examination session',
+        aliases: ['start', 'start mock', 'start test', 'begin test', 'shuru karo', 'agree and start', 'launch', 'option 1', 'pehla'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:mock-start-test')),
+        confirmSpeech: 'Launching mock examination session.',
+      },
+      {
+        id: 'read-instructions',
+        number: 2,
+        label: 'Listen to Instructions Summary',
+        description: 'Read out marking scheme and navigation guidelines',
+        aliases: ['read instructions', 'summary', 'listen summary', 'guidelines', 'option 2', 'dusra'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:mock-read-instructions')),
+        confirmSpeech: 'Reading mock test guidelines.',
+      },
+      {
+        id: 'back-to-mocks',
+        number: 3,
+        label: 'Back to Mock Tests',
+        description: 'Return to mock tests directory',
+        aliases: ['back', 'wapas', 'all mocks', 'option 3', 'teesra'],
+        action: (c) => c.navigate('/candidate/mock-tests'),
+        confirmSpeech: 'Returning to Mock Tests catalog.',
+      },
+    ];
+
+    const introSpeech =
+      'Mock Test Instructions. Say Option 1 or Start Test to accept guidelines and begin, Option 2 to hear instructions summary, or Option 3 to go back.';
+    const elementsSummary =
+      'Mock Test Instructions options: 1. Start Mock Test, 2. Listen Summary, 3. Back to Mock Tests.';
+
+    return { id: 'mock-instructions', name: 'Mock Test Instructions', introSpeech, elementsSummary, elements };
+  }
+
+  // 10C. MOCK TEST OVERVIEW / DETAILS
+  if (
+    path.startsWith('/candidate/mock-tests/') &&
+    !path.includes('/instructions') &&
+    !path.includes('/session') &&
+    !path.includes('/result') &&
+    !path.includes('/review') &&
+    !path.includes('/history')
+  ) {
+    const parts = path.split('/');
+    const currentTestId = parts[parts.length - 1];
+    const elements: SectionElement[] = [
+      {
+        id: 'continue-instructions',
+        number: 1,
+        label: 'Continue to Instructions',
+        description: 'Proceed to instructions and rules before starting the test',
+        aliases: ['instructions', 'continue', 'start', 'start test', 'aage badho', 'nirdesh', 'option 1', 'pehla'],
+        action: (c) => c.navigate(`/candidate/mock-tests/${currentTestId}/instructions`),
+        confirmSpeech: 'Opening Mock Test Instructions.',
+      },
+      {
+        id: 'back-to-mocks',
+        number: 2,
+        label: 'Back to Mock Tests Directory',
+        description: 'Return to all available subject mock tests',
+        aliases: ['back', 'wapas', 'all mocks', 'directory', 'option 2', 'dusra'],
+        action: (c) => c.navigate('/candidate/mock-tests'),
+        confirmSpeech: 'Returning to Mock Tests directory.',
+      },
+    ];
+
+    const introSpeech =
+      'Mock Test Overview. Say Option 1 or Continue to read instructions and begin, or say Option 2 to return to the mock test catalog.';
+    const elementsSummary =
+      'Mock Test Overview options: 1. Continue to Instructions, 2. Back to Mock Tests Directory.';
+
+    return { id: 'mock-details', name: 'Mock Test Overview', introSpeech, elementsSummary, elements };
+  }
+
+  // 10D. MOCK TESTS PORTAL DIRECTORY
   if (path.startsWith('/candidate/mock-tests')) {
     const elements: SectionElement[] = [
       {
         id: 'full-mock',
         number: 1,
-        label: 'Full-Length CDS Mock Test 1',
-        description: '100 questions timed simulation with audio proctoring',
-        aliases: ['full mock', 'full test', 'cds mock'],
-        action: (c) => c.navigate('/candidate/exams/cds-mock-1/instructions'),
-        confirmSpeech: 'Launching Full Length Mock Test 1.',
+        label: 'CDS Full Practice Examination — 01',
+        description: 'Full-length 6-question simulation covering English, Math, and GK under standard timing',
+        aliases: ['full mock', 'full test', 'cds mock', 'cds full mock', 'cds', 'full', 'option 1', 'pehla'],
+        action: (c) => c.navigate('/candidate/mock-tests/cds-full-mock-01'),
+        confirmSpeech: 'Opening CDS Full Practice Examination 1.',
       },
       {
-        id: 'math-drill',
+        id: 'math-mock',
         number: 2,
-        label: 'Mathematics Speed Drill',
-        description: '30 questions timed quantitative aptitude speed test',
-        aliases: ['math drill', 'math mock', 'speed drill'],
-        action: (c) => c.navigate('/candidate/practice/session/demo-percentages'),
-        confirmSpeech: 'Launching Mathematics Speed Drill.',
+        label: 'Elementary Mathematics Subject Mock Test',
+        description: 'Dedicated Mathematics mock covering Arithmetic, Algebra, and Geometry with formulas',
+        aliases: ['math mock', 'mathematics mock', 'maths mock', 'ganit mock', 'math test', 'math', 'maths', 'mathematics', 'ganit', 'option 2', 'dusra'],
+        action: (c) => c.navigate('/candidate/mock-tests/mock-math-01'),
+        confirmSpeech: 'Opening Elementary Mathematics Subject Mock Test.',
       },
       {
-        id: 'english-drill',
+        id: 'english-mock',
         number: 3,
-        label: 'English Comprehension Drill',
-        description: '30 questions reading comprehension and vocabulary drill',
-        aliases: ['english drill', 'english mock', 'comprehension drill'],
-        action: (c) => c.navigate('/candidate/practice/session/demo-reading-comprehension'),
-        confirmSpeech: 'Launching English Comprehension Drill.',
+        label: 'English Language & Comprehension Mock Test',
+        description: 'Dedicated English mock evaluating Grammar rules, Vocabulary, and Reading Comprehension',
+        aliases: ['english mock', 'english test', 'angrezi mock', 'comprehension mock', 'english', 'angrezi', 'option 3', 'teesra'],
+        action: (c) => c.navigate('/candidate/mock-tests/mock-eng-01'),
+        confirmSpeech: 'Opening English Language & Comprehension Mock Test.',
+      },
+      {
+        id: 'gk-mock',
+        number: 4,
+        label: 'General Knowledge & Defense Mock Test',
+        description: 'Subject-wise mock covering Indian Polity, Modern History, General Science, and Defense Affairs',
+        aliases: ['gk mock', 'general knowledge mock', 'defense mock', 'samanya gyan mock', 'gk', 'general knowledge', 'samanya gyan', 'defense', 'option 4', 'chautha'],
+        action: (c) => c.navigate('/candidate/mock-tests/mock-gk-01'),
+        confirmSpeech: 'Opening General Knowledge & Defense Mock Test.',
+      },
+      {
+        id: 'reasoning-mock',
+        number: 5,
+        label: 'Reasoning Ability & Mental Aptitude Mock Test',
+        description: 'Subject-wise mock testing Deductive Logic, Coding-Decoding, Number Series, and Direction Sense',
+        aliases: ['reasoning mock', 'logic mock', 'tarkik mock', 'mental ability mock', 'reasoning', 'logic', 'tarkik', 'option 5', 'paanchwa'],
+        action: (c) => c.navigate('/candidate/mock-tests/mock-reas-01'),
+        confirmSpeech: 'Opening Reasoning Ability & Mental Aptitude Mock Test.',
+      },
+      {
+        id: 'history',
+        number: 6,
+        label: 'Mock Test Attempt History',
+        description: 'Review your previously completed mock tests, scores, and accuracy',
+        aliases: ['attempt history', 'mock history', 'history', 'purane mock', 'option 6', 'chhatwa'],
+        action: (c) => c.navigate('/candidate/mock-tests/history'),
+        confirmSpeech: 'Opening Mock Test Attempt History.',
       },
       {
         id: 'dashboard',
-        number: 4,
+        number: 7,
         label: 'Return to Dashboard',
         description: 'Go back to Candidate Workspace',
-        aliases: ['dashboard', 'home', 'main menu'],
+        aliases: ['dashboard', 'home', 'main menu', 'option 7', 'saatwa'],
         action: (c) => c.navigate('/candidate/dashboard'),
         confirmSpeech: 'Returning to Candidate Dashboard.',
       },
     ];
 
     const introSpeech =
-      `Mock Tests Portal. Here are your 3 available tests: ` +
-      `Option 1: Full-Length CDS Mock Test 1. ` +
-      `Option 2: Mathematics Speed Drill. ` +
-      `Option 3: English Comprehension Drill. ` +
-      `Say Option 1 for Full Mock, Option 2 for Math Drill, or Option 3 for English Drill.`;
+      `Mock Tests Portal. Here are your 5 subject-wise and full examinations: ` +
+      `Option 1: CDS Full Practice Examination 1. ` +
+      `Option 2: Elementary Mathematics Mock Test. ` +
+      `Option 3: English Language Mock Test. ` +
+      `Option 4: General Knowledge and Defense Mock Test. ` +
+      `Option 5: Reasoning Ability Mock Test. ` +
+      `Option 6: Attempt History. ` +
+      `Say Option 1 through 5, or say Math Mock, English Mock, GK Mock, or Reasoning Mock to open any subject test.`;
 
     const elementsSummary =
-      `Mock Tests options: 1. Full CDS Mock, 2. Mathematics Speed Drill, 3. English Comprehension Drill, 4. Dashboard.`;
+      `Mock Tests: 1. Full CDS Mock, 2. Mathematics Mock, 3. English Mock, 4. GK Mock, 5. Reasoning Mock, 6. History, 7. Dashboard. Say Option 1 through 7.`;
 
     return { id: 'mock-tests', name: 'Mock Tests Portal', introSpeech, elementsSummary, elements };
   }

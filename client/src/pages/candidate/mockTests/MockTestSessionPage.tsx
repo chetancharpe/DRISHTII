@@ -21,7 +21,7 @@ import { useAccessibility } from '../../../contexts/AccessibilityContext';
 export const MockTestSessionPage: React.FC = () => {
   const { testId } = useParams<{ testId: string }>();
   const navigate = useNavigate();
-  const { openCalibration, announce } = useAccessibility();
+  const { openCalibration, announce, speak } = useAccessibility();
 
   const [test, setTest] = useState<MockTest | null>(null);
   const [session, setSession] = useState<MockTestSession | null>(null);
@@ -59,8 +59,10 @@ export const MockTestSessionPage: React.FC = () => {
         }
 
         setSession(currentSess);
-        setActiveSectionId(currentSess.currentSectionId || testData.sections[0]?.id || '');
-        setActiveQuestionId(currentSess.currentQuestionId || testData.sections[0]?.questions[0]?.id || '');
+        const initialSection = testData.sections?.[0];
+        const initialQuestion = initialSection?.questions?.[0];
+        setActiveSectionId(currentSess.currentSectionId || initialSection?.id || '');
+        setActiveQuestionId(currentSess.currentQuestionId || initialQuestion?.id || '');
         secondsRemainingRef.current = currentSess.secondsRemaining;
       } catch (e) {
         console.error('Session loading error', e);
@@ -81,52 +83,47 @@ export const MockTestSessionPage: React.FC = () => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
-  if (isLoading || !test || !session) {
-    return (
-      <div className="flex flex-col items-center justify-center p-16 gap-3" role="status">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" aria-hidden="true" />
-        <p className="text-xs font-semibold text-foreground-secondary">
-          Initializing examination session environment...
-        </p>
-      </div>
-    );
-  }
-
-  // Active section & question resolution
-  const currentSection = test.sections.find((s) => s.id === activeSectionId) || test.sections[0];
-  const sectionQuestions = currentSection.questions;
+  // Active section & question resolution (safely handled even before test/session finish loading)
+  const safeSections = test?.sections || [];
+  const currentSection =
+    safeSections.find((s) => s.id === activeSectionId) ||
+    safeSections[0] ||
+    { id: '', name: 'General', code: 'GEN', description: '', totalQuestions: 0, questions: [] };
+  const sectionQuestions = currentSection.questions || [];
   const currentQuestionIndex = sectionQuestions.findIndex((q) => q.id === activeQuestionId);
   const currentQuestion = sectionQuestions[currentQuestionIndex >= 0 ? currentQuestionIndex : 0];
 
   // Global question number
   let globalQuestionNumber = 1;
-  for (const sec of test.sections) {
+  for (const sec of safeSections) {
     if (sec.id === currentSection.id) {
       globalQuestionNumber += currentQuestionIndex >= 0 ? currentQuestionIndex : 0;
       break;
     }
-    globalQuestionNumber += sec.questions.length;
+    globalQuestionNumber += (sec.questions?.length || 0);
   }
 
   // Tallies for submit modal
   let answeredCount = 0;
   let markedCount = 0;
-  test.sections.forEach((sec) => {
-    sec.questions.forEach((q) => {
-      const a = session.answers[q.id];
-      if (a?.status === 'answered' || a?.status === 'answered_marked_for_review') {
-        answeredCount++;
-      }
-      if (a?.markedForReview) {
-        markedCount++;
-      }
+  if (session?.answers) {
+    safeSections.forEach((sec) => {
+      (sec.questions || []).forEach((q) => {
+        const a = session.answers?.[q.id];
+        if (a?.status === 'answered' || a?.status === 'answered_marked_for_review') {
+          answeredCount++;
+        }
+        if (a?.markedForReview) {
+          markedCount++;
+        }
+      });
     });
-  });
-  const unansweredCount = test.totalQuestions - answeredCount;
+  }
+  const unansweredCount = Math.max(0, (test?.totalQuestions || 0) - answeredCount);
 
   // Handlers
   const handleSaveOption = async (optionId: string, isMultiple: boolean = false) => {
-    if (!currentQuestion) return;
+    if (!test || !session || !currentQuestion) return;
     const existing = session.answers[currentQuestion.id]?.selectedOptionIds || [];
     let updatedIds: string[] = [];
 
@@ -143,13 +140,13 @@ export const MockTestSessionPage: React.FC = () => {
   };
 
   const handleClearOption = async () => {
-    if (!currentQuestion) return;
+    if (!test || !session || !currentQuestion) return;
     const updated = await mockTestService.saveMockAnswer(session.sessionId, currentQuestion.id, [], 1);
     setSession(updated);
   };
 
   const handleToggleMarkReview = async () => {
-    if (!currentQuestion) return;
+    if (!test || !session || !currentQuestion) return;
     const updated = await mockTestService.toggleMarkForReview(session.sessionId, currentQuestion.id);
     setSession(updated);
     const nextMarked = updated.answers[currentQuestion.id]?.markedForReview;
@@ -157,9 +154,10 @@ export const MockTestSessionPage: React.FC = () => {
   };
 
   const handleSelectQuestion = (qId: string) => {
+    if (!session) return;
     // Find which section contains this question
-    for (const sec of test.sections) {
-      const found = sec.questions.find((q) => q.id === qId);
+    for (const sec of safeSections) {
+      const found = (sec.questions || []).find((q) => q.id === qId);
       if (found) {
         setActiveSectionId(sec.id);
         setActiveQuestionId(qId);
@@ -170,18 +168,24 @@ export const MockTestSessionPage: React.FC = () => {
   };
 
   const handleNext = () => {
+    if (!session) return;
     if (currentQuestionIndex < sectionQuestions.length - 1) {
       const nextQ = sectionQuestions[currentQuestionIndex + 1];
       setActiveQuestionId(nextQ.id);
       mockTestService.updateNavigationPosition(session.sessionId, currentSection.id, nextQ.id, secondsRemainingRef.current);
     } else {
       // Advance to next section if available
-      const secIdx = test.sections.findIndex((s) => s.id === currentSection.id);
-      if (secIdx < test.sections.length - 1) {
-        const nextSec = test.sections[secIdx + 1];
-        setActiveSectionId(nextSec.id);
-        setActiveQuestionId(nextSec.questions[0].id);
-        mockTestService.updateNavigationPosition(session.sessionId, nextSec.id, nextSec.questions[0].id, secondsRemainingRef.current);
+      const secIdx = safeSections.findIndex((s) => s.id === currentSection.id);
+      if (secIdx >= 0 && secIdx < safeSections.length - 1) {
+        const nextSec = safeSections[secIdx + 1];
+        const nextFirstQ = nextSec.questions?.[0];
+        if (nextFirstQ) {
+          setActiveSectionId(nextSec.id);
+          setActiveQuestionId(nextFirstQ.id);
+          mockTestService.updateNavigationPosition(session.sessionId, nextSec.id, nextFirstQ.id, secondsRemainingRef.current);
+        } else {
+          setIsSubmitModalOpen(true);
+        }
       } else {
         // Last question of entire test -> open submit modal
         setIsSubmitModalOpen(true);
@@ -190,25 +194,30 @@ export const MockTestSessionPage: React.FC = () => {
   };
 
   const handlePrevious = () => {
+    if (!session) return;
     if (currentQuestionIndex > 0) {
       const prevQ = sectionQuestions[currentQuestionIndex - 1];
       setActiveQuestionId(prevQ.id);
       mockTestService.updateNavigationPosition(session.sessionId, currentSection.id, prevQ.id, secondsRemainingRef.current);
     } else {
       // Step into previous section's last question
-      const secIdx = test.sections.findIndex((s) => s.id === currentSection.id);
+      const secIdx = safeSections.findIndex((s) => s.id === currentSection.id);
       if (secIdx > 0) {
-        const prevSec = test.sections[secIdx - 1];
-        const lastQ = prevSec.questions[prevSec.questions.length - 1];
-        setActiveSectionId(prevSec.id);
-        setActiveQuestionId(lastQ.id);
-        mockTestService.updateNavigationPosition(session.sessionId, prevSec.id, lastQ.id, secondsRemainingRef.current);
+        const prevSec = safeSections[secIdx - 1];
+        const prevQuestions = prevSec.questions || [];
+        if (prevQuestions.length > 0) {
+          const lastQ = prevQuestions[prevQuestions.length - 1];
+          setActiveSectionId(prevSec.id);
+          setActiveQuestionId(lastQ.id);
+          mockTestService.updateNavigationPosition(session.sessionId, prevSec.id, lastQ.id, secondsRemainingRef.current);
+        }
       }
     }
   };
 
   // Submit test (Explicit or Auto-submit on time expiry, Requirement #34)
   const handleFinalSubmit = async () => {
+    if (!test || !session) return;
     try {
       setIsSubmitting(true);
       await mockTestService.finishMockTest(session.sessionId, secondsRemainingRef.current);
@@ -224,10 +233,140 @@ export const MockTestSessionPage: React.FC = () => {
     handleFinalSubmit();
   };
 
-  const isGlobalFirst = currentQuestionIndex === 0 && test.sections[0]?.id === currentSection.id;
+  const isGlobalFirst = currentQuestionIndex === 0 && safeSections[0]?.id === currentSection.id;
   const isGlobalLast =
     currentQuestionIndex === sectionQuestions.length - 1 &&
-    test.sections[test.sections.length - 1]?.id === currentSection.id;
+    safeSections[safeSections.length - 1]?.id === currentSection.id;
+
+  // Accessible keyboard shortcuts: Alt+1..4 for options, Alt+N for next, Alt+P for prev, Alt+M for mark review, Alt+C for clear
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!test || !session || !currentQuestion || isPaused) return;
+
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+
+      if (e.altKey) {
+        if (e.key === '1' || e.key === '2' || e.key === '3' || e.key === '4') {
+          e.preventDefault();
+          const optionIdx = parseInt(e.key, 10) - 1;
+          if (currentQuestion && currentQuestion.options[optionIdx]) {
+            handleSaveOption(currentQuestion.options[optionIdx].id, currentQuestion.type === 'multiple_choice');
+          }
+        } else if (e.key === 'n' || e.key === 'N') {
+          e.preventDefault();
+          handleNext();
+        } else if (e.key === 'p' || e.key === 'P') {
+          e.preventDefault();
+          handlePrevious();
+        } else if (e.key === 'm' || e.key === 'M') {
+          e.preventDefault();
+          handleToggleMarkReview();
+        } else if (e.key === 'c' || e.key === 'C') {
+          e.preventDefault();
+          handleClearOption();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  });
+
+  // Voice action event listeners for full hands-free / speech control in mock test
+  useEffect(() => {
+    const handleVoiceSelectOption = (e: CustomEvent<{ label?: string; index?: number }>) => {
+      if (!currentQuestion || isPaused) return;
+      const targetLabel = e.detail?.label?.toUpperCase();
+      const targetIndex = e.detail?.index;
+      let matchedOption: (typeof currentQuestion.options)[0] | undefined;
+
+      if (targetLabel) {
+        matchedOption = currentQuestion.options.find(
+          (o) => o.label.toUpperCase() === targetLabel
+        );
+      } else if (typeof targetIndex === 'number' && currentQuestion.options[targetIndex]) {
+        matchedOption = currentQuestion.options[targetIndex];
+      }
+
+      if (matchedOption) {
+        handleSaveOption(matchedOption.id, currentQuestion.type === 'multiple_choice');
+        announce(`Selected Option ${matchedOption.label}: ${matchedOption.text}`, 'polite');
+      }
+    };
+
+    const handleVoiceNext = () => {
+      if (isPaused) return;
+      handleNext();
+    };
+
+    const handleVoicePrevious = () => {
+      if (isPaused) return;
+      handlePrevious();
+    };
+
+    const handleVoiceToggleMark = () => {
+      if (isPaused) return;
+      handleToggleMarkReview();
+    };
+
+    const handleVoiceClear = () => {
+      if (isPaused) return;
+      handleClearOption();
+      announce('Answer cleared for this question.', 'polite');
+    };
+
+    const handleVoiceReadQuestion = () => {
+      if (!currentQuestion || isPaused) return;
+      const formulaText = currentQuestion.formula ? `Formula: ${currentQuestion.formula.accessibleText}. ` : '';
+      const tableText = currentQuestion.table
+        ? `Table: ${currentQuestion.table.caption}. Headers: ${currentQuestion.table.headers.join(', ')}. `
+        : '';
+      const optionsText = currentQuestion.options
+        ? currentQuestion.options.map((o) => `Option ${o.label}: ${o.text}`).join('. ')
+        : '';
+      speak(
+        `Question ${globalQuestionNumber} of ${test?.totalQuestions || sectionQuestions.length}. ${currentQuestion.text}. ${formulaText}${tableText}${optionsText}`
+      );
+    };
+
+    const handleVoiceSubmit = () => {
+      setIsSubmitModalOpen(true);
+      announce('Submission confirmation dialog opened. Say Confirm to submit mock test.', 'assertive');
+    };
+
+    window.addEventListener('drishti:mock-select-option', handleVoiceSelectOption as EventListener);
+    window.addEventListener('drishti:mock-next', handleVoiceNext);
+    window.addEventListener('drishti:mock-previous', handleVoicePrevious);
+    window.addEventListener('drishti:mock-mark-review', handleVoiceToggleMark);
+    window.addEventListener('drishti:mock-clear', handleVoiceClear);
+    window.addEventListener('drishti:mock-read-question', handleVoiceReadQuestion);
+    window.addEventListener('drishti:mock-submit', handleVoiceSubmit);
+
+    return () => {
+      window.removeEventListener('drishti:mock-select-option', handleVoiceSelectOption as EventListener);
+      window.removeEventListener('drishti:mock-next', handleVoiceNext);
+      window.removeEventListener('drishti:mock-previous', handleVoicePrevious);
+      window.removeEventListener('drishti:mock-mark-review', handleVoiceToggleMark);
+      window.removeEventListener('drishti:mock-clear', handleVoiceClear);
+      window.removeEventListener('drishti:mock-read-question', handleVoiceReadQuestion);
+      window.removeEventListener('drishti:mock-submit', handleVoiceSubmit);
+    };
+  });
+
+  // Early loading return after all React hooks have been unconditionally registered
+  if (isLoading || !test || !session) {
+    return (
+      <div className="flex flex-col items-center justify-center p-16 gap-3" role="status">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" aria-hidden="true" />
+        <p className="text-xs font-semibold text-foreground-secondary">
+          Initializing examination session environment...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 max-w-6xl mx-auto">
@@ -300,14 +439,23 @@ export const MockTestSessionPage: React.FC = () => {
 
       {/* Section Navigation Tabs (Requirement #24) */}
       <MockTestSectionNav
-        sections={test.sections}
+        sections={safeSections}
         activeSectionId={currentSection.id}
-        answers={session.answers}
+        answers={session.answers || {}}
         onSelectSection={(secId) => {
-          const sec = test.sections.find((s) => s.id === secId);
-          if (sec && sec.questions.length > 0) {
+          const sec = safeSections.find((s) => s.id === secId);
+          const firstQ = sec?.questions?.[0];
+          if (sec && firstQ) {
             setActiveSectionId(secId);
-            setActiveQuestionId(sec.questions[0].id);
+            setActiveQuestionId(firstQ.id);
+            if (session) {
+              mockTestService.updateNavigationPosition(
+                session.sessionId,
+                secId,
+                firstQ.id,
+                secondsRemainingRef.current
+              );
+            }
           }
         }}
       />

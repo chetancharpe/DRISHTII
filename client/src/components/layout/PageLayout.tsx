@@ -7,6 +7,7 @@ import { Modal } from '../common/Modal';
 import { AccessibilityPanel } from '../accessibility/AccessibilityPanel';
 import { AccessibilityHelpModal } from '../accessibility/AccessibilityHelpModal';
 import { CandidateVoiceAssistant } from '../candidate/CandidateVoiceAssistant';
+import { ErrorBoundary } from '../common/ErrorBoundary';
 import { useKeyboardNavigation } from '../../hooks/useKeyboardNavigation';
 import { useAccessibility } from '../../hooks/useAccessibility';
 
@@ -65,7 +66,9 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
           }`}
         >
           {isCandidateRoute && <CandidateVoiceAssistant />}
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </main>
       </div>
 

@@ -125,58 +125,69 @@ export const MockTestResultCard: React.FC<MockTestResultCardProps> = ({
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {result.sectionPerformances.map((sec) => (
-            <div
-              key={sec.sectionId}
-              className="p-4 rounded-xl border border-border bg-surface flex flex-col gap-2.5"
-            >
-              <div className="flex items-center justify-between border-b border-border pb-2">
-                <span className="font-bold text-xs text-foreground">{sec.sectionName}</span>
-                <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-primary/10 text-primary border border-primary/20">
-                  {sec.accuracyPercent}%
-                </span>
-              </div>
+          {(result.sectionPerformances || (result as any).sections || []).map((sec: any, idx: number) => {
+            const sectionName = sec.sectionName || sec.name || sec.title || `Section ${idx + 1}`;
+            const accuracy = sec.accuracyPercent ?? sec.accuracy_percent ?? 0;
+            const score = sec.score ?? 0;
+            const maxScore = sec.maxScore ?? sec.max_score ?? 0;
+            const correctCount = sec.correctCount ?? sec.correct_count ?? 0;
+            const totalQuestions = sec.totalQuestions ?? sec.total_questions ?? (sec.questions?.length || 0);
+            const incorrectCount = sec.incorrectCount ?? sec.incorrect_count ?? 0;
+            const unansweredCount = sec.unansweredCount ?? sec.unanswered_count ?? 0;
 
-              <div className="flex flex-col gap-1 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-foreground-secondary">Score:</span>
-                  <span className="font-mono font-bold text-foreground">{sec.score} / {sec.maxScore}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-foreground-secondary">Correct:</span>
-                  <span className="font-mono text-foreground">{sec.correctCount} / {sec.totalQuestions}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-foreground-secondary">Incorrect:</span>
-                  <span className="font-mono text-amber-600 dark:text-amber-400">{sec.incorrectCount}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-foreground-secondary">Unanswered:</span>
-                  <span className="font-mono text-foreground-secondary">{sec.unansweredCount}</span>
-                </div>
-              </div>
-
-              {/* Visual + accessible progress */}
+            return (
               <div
-                role="progressbar"
-                aria-valuenow={sec.accuracyPercent}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuetext={`${sec.sectionName} accuracy: ${sec.accuracyPercent} percent`}
-                className="w-full h-1.5 rounded-full bg-surface-elevated overflow-hidden border border-border mt-1"
+                key={sec.sectionId || sec.id || idx}
+                className="p-4 rounded-xl border border-border bg-surface flex flex-col gap-2.5"
               >
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <span className="font-bold text-xs text-foreground">{sectionName}</span>
+                  <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-primary/10 text-primary border border-primary/20">
+                    {accuracy}%
+                  </span>
+                </div>
+
+                <div className="flex flex-col gap-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-foreground-secondary">Score:</span>
+                    <span className="font-mono font-bold text-foreground">{score} / {maxScore}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-foreground-secondary">Correct:</span>
+                    <span className="font-mono text-foreground">{correctCount} / {totalQuestions}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-foreground-secondary">Incorrect:</span>
+                    <span className="font-mono text-amber-600 dark:text-amber-400">{incorrectCount}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-foreground-secondary">Unanswered:</span>
+                    <span className="font-mono text-foreground-secondary">{unansweredCount}</span>
+                  </div>
+                </div>
+
+                {/* Visual + accessible progress */}
                 <div
-                  className="h-full bg-primary rounded-full transition-all duration-300"
-                  style={{ width: `${sec.accuracyPercent}%` }}
-                />
+                  role="progressbar"
+                  aria-valuenow={accuracy}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuetext={`${sectionName} accuracy: ${accuracy} percent`}
+                  className="w-full h-1.5 rounded-full bg-surface-elevated overflow-hidden border border-border mt-1"
+                >
+                  <div
+                    className="h-full bg-primary rounded-full transition-all duration-300"
+                    style={{ width: `${accuracy}%` }}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
       {/* Factual Performance Interpretations */}
-      {result.factualInterpretations.length > 0 && (
+      {(result.factualInterpretations || []).length > 0 && (
         <section
           aria-labelledby="factual-interp-heading"
           className="p-5 rounded-xl border border-border bg-surface-elevated/40 flex flex-col gap-2.5"
@@ -188,7 +199,7 @@ export const MockTestResultCard: React.FC<MockTestResultCardProps> = ({
             </h3>
           </div>
           <ul className="flex flex-col gap-1.5 list-disc pl-5 text-xs text-foreground leading-relaxed">
-            {result.factualInterpretations.map((note, idx) => (
+            {(result.factualInterpretations || []).map((note, idx) => (
               <li key={idx}>{note}</li>
             ))}
           </ul>
@@ -196,7 +207,7 @@ export const MockTestResultCard: React.FC<MockTestResultCardProps> = ({
       )}
 
       {/* Recommended Next Steps */}
-      {result.recommendedNextSteps.length > 0 && (
+      {(result.recommendedNextSteps || []).length > 0 && (
         <section
           aria-labelledby="rec-next-heading"
           className="p-5 rounded-xl border border-primary/20 bg-primary/5 flex flex-col gap-2.5"
@@ -208,7 +219,7 @@ export const MockTestResultCard: React.FC<MockTestResultCardProps> = ({
             </h3>
           </div>
           <ol className="flex flex-col gap-1.5 list-decimal pl-5 text-xs text-foreground leading-relaxed">
-            {result.recommendedNextSteps.map((step, idx) => (
+            {(result.recommendedNextSteps || []).map((step, idx) => (
               <li key={idx}>{step}</li>
             ))}
           </ol>

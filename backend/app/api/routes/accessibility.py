@@ -1,3 +1,6 @@
+from datetime import datetime, timezone
+from typing import Optional
+import uuid
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db, require_admin
@@ -10,6 +13,15 @@ from app.schemas.accessibility import (
     AccessibilityProfileUpdate,
     AccessibilityResetResponse,
     AccessibilityScorecardResponse,
+    AccessibilityEventCreate,
+    AccessibilityEventResponse,
+    CandidatePresenceResult,
+    GestureClassificationResult,
+)
+from app.accessibility import (
+    CandidatePresenceDetector,
+    HandGestureClassifier,
+    InteractionManager,
 )
 from app.services.accessibility_service import (
     get_accessibility_scorecard,
@@ -97,4 +109,71 @@ def get_exam_audit(
 ):
     """Examiner gate: Validate an entire examination against WCAG 2.1 AA before scheduling."""
     return audit_exam(db, exam_id)
+
+
+# ========================================================
+# AI Accessibility & Interaction Monitoring Telemetry (Requirement #9)
+# ========================================================
+
+presence_detector_instance = CandidatePresenceDetector()
+gesture_classifier_instance = HandGestureClassifier()
+interaction_manager_instance = InteractionManager()
+
+
+@router.post("/events", response_model=AccessibilityEventResponse, status_code=status.HTTP_201_CREATED)
+def record_accessibility_event(
+    event: AccessibilityEventCreate,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user),
+):
+    """
+    Ingests AI Accessibility & Interaction Monitoring events.
+    Strict privacy compliance:
+    - Never receives or persists raw camera images or video frames.
+    - No biometric markers stored.
+    - Captures operational metadata (presence status, detected gestures, keyboard activity).
+    """
+    event_id = f"evt_{uuid.uuid4().hex[:12]}"
+    now = datetime.now(timezone.utc)
+
+    # Determine action taken based on event type
+    action = None
+    if event.eventType == "GESTURE_DETECTED" and event.gesture:
+        res = interaction_manager_instance.handle_gesture(event.gesture, event.questionId)
+        action = res.get("action")
+    elif event.eventType == "KEYBOARD_ACTION" and event.key:
+        res = interaction_manager_instance.handle_keyboard(event.key, event.questionId)
+        action = res.get("action")
+    elif event.eventType == "CANDIDATE_ABSENT":
+        action = "trigger_absence_alert"
+    elif event.eventType == "HELP_REQUESTED":
+        action = "register_proctor_assistance"
+
+    return AccessibilityEventResponse(
+        status="success",
+        event_id=event_id,
+        received_at=now,
+        eventType=event.eventType,
+        action_taken=action,
+    )
+
+
+@router.post("/presence", response_model=CandidatePresenceResult)
+def evaluate_presence_endpoint(
+    present: bool,
+    position_shift: float = 0.0,
+    face_area_ratio: float = 0.10,
+    current_user: Optional[User] = Depends(get_current_user),
+):
+    """
+    Evaluates candidate presence using the temporal window rules.
+    Does not alert on a single frame; requires absence >= ABSENCE_THRESHOLD_SECONDS (3.0s).
+    """
+    result = presence_detector_instance.evaluate_presence(
+        present=present,
+        position_shift=position_shift,
+        face_area_ratio=face_area_ratio,
+    )
+    return CandidatePresenceResult(**result)
+
 

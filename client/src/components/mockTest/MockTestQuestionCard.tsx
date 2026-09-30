@@ -49,13 +49,14 @@ export const MockTestQuestionCard: React.FC<MockTestQuestionCardProps> = ({
   // Focus management when question number changes (Requirement #51)
   useEffect(() => {
     questionHeadingRef.current?.focus();
-  }, [question.id]);
+  }, [question?.id]);
 
   const selectedOptionIds = answer?.selectedOptionIds || [];
   const isMarked = answer?.markedForReview || false;
   const status: QuestionAttemptStatus = answer?.status || 'unanswered';
 
   const handleReadQuestion = () => {
+    if (!question) return;
     const tableText = question.table
       ? `Table: ${question.table.caption}. Headers: ${question.table.headers.join(', ')}.`
       : '';
@@ -64,6 +65,7 @@ export const MockTestQuestionCard: React.FC<MockTestQuestionCardProps> = ({
   };
 
   const handleReadOptions = () => {
+    if (!question?.options) return;
     const text = question.options.map((o) => `Option ${o.label}: ${o.text}`).join('. ');
     speak(`Options for Question ${currentNumber}: ${text}`);
   };
@@ -216,7 +218,7 @@ export const MockTestQuestionCard: React.FC<MockTestQuestionCardProps> = ({
           role={question.type === 'multiple_choice' ? 'group' : 'radiogroup'}
           className="flex flex-col gap-2.5"
         >
-          {question.options.map((opt) => {
+          {(question.options || []).map((opt) => {
             const isSelected = selectedOptionIds.includes(opt.id);
 
             return (

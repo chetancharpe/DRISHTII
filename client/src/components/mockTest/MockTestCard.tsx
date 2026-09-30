@@ -9,8 +9,17 @@ interface MockTestCardProps {
 }
 
 export const MockTestCard: React.FC<MockTestCardProps> = ({ test }) => {
+  if (!test) return null;
+
   const isCompleted = test.status === 'completed';
   const isInProgress = test.status === 'in_progress';
+  const examCode = test.examCode || 'UPSC-CDS';
+  const title = test.title || 'Mock Examination';
+  const description = test.description || 'Comprehensive mock practice test for exam preparation.';
+  const totalQuestions = test.totalQuestions ?? 6;
+  const durationMinutes = test.durationMinutes ?? 45;
+  const difficulty = test.difficulty || 'medium';
+  const sections = Array.isArray(test.sections) ? test.sections : [];
 
   return (
     <Card className="flex flex-col justify-between h-full hover:border-primary/40 transition-colors">
@@ -18,7 +27,7 @@ export const MockTestCard: React.FC<MockTestCardProps> = ({ test }) => {
         {/* Header badges */}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
-            {test.examCode} • Mock Simulation
+            {examCode} • Mock Simulation
           </span>
 
           {test.isRecommended && (
@@ -45,46 +54,51 @@ export const MockTestCard: React.FC<MockTestCardProps> = ({ test }) => {
         {/* Title & Description */}
         <div>
           <h3 className="text-base font-bold text-foreground leading-snug">
-            {test.title}
+            {title}
           </h3>
           <p className="text-xs text-foreground-secondary leading-relaxed mt-1">
-            {test.description}
+            {description}
           </p>
         </div>
 
         {/* Sections list */}
-        <div className="flex flex-wrap gap-1.5 pt-1">
-          <span className="text-[11px] font-semibold text-foreground-secondary mr-1 self-center">
-            Sections:
-          </span>
-          {test.sections.map((s) => (
-            <span
-              key={s.id}
-              className="px-2 py-0.5 rounded text-[11px] font-medium bg-surface-elevated text-foreground border border-border"
-            >
-              {s.name}
+        {sections.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            <span className="text-[11px] font-semibold text-foreground-secondary mr-1 self-center">
+              Sections:
             </span>
-          ))}
-        </div>
+            {sections.map((s, sIdx) => {
+              const secName = s?.name || (s as any)?.title || `Section ${sIdx + 1}`;
+              return (
+                <span
+                  key={s?.id || `sec-${sIdx}`}
+                  className="px-2 py-0.5 rounded text-[11px] font-medium bg-surface-elevated text-foreground border border-border"
+                >
+                  {secName}
+                </span>
+              );
+            })}
+          </div>
+        )}
 
         {/* Test Parameters Metadata */}
         <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border text-xs">
           <div className="flex flex-col">
             <span className="text-[10px] uppercase font-bold text-foreground-secondary">Questions</span>
-            <span className="font-bold text-foreground">{test.totalQuestions}</span>
+            <span className="font-bold text-foreground">{totalQuestions}</span>
           </div>
 
           <div className="flex flex-col">
             <span className="text-[10px] uppercase font-bold text-foreground-secondary">Duration</span>
             <span className="font-medium text-foreground inline-flex items-center gap-1">
               <Clock className="w-3 h-3 text-foreground-muted" aria-hidden="true" />
-              <span>{test.durationMinutes} min</span>
+              <span>{durationMinutes} min</span>
             </span>
           </div>
 
           <div className="flex flex-col">
             <span className="text-[10px] uppercase font-bold text-foreground-secondary">Difficulty</span>
-            <span className="font-medium text-foreground capitalize">{test.difficulty}</span>
+            <span className="font-medium text-foreground capitalize">{difficulty}</span>
           </div>
         </div>
       </div>
@@ -92,9 +106,9 @@ export const MockTestCard: React.FC<MockTestCardProps> = ({ test }) => {
       {/* Action CTA */}
       <div className="pt-5 mt-auto">
         <Link
-          to={`/candidate/mock-tests/${test.id}`}
+          to={`/candidate/mock-tests/${test.id || 'cds-full-mock-01'}`}
           className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-surface hover:bg-surface-elevated active:bg-surface-elevated border border-border hover:border-primary/40 text-foreground font-bold text-xs min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors"
-          aria-label={`View details for ${test.title}`}
+          aria-label={`View details for ${title}`}
         >
           <span>View Test Details</span>
           <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />

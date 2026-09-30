@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { MockTest, MockTestSession } from '../../../types/mockTest';
-import { mockTestService } from '../../../services/mockTestService';
+import { mockTestService, FALLBACK_MOCK_TESTS } from '../../../services/mockTestService';
 import { MockTestCard } from '../../../components/mockTest/MockTestCard';
 import { MockTestDiscardModal } from '../../../components/mockTest/MockTestDiscardModal';
 import {
@@ -15,33 +15,43 @@ import {
 } from 'lucide-react';
 
 export const MockTestsPage: React.FC = () => {
-  const [tests, setTests] = useState<MockTest[]>([]);
+  const [searchParams] = useSearchParams();
+  const testQuery = searchParams.get('test')?.toLowerCase() || '';
+
+  // Initialize immediately with rich fallback catalog so the page NEVER displays a blank screen
+  const [tests, setTests] = useState<MockTest[]>(() => FALLBACK_MOCK_TESTS);
   const [activeSession, setActiveSession] = useState<MockTestSession | null>(null);
   const [isDiscardModalOpen, setIsDiscardModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading] = useState(false);
 
   // Filters state
   const [selectedExam, setSelectedExam] = useState<string>('all');
+  const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
 
   useEffect(() => {
+    let isMounted = true;
     async function loadData() {
       try {
-        setIsLoading(true);
         const [testList, session] = await Promise.all([
           mockTestService.getMockTests(),
           mockTestService.getActiveSession(),
         ]);
-        setTests(testList);
-        setActiveSession(session);
+        if (isMounted) {
+          if (Array.isArray(testList) && testList.length > 0) {
+            setTests(testList);
+          }
+          setActiveSession(session);
+        }
       } catch (err) {
-        console.error('Failed to load mock tests', err);
-      } finally {
-        setIsLoading(false);
+        console.warn('Background sync for mock tests encountered error:', err);
       }
     }
     loadData();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleDiscardAttempt = async () => {
@@ -52,15 +62,61 @@ export const MockTestsPage: React.FC = () => {
   };
 
   const filteredTests = tests.filter((t) => {
-    if (selectedExam !== 'all' && t.examCode !== selectedExam) return false;
-    if (selectedDifficulty !== 'all' && t.difficulty !== selectedDifficulty) return false;
-    if (selectedStatus !== 'all' && t.status !== selectedStatus) return false;
+    if (!t) return false;
+    const testId = (t.id || '').toLowerCase();
+    const testTitle = (t.title || '').toLowerCase();
+    const testExamCode = (t.examCode || '').toLowerCase();
+    const testExamName = (t.examName || '').toLowerCase();
+    const testDesc = (t.description || '').toLowerCase();
+    const testDifficulty = (t.difficulty || '').toLowerCase();
+    const testStatus = t.status || 'not_started';
+
+    if (testQuery) {
+      const q = testQuery.toLowerCase().trim();
+      const matchesId = testId.includes(q);
+      const matchesTitle = testTitle.includes(q);
+      const matchesExam = testExamCode.includes(q) || testExamName.includes(q);
+      const matchesDesc = testDesc.includes(q);
+      const matchesSec = (t.sections || []).some(
+        (s) => (s?.name || '').toLowerCase().includes(q) || (s?.code || '').toLowerCase().includes(q)
+      );
+      if (!matchesId && !matchesTitle && !matchesExam && !matchesDesc && !matchesSec) {
+        return false;
+      }
+    }
+
+    if (selectedSubject !== 'all') {
+      const subj = selectedSubject.toLowerCase();
+      if (subj === 'math') {
+        const isMath = testId.includes('math') || testTitle.includes('math') || testExamCode.includes('math');
+        if (!isMath) return false;
+      } else if (subj === 'english') {
+        const isEng = testId.includes('eng') || testTitle.includes('english') || testExamCode.includes('eng');
+        if (!isEng) return false;
+      } else if (subj === 'gk') {
+        const isGk = testId.includes('gk') || testTitle.includes('knowledge') || testExamCode.includes('gk');
+        if (!isGk) return false;
+      } else if (subj === 'reasoning') {
+        const isReas = testId.includes('reas') || testTitle.includes('reasoning') || testExamCode.includes('reas');
+        if (!isReas) return false;
+      } else if (subj === 'full') {
+        const isFull = testId.includes('full') || testTitle.includes('full');
+        if (!isFull) return false;
+      }
+    }
+
+    if (selectedExam !== 'all') {
+      const isCds = selectedExam === 'UPSC-CDS' && (testExamCode.includes('cds') || testExamCode === 'upsc-cds');
+      if (!isCds && (t.examCode || '') !== selectedExam) return false;
+    }
+    if (selectedDifficulty !== 'all' && testDifficulty !== selectedDifficulty.toLowerCase()) return false;
+    if (selectedStatus !== 'all' && testStatus !== selectedStatus) return false;
     return true;
   });
 
-  const recommendedTests = filteredTests.filter((t) => t.isRecommended);
+  const recommendedTests = filteredTests.filter((t) => Boolean(t && t.isRecommended));
 
-  if (isLoading) {
+  if (isLoading && tests.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-16 gap-3" role="status">
         <Loader2 className="w-8 h-8 animate-spin text-primary" aria-hidden="true" />
@@ -146,6 +202,33 @@ export const MockTestsPage: React.FC = () => {
         <h2 id="filters-heading" className="sr-only">
           Filter available mock tests
         </h2>
+
+        {/* Subject Filter Pills */}
+        <div className="flex flex-wrap items-center gap-2 mb-3 pb-3 border-b border-border">
+          <span className="text-[11px] font-bold text-foreground-secondary mr-1">Subject:</span>
+          {[
+            { id: 'all', label: 'All Subjects' },
+            { id: 'full', label: 'Full CDS Mocks' },
+            { id: 'math', label: 'Mathematics' },
+            { id: 'english', label: 'English Language' },
+            { id: 'gk', label: 'General Knowledge' },
+            { id: 'reasoning', label: 'Reasoning Ability' },
+          ].map((subj) => (
+            <button
+              key={subj.id}
+              type="button"
+              onClick={() => setSelectedSubject(subj.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors min-h-[36px] ${
+                selectedSubject === subj.id
+                  ? 'bg-primary text-primary-contrast'
+                  : 'bg-surface-elevated text-foreground hover:bg-surface border border-border'
+              }`}
+            >
+              {subj.label}
+            </button>
+          ))}
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Exam Filter */}
           <div className="flex flex-col gap-1">

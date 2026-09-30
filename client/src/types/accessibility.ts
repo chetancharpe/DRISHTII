@@ -55,6 +55,17 @@ export interface AccessibilityPreferences {
   language: string;
   voiceURI?: string;
 
+  // Child Mode / Accessibility Extension (Requirement #6)
+  accessibilityMode?: 'STANDARD' | 'VISUALLY_IMPAIRED' | 'CHILD';
+  childModeSettings?: {
+    largerControls: boolean;
+    slowerVoice: boolean;
+    simplifiedNavigation: boolean;
+    gestureInteraction: boolean;
+    voiceFirstInteraction: boolean;
+    speechRateMultiplier: number;
+  };
+
   // Backward compatibility aliases
   highContrast?: boolean;
   audioFeedbackEnabled?: boolean;
