@@ -164,11 +164,32 @@ export const practiceService = {
     }
 
     if (!session) {
-      // Re-initialize default session with matching sessionId so route does not mismatch
+      // Re-initialize session with matching subject & topic based on sessionId
+      let subjectId = 'mathematics';
+      let topicId = 'percentages';
+
+      const lowerId = sessionId.toLowerCase();
+      if (lowerId.includes('coding') || lowerId.includes('reasoning')) {
+        subjectId = 'reasoning';
+        topicId = 'coding-decoding';
+      } else if (lowerId.includes('history') || lowerId.includes('gk') || lowerId.includes('current-affairs') || lowerId.includes('defence')) {
+        subjectId = 'general-knowledge';
+        topicId = 'current-affairs';
+      } else if (lowerId.includes('english') || lowerId.includes('comprehension')) {
+        subjectId = 'english';
+        topicId = 'reading-comprehension';
+      } else if (lowerId.includes('algebra')) {
+        subjectId = 'mathematics';
+        topicId = 'algebra';
+      } else if (lowerId.includes('geometry')) {
+        subjectId = 'mathematics';
+        topicId = 'geometry';
+      }
+
       const defaultFilter: PracticeSessionFilter = {
         examId: 'cds',
-        subjectId: 'mathematics',
-        topicId: 'percentages',
+        subjectId,
+        topicId,
         difficulty: 'medium',
         questionCount: 5,
       };

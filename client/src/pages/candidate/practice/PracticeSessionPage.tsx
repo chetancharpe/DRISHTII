@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { PracticeSession } from '../../../types/practice';
 import { practiceService } from '../../../services/practiceService';
@@ -19,7 +19,7 @@ import { useVoiceCommands } from '../../../hooks/useVoiceCommands';
 export const PracticeSessionPage: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
-  const { openCalibration, announce } = useAccessibility();
+  const { openCalibration, announce, speak } = useAccessibility();
 
   const [session, setSession] = useState<PracticeSession | null>(null);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -118,6 +118,69 @@ export const PracticeSessionPage: React.FC = () => {
     }
   };
 
+  // Automated Spoken Question & Choices Readout
+  const readQuestionAloud = useCallback(() => {
+    if (!currentQuestion) return;
+    const optLetters = ['A', 'B', 'C', 'D'];
+    const opts = currentQuestion.options
+      .map((opt, i) => `Option ${opt.label || optLetters[i]}: ${opt.text}`)
+      .join('. ');
+    const qText = currentQuestion.audioDescription || currentQuestion.questionText;
+    const textToSpeak = `Question ${currentIdx + 1} of ${session?.totalQuestions || 5}: ${currentQuestion.topicName || ''}. ${qText}. ${opts}. Say Option A, Option B, Option C, or Option D to choose, or say Next Question.`;
+    speak(textToSpeak);
+    announce(textToSpeak, 'polite');
+  }, [currentQuestion, currentIdx, session?.totalQuestions, speak, announce]);
+
+  // Auto-read question statement and choices on question load or question change
+  useEffect(() => {
+    if (isLoading || !currentQuestion) return;
+    const timer = setTimeout(() => {
+      readQuestionAloud();
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [currentIdx, currentQuestion?.id, isLoading, readQuestionAloud]);
+
+  // Universal Practice Voice Command Event Listeners
+  useEffect(() => {
+    const handleSelectEvent = (e: any) => {
+      const label = e.detail?.label?.toUpperCase();
+      if (!currentQuestion || !label) return;
+      const optIdx = currentQuestion.options.findIndex(
+        (o, i) => o.label?.toUpperCase() === label || ['A', 'B', 'C', 'D'][i] === label
+      );
+      if (optIdx !== -1) {
+        const opt = currentQuestion.options[optIdx];
+        handleSubmitAnswer(currentQuestion.id, [opt.id]);
+        speak(`Option ${opt.label || label} selected.`);
+        announce(`Option ${opt.label || label} selected.`, 'polite');
+      }
+    };
+
+    const handleNextEvent = () => handleNext();
+    const handlePrevEvent = () => handlePrevious();
+    const handleSkipEvent = () => {
+      if (currentQuestion) handleSkipQuestion(currentQuestion.id);
+    };
+    const handleReadEvent = () => readQuestionAloud();
+    const handleSubmitEvent = () => setIsFinishModalOpen(true);
+
+    window.addEventListener('drishti:practice-select-option', handleSelectEvent);
+    window.addEventListener('drishti:practice-next', handleNextEvent);
+    window.addEventListener('drishti:practice-previous', handlePrevEvent);
+    window.addEventListener('drishti:practice-skip', handleSkipEvent);
+    window.addEventListener('drishti:practice-read-question', handleReadEvent);
+    window.addEventListener('drishti:practice-submit', handleSubmitEvent);
+
+    return () => {
+      window.removeEventListener('drishti:practice-select-option', handleSelectEvent);
+      window.removeEventListener('drishti:practice-next', handleNextEvent);
+      window.removeEventListener('drishti:practice-previous', handlePrevEvent);
+      window.removeEventListener('drishti:practice-skip', handleSkipEvent);
+      window.removeEventListener('drishti:practice-read-question', handleReadEvent);
+      window.removeEventListener('drishti:practice-submit', handleSubmitEvent);
+    };
+  }, [currentQuestion, handleNext, handlePrevious, handleSkipQuestion, readQuestionAloud, speak, announce]);
+
   const voice = useVoiceCommands({
     onNext: handleNext,
     onPrevious: handlePrevious,
@@ -126,6 +189,7 @@ export const PracticeSessionPage: React.FC = () => {
         const optId = currentQuestion.options[optionIdx].id;
         if (!savedAnswer?.isSubmitted) {
           handleSubmitAnswer(currentQuestion.id, [optId]);
+          speak(`Option ${currentQuestion.options[optionIdx].label} selected.`);
         }
       }
     },
