@@ -9,6 +9,7 @@ import {
   Volume2,
 } from 'lucide-react';
 import { Button } from '../common/Button';
+import heroBannerImage from '../../assets/images/hero-banner.jpg';
 
 export interface HeroSectionProps {
   onOpenAccessibility: () => void;
@@ -19,37 +20,38 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenAccessibility, o
   return (
     <section
       aria-labelledby="hero-title"
-      className="relative overflow-hidden pt-12 pb-16 md:py-20 lg:py-24 min-h-[580px] lg:min-h-[640px] flex items-center"
+      className="relative isolate overflow-hidden pt-12 pb-16 md:py-20 lg:py-24 min-h-[580px] lg:min-h-[640px] flex items-center bg-white"
     >
-      {/* Hero Banner Background Image */}
-      <div className="absolute inset-0 -z-20">
+      {/* 1. Hero Banner Background Image Layer (z-0) */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
         <img
-          src="/assets/images/hero-banner.jpg"
+          src={heroBannerImage}
           alt="Visually impaired student preparing for competitive exams using Drishti accessible examination platform"
-          className="w-full h-full object-cover object-right md:object-[78%_center] lg:object-right"
+          className="w-full h-full object-cover object-right md:object-[80%_center] lg:object-right select-none"
         />
       </div>
 
-      {/* White Blend Overlay: Pure white behind the main text on the left, blending smoothly into transparent right where the text line ends */}
+      {/* 2. White Blend Overlay Layer (z-10): Pure white behind the main text on the left, blending smoothly into transparent right where the text line ends */}
       <div
-        className="absolute inset-0 -z-10 pointer-events-none hidden md:block"
+        className="absolute inset-0 z-10 pointer-events-none hidden md:block"
         style={{
           background:
-            'linear-gradient(to right, #ffffff 0%, #ffffff 38%, rgba(255, 255, 255, 0.96) 46%, rgba(255, 255, 255, 0.65) 54%, rgba(255, 255, 255, 0) 65%)',
+            'linear-gradient(to right, #ffffff 0%, #ffffff 36%, rgba(255, 255, 255, 0.98) 44%, rgba(255, 255, 255, 0.8) 50%, rgba(255, 255, 255, 0) 64%)',
         }}
         aria-hidden="true"
       />
-      {/* Mobile/Tablet Fallback Blend */}
+      {/* Mobile/Tablet Fallback Blend (z-10) */}
       <div
-        className="absolute inset-0 -z-10 pointer-events-none md:hidden"
+        className="absolute inset-0 z-10 pointer-events-none md:hidden"
         style={{
           background:
-            'linear-gradient(to bottom, #ffffff 0%, #ffffff 70%, rgba(255, 255, 255, 0.9) 85%, rgba(255, 255, 255, 0.6) 100%)',
+            'linear-gradient(to bottom, #ffffff 0%, #ffffff 72%, rgba(255, 255, 255, 0.92) 86%, rgba(255, 255, 255, 0.6) 100%)',
         }}
         aria-hidden="true"
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+      {/* 3. Text and Interactive Elements Layer (z-20) */}
+      <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         <div className="max-w-2xl text-left flex flex-col items-start">
           {/* Tagline Badge */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-blue-200 bg-white/95 text-xs font-semibold text-blue-800 mb-5 shadow-xs backdrop-blur-xs">
