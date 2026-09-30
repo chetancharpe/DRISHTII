@@ -24,10 +24,14 @@ export const CandidateVoiceAssistant: React.FC = () => {
   const location = useLocation();
   const {
     isListening,
+    isActuallyRecognizing,
     isSupported,
+    hasPermissionError,
+    liveTranscript,
     lastTranscript,
     lastActionFeedback,
     toggleListening,
+    requestMicPermission,
     speakPageGuidance,
     speakAvailableCommands,
   } = useCandidateVoiceNavigator();
@@ -52,10 +56,10 @@ export const CandidateVoiceAssistant: React.FC = () => {
       <section
         role="region"
         aria-label="Candidate Hands-Free Voice Assistant and Spoken Guidance"
-        className="w-full mb-6 rounded-2xl border-2 border-primary/30 bg-surface-elevated/90 backdrop-blur-md shadow-md p-3 sm:p-4 text-foreground flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 transition-all"
+        className="w-full mb-6 rounded-2xl border-2 border-primary/30 bg-surface-elevated/95 backdrop-blur-md shadow-md p-3.5 sm:p-4 text-foreground flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 transition-all"
       >
         {/* Left: Status and Live Feedback */}
-        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
           {/* Animated Mic Badge */}
           <div className="relative shrink-0">
             <button
@@ -67,20 +71,24 @@ export const CandidateVoiceAssistant: React.FC = () => {
                   : 'Voice Assistant paused. Press to activate (Alt+V)'
               }
               title={isListening ? 'Click or press Alt+V to pause mic' : 'Click or press Alt+V to listen'}
-              className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                isListening
-                  ? 'bg-status-success/20 text-status-success border-2 border-status-success/60 shadow-[0_0_12px_rgba(34,197,94,0.35)]'
+              className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                isActuallyRecognizing
+                  ? 'bg-status-success/20 text-status-success border-2 border-status-success shadow-[0_0_15px_rgba(34,197,94,0.4)]'
+                  : isListening
+                  ? 'bg-primary/20 text-primary border-2 border-primary/60'
                   : 'bg-surface border-2 border-border text-foreground-muted hover:border-primary/50 hover:text-foreground'
               }`}
             >
-              {isListening ? (
+              {isActuallyRecognizing ? (
                 <>
-                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                  <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-success opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-status-success"></span>
+                    <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-status-success"></span>
                   </span>
                   <Mic className="w-5 h-5 animate-pulse" aria-hidden="true" />
                 </>
+              ) : isListening ? (
+                <Mic className="w-5 h-5 text-primary" aria-hidden="true" />
               ) : (
                 <MicOff className="w-5 h-5" aria-hidden="true" />
               )}
@@ -88,7 +96,7 @@ export const CandidateVoiceAssistant: React.FC = () => {
           </div>
 
           {/* Status Text & Dynamic Transcription Feedback */}
-          <div className="flex flex-col min-w-0">
+          <div className="flex flex-col min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
                 <Radio className="w-3.5 h-3.5" aria-hidden="true" />
@@ -97,13 +105,29 @@ export const CandidateVoiceAssistant: React.FC = () => {
 
               <span
                 className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
-                  isListening
+                  isActuallyRecognizing
                     ? 'bg-status-success/15 text-status-success border border-status-success/30'
+                    : isListening
+                    ? 'bg-primary/15 text-primary border border-primary/30'
                     : 'bg-surface border border-border text-foreground-muted'
                 }`}
               >
-                {isListening ? 'Listening' : 'Paused (Alt+V)'}
+                {isActuallyRecognizing
+                  ? 'Listening live'
+                  : isListening
+                  ? 'Mic Ready'
+                  : 'Paused (Alt+V)'}
               </span>
+
+              {hasPermissionError && (
+                <button
+                  type="button"
+                  onClick={requestMicPermission}
+                  className="text-[11px] font-bold bg-status-error text-white px-2.5 py-0.5 rounded-md hover:bg-status-error/90 transition-colors shadow-sm animate-pulse"
+                >
+                  Click to Allow Microphone
+                </button>
+              )}
 
               {!isSupported && (
                 <span className="text-[10px] bg-status-warning/20 text-status-warning px-2 py-0.5 rounded border border-status-warning/40">
@@ -118,7 +142,12 @@ export const CandidateVoiceAssistant: React.FC = () => {
               aria-atomic="true"
               className="text-xs sm:text-sm font-medium text-foreground truncate mt-0.5"
             >
-              {lastActionFeedback ? (
+              {liveTranscript ? (
+                <span className="flex items-center gap-1.5 text-primary font-bold">
+                  <span className="inline-block w-2 h-2 rounded-full bg-primary animate-ping"></span>
+                  <span className="truncate">Hearing: &ldquo;{liveTranscript}&rdquo;</span>
+                </span>
+              ) : lastActionFeedback ? (
                 <span className="flex items-center gap-1.5 text-primary font-semibold">
                   <Sparkles className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                   <span className="truncate">

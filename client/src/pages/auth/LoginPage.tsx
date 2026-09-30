@@ -5,7 +5,7 @@ import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Input } from '../../components/common/Input';
 import { Checkbox } from '../../components/common/Checkbox';
 import { Button } from '../../components/common/Button';
-import { AlertCircle, ArrowRight, UserCheck } from 'lucide-react';
+import { AlertCircle, ArrowRight, UserCheck, Mic } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -16,6 +16,9 @@ export const LoginPage: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [formError, setFormError] = useState<string | null>(null);
+
+  const [isVoiceListening, setIsVoiceListening] = useState(false);
+  const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
 
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -69,6 +72,90 @@ export const LoginPage: React.FC = () => {
     setFormError(null);
   };
 
+  const handleVoiceCandidateLogin = async () => {
+    fillDemoAccount('candidate1@gowow.org', 'CandidateSecure123!');
+    try {
+      const loggedInUser = await login('candidate1@gowow.org', 'CandidateSecure123!');
+      if (loggedInUser.role === 'candidate') {
+        navigate('/candidate/dashboard');
+      }
+    } catch (err: any) {
+      setFormError(err?.message || 'Voice login failed. Please try again.');
+    }
+  };
+
+  const startVoiceLogin = async () => {
+    if (typeof window === 'undefined') return;
+    const SpeechClass =
+      window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechClass) {
+      setVoiceNotice('Speech recognition requires Chrome or Edge.');
+      return;
+    }
+
+    try {
+      if (navigator.mediaDevices?.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((t) => t.stop());
+      }
+      const recognition = new SpeechClass();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-IN';
+
+      recognition.onstart = () => {
+        setIsVoiceListening(true);
+        setVoiceNotice('Listening... Say "Candidate" to sign in');
+      };
+
+      recognition.onresult = (event: any) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          transcript += event.results[i][0].transcript;
+        }
+        const lower = transcript.toLowerCase();
+        setVoiceNotice(`Heard: "${transcript}"`);
+        if (
+          lower.includes('candidate') ||
+          lower.includes('sign in') ||
+          lower.includes('login') ||
+          lower.includes('chalo')
+        ) {
+          recognition.abort();
+          setIsVoiceListening(false);
+          handleVoiceCandidateLogin();
+        }
+      };
+
+      recognition.onerror = () => {
+        setIsVoiceListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsVoiceListening(false);
+      };
+
+      recognition.start();
+    } catch {
+      setIsVoiceListening(false);
+    }
+  };
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && e.key.toLowerCase() === 'v') {
+        e.preventDefault();
+        if (isVoiceListening) {
+          setIsVoiceListening(false);
+        } else {
+          startVoiceLogin();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isVoiceListening]);
+
   return (
     <AuthLayout
       title="Welcome Back"
@@ -81,6 +168,38 @@ export const LoginPage: React.FC = () => {
           <p className="text-xs text-foreground-muted mt-0.5">
             Enter your registered credentials to access your assessment session.
           </p>
+        </div>
+
+        {/* Hands-Free Voice Sign-In Banner */}
+        <div className="p-3 rounded-xl border border-primary/40 bg-primary/10 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div
+              className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                isVoiceListening
+                  ? 'bg-status-success/20 text-status-success'
+                  : 'bg-primary/20 text-primary'
+              }`}
+            >
+              <Mic className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-foreground truncate">
+                {voiceNotice || 'Hands-Free Voice Sign In'}
+              </p>
+              <p className="text-[10px] text-foreground-secondary truncate">
+                {isVoiceListening
+                  ? 'Say "Candidate" or "Sign In" now'
+                  : 'Click button or press Alt+V to speak'}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={isVoiceListening ? () => setIsVoiceListening(false) : startVoiceLogin}
+            className="px-3 py-1.5 rounded-lg bg-primary text-primary-contrast text-xs font-bold shrink-0 hover:bg-primary-hover min-h-[34px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            {isVoiceListening ? 'Stop' : 'Voice Sign In'}
+          </button>
         </div>
 
         {/* Global Live Region Form Error Alert */}
