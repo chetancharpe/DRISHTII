@@ -12,6 +12,7 @@
 
 import {
   ExaminerExam,
+  ExamSectionConfig,
   AggregateSessionMonitoring,
   ExamIncident,
   SystemAnnouncement,
@@ -150,10 +151,159 @@ const INITIAL_ANNOUNCEMENTS: SystemAnnouncement[] = [
 ];
 
 import { storage } from '../utils/storage';
+import { apiClient } from './api';
 
 const EXAMS_STORAGE_KEY = 'gowow_examiner_exams';
 const INCIDENTS_STORAGE_KEY = 'gowow_examiner_incidents';
 const ANNOUNCEMENTS_STORAGE_KEY = 'gowow_examiner_announcements';
+
+export interface BackendSectionResponse {
+  id: string;
+  exam_id: string;
+  title: string;
+  description?: string;
+  display_order: number;
+  duration_seconds?: number;
+  navigation_policy: string;
+  question_count: number;
+}
+
+export interface BackendExamExaminerResponse {
+  id: string;
+  title: string;
+  description?: string;
+  instructions?: string;
+  duration_seconds: number;
+  extra_time_seconds: number;
+  language: string;
+  status: string;
+  start_at?: string;
+  end_at?: string;
+  created_by?: string;
+  published_at?: string;
+  created_at: string;
+  updated_at: string;
+  sections?: BackendSectionResponse[];
+  candidate_count: number;
+  organization_id?: string;
+}
+
+export interface BackendExamMonitorSummary {
+  exam_id: string;
+  total_assigned: number;
+  not_started: number;
+  active: number;
+  interrupted: number;
+  submitted: number;
+  expired: number;
+  candidates?: Array<{
+    candidate_id: string;
+    masked_name: string;
+    status: string;
+    remaining_seconds?: number;
+    answered_count: number;
+    total_questions: number;
+    last_sync_seconds_ago?: number;
+  }>;
+}
+
+function mapBackendExamToExaminerExam(
+  bExam: BackendExamExaminerResponse,
+  fallback?: Partial<ExaminerExam>
+): ExaminerExam {
+  const durationMins = Math.round((bExam.duration_seconds || 3600) / 60);
+  const sections: ExamSectionConfig[] = (bExam.sections && bExam.sections.length > 0)
+    ? bExam.sections.map((s, idx) => ({
+        id: s.id,
+        title: s.title || `Section ${idx + 1}`,
+        code: `SEC-${idx + 1}`,
+        description: s.description || '',
+        questionCount: s.question_count || 0,
+        durationMinutes: Math.round((s.duration_seconds || 900) / 60),
+        navigationPolicy: (s.navigation_policy?.toLowerCase() === 'sequential' ? 'section_locked' : 'free') as any,
+        questionIds: [],
+      }))
+    : fallback?.sections || [];
+
+  const totalQuestions = sections.reduce((acc, s) => acc + (s.questionCount || 0), 0);
+
+  return {
+    id: bExam.id,
+    code: fallback?.code || `EXAM-${bExam.id.slice(0, 8).toUpperCase()}`,
+    title: bExam.title,
+    description: bExam.description || '',
+    organization: fallback?.organization || 'National Assessment Council',
+    organizationId: bExam.organization_id || 'org-01',
+    category: fallback?.category || 'Competitive Entrance',
+    examType: fallback?.examType || 'competitive',
+    language: bExam.language || 'English',
+    instructions: bExam.instructions || 'Standard accessible examination instructions.',
+    lifecycleStatus: (bExam.status ? bExam.status.toUpperCase() : 'DRAFT') as any,
+    version: fallback?.version || 1,
+    isImmutable: bExam.status === 'LIVE' || bExam.status === 'COMPLETED',
+    totalQuestions: totalQuestions || fallback?.totalQuestions || 0,
+    totalMarks: fallback?.totalMarks || (totalQuestions * 2) || 100,
+    candidatesCount: bExam.candidate_count || 0,
+    candidateGroupIds: fallback?.candidateGroupIds || [],
+    createdAt: bExam.created_at ? bExam.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+    updatedAt: bExam.updated_at ? bExam.updated_at.split('T')[0] : new Date().toISOString().split('T')[0],
+    publishedAt: bExam.published_at || fallback?.publishedAt,
+    sections,
+    rules: fallback?.rules || {
+      durationMinutes: durationMins,
+      allowBackNavigation: true,
+      allowSectionSwitching: true,
+      allowReviewMarking: true,
+      randomizeQuestionOrder: false,
+      randomizeOptionOrder: false,
+      calculatorPolicy: 'none',
+      pausePermission: false,
+      attemptCountLimit: 1,
+    },
+    accessibility: fallback?.accessibility || {
+      screenReaderOptimized: true,
+      audioQuestionSupport: true,
+      audioPolicy: 'allowed',
+      textScalingSupport: true,
+      highContrastSupport: true,
+      darkModeSupport: true,
+      reducedMotionSupport: true,
+      keyboardNavigationFirst: true,
+      extraTimeMultiplier: 1.5,
+    },
+    schedule: fallback?.schedule || {
+      startDate: bExam.start_at ? bExam.start_at.split('T')[0] : new Date().toISOString().split('T')[0],
+      startTime: bExam.start_at ? bExam.start_at.split('T')[1]?.slice(0, 5) || '10:00' : '10:00',
+      endDate: bExam.end_at ? bExam.end_at.split('T')[0] : new Date().toISOString().split('T')[0],
+      endTime: bExam.end_at ? bExam.end_at.split('T')[1]?.slice(0, 5) || '12:00' : '12:00',
+      durationMinutes: durationMins,
+      timezone: 'IST (UTC+05:30)',
+      attemptWindowHours: 2,
+      candidateAvailability: 'all_assigned',
+    },
+    markingScheme: fallback?.markingScheme || {
+      correctMarks: 2,
+      negativeMarks: 0.5,
+      unansweredMarks: 0,
+      description: '+2 for correct, -0.5 for wrong, 0 for unattempted.',
+    },
+    checklist: fallback?.checklist || {
+      basicInfoComplete: true,
+      structureValid: sections.length > 0,
+      questionsAssigned: totalQuestions > 0,
+      correctAnswersVerified: true,
+      markingSchemeConfigured: true,
+      accessibilityChecksPassed: true,
+      candidateGroupAssigned: true,
+      scheduleValid: true,
+      instructionsAccessible: true,
+      securityConfigured: true,
+      previewVerified: false,
+      blockingErrors: [],
+      warnings: [],
+    },
+  };
+}
 
 class ExaminerService {
   private getStoredExams(): ExaminerExam[] {
@@ -172,103 +322,166 @@ class ExaminerService {
     totalCandidates: number;
     pendingEvaluations: number;
   }> {
-    const exams = this.getStoredExams();
+    const exams = await this.getExams();
     return {
       activeExams: exams.filter((e) => e.lifecycleStatus === 'LIVE').length,
       upcomingExams: exams.filter((e) => e.lifecycleStatus === 'SCHEDULED' || e.lifecycleStatus === 'READY').length,
       draftExams: exams.filter((e) => e.lifecycleStatus === 'DRAFT').length,
       completedExams: exams.filter((e) => e.lifecycleStatus === 'COMPLETED').length,
       totalCandidates: exams.reduce((acc, curr) => acc + (curr.candidatesCount || 0), 0),
-      pendingEvaluations: 43,
+      pendingEvaluations: 0,
     };
   }
 
   async getExams(): Promise<ExaminerExam[]> {
+    try {
+      const backendExams = await apiClient.get<BackendExamExaminerResponse[]>('/examiner/exams');
+      if (Array.isArray(backendExams) && backendExams.length > 0) {
+        const stored = this.getStoredExams();
+        const storedMap = new Map(stored.map((e) => [e.id, e]));
+        const mapped = backendExams.map((b) => mapBackendExamToExaminerExam(b, storedMap.get(b.id)));
+        this.saveStoredExams(mapped);
+        return mapped;
+      }
+    } catch (err) {
+      console.warn('Backend /examiner/exams unavailable, using cached local exams:', err);
+    }
     return this.getStoredExams();
   }
 
   async getExamById(id: string): Promise<ExaminerExam | null> {
+    try {
+      const bExam = await apiClient.get<BackendExamExaminerResponse>(`/examiner/exams/${id}`);
+      if (bExam && bExam.id) {
+        const stored = this.getStoredExams();
+        const local = stored.find((e) => e.id === id);
+        return mapBackendExamToExaminerExam(bExam, local);
+      }
+    } catch (err) {
+      console.warn(`Backend /examiner/exams/${id} call failed, checking cached exams:`, err);
+    }
     const exams = this.getStoredExams();
     return exams.find((e) => e.id === id) || null;
   }
 
   async createExam(data: Partial<ExaminerExam>): Promise<ExaminerExam> {
     const exams = this.getStoredExams();
-    const newExam: ExaminerExam = {
-      id: `exam-${Date.now()}`,
-      code: data.code || `EXAM-${Math.floor(1000 + Math.random() * 9000)}`,
-      title: data.title || 'Untitled Assessment',
-      description: data.description || '',
-      organization: data.organization || 'National Assessment Council',
-      organizationId: data.organizationId || 'org-01',
-      category: data.category || 'Competitive Entrance',
-      examType: data.examType || 'competitive',
-      language: data.language || 'English',
-      instructions: data.instructions || 'Standard accessible examination instructions.',
-      lifecycleStatus: 'DRAFT',
-      version: 1,
-      isImmutable: false,
-      sections: data.sections || [],
-      rules: data.rules || {
-        durationMinutes: 60,
-        allowBackNavigation: true,
-        allowSectionSwitching: true,
-        allowReviewMarking: true,
-        randomizeQuestionOrder: false,
-        randomizeOptionOrder: false,
-        calculatorPolicy: 'none',
-        pausePermission: false,
-        attemptCountLimit: 1,
-      },
-      accessibility: data.accessibility || {
-        screenReaderOptimized: true,
-        audioQuestionSupport: true,
-        audioPolicy: 'allowed',
-        textScalingSupport: true,
-        highContrastSupport: true,
-        darkModeSupport: true,
-        reducedMotionSupport: true,
-        keyboardNavigationFirst: true,
-        extraTimeMultiplier: 1.5,
-      },
-      candidateGroupIds: data.candidateGroupIds || [],
-      schedule: data.schedule || {
-        startDate: new Date().toISOString().split('T')[0],
-        startTime: '10:00',
-        endDate: new Date().toISOString().split('T')[0],
-        endTime: '12:00',
-        durationMinutes: 60,
-        timezone: 'IST (UTC+05:30)',
-        attemptWindowHours: 2,
-        candidateAvailability: 'all_assigned',
-      },
-      markingScheme: data.markingScheme || {
-        correctMarks: 2,
-        negativeMarks: 0.5,
-        unansweredMarks: 0,
-        description: '+2 for correct, -0.5 for wrong, 0 for unattempted.',
-      },
-      totalQuestions: data.totalQuestions || 0,
-      totalMarks: data.totalMarks || 0,
-      candidatesCount: 0,
-      createdAt: new Date().toISOString().split('T')[0],
-      updatedAt: new Date().toISOString().split('T')[0],
-      checklist: {
-        basicInfoComplete: true,
-        structureValid: (data.sections?.length || 0) > 0,
-        questionsAssigned: (data.totalQuestions || 0) > 0,
-        correctAnswersVerified: true,
-        markingSchemeConfigured: true,
-        accessibilityChecksPassed: true,
-        candidateGroupAssigned: (data.candidateGroupIds?.length || 0) > 0,
-        scheduleValid: true,
-        instructionsAccessible: true,
-        securityConfigured: true,
-        previewVerified: false,
-        blockingErrors: [],
-        warnings: ['Preview as Candidate recommended before live release.'],
-      },
-    };
+    let backendCreated: BackendExamExaminerResponse | null = null;
+
+    try {
+      backendCreated = await apiClient.post<BackendExamExaminerResponse>('/examiner/exams', {
+        title: data.title || 'Untitled Assessment',
+        description: data.description || '',
+        instructions: data.instructions || 'Standard accessible examination instructions.',
+        duration_seconds: (data.rules?.durationMinutes || data.schedule?.durationMinutes || 60) * 60,
+        extra_time_seconds: Math.round(((data.accessibility?.extraTimeMultiplier || 1.0) - 1.0) * ((data.rules?.durationMinutes || 60) * 60)),
+        language: data.language || 'English',
+        organization_id: data.organizationId || 'org-01',
+      });
+
+      // If sections exist, add them via backend
+      if (backendCreated?.id && data.sections && data.sections.length > 0) {
+        for (let i = 0; i < data.sections.length; i++) {
+          const sec = data.sections[i];
+          try {
+            await apiClient.post(`/examiner/exams/${backendCreated.id}/sections`, {
+              title: sec.title || `Section ${i + 1}`,
+              description: sec.description || '',
+              display_order: i + 1,
+              duration_seconds: (sec.durationMinutes || 15) * 60,
+              navigation_policy: sec.navigationPolicy === 'section_locked' ? 'SEQUENTIAL' : 'FREE',
+              question_ids: sec.questionIds || [],
+            });
+          } catch (secErr) {
+            console.warn(`Failed adding section "${sec.title}" to backend exam:`, secErr);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Backend /examiner/exams create failed, falling back to local creation:', err);
+    }
+
+    const newExam: ExaminerExam = backendCreated
+      ? mapBackendExamToExaminerExam(backendCreated, {
+          ...data,
+          id: backendCreated.id,
+          code: data.code || `EXAM-${backendCreated.id.slice(0, 8).toUpperCase()}`,
+        })
+      : {
+          id: `exam-${Date.now()}`,
+          code: data.code || `EXAM-${Math.floor(1000 + Math.random() * 9000)}`,
+          title: data.title || 'Untitled Assessment',
+          description: data.description || '',
+          organization: data.organization || 'National Assessment Council',
+          organizationId: data.organizationId || 'org-01',
+          category: data.category || 'Competitive Entrance',
+          examType: data.examType || 'competitive',
+          language: data.language || 'English',
+          instructions: data.instructions || 'Standard accessible examination instructions.',
+          lifecycleStatus: 'DRAFT',
+          version: 1,
+          isImmutable: false,
+          sections: data.sections || [],
+          rules: data.rules || {
+            durationMinutes: 60,
+            allowBackNavigation: true,
+            allowSectionSwitching: true,
+            allowReviewMarking: true,
+            randomizeQuestionOrder: false,
+            randomizeOptionOrder: false,
+            calculatorPolicy: 'none',
+            pausePermission: false,
+            attemptCountLimit: 1,
+          },
+          accessibility: data.accessibility || {
+            screenReaderOptimized: true,
+            audioQuestionSupport: true,
+            audioPolicy: 'allowed',
+            textScalingSupport: true,
+            highContrastSupport: true,
+            darkModeSupport: true,
+            reducedMotionSupport: true,
+            keyboardNavigationFirst: true,
+            extraTimeMultiplier: 1.5,
+          },
+          candidateGroupIds: data.candidateGroupIds || [],
+          schedule: data.schedule || {
+            startDate: new Date().toISOString().split('T')[0],
+            startTime: '10:00',
+            endDate: new Date().toISOString().split('T')[0],
+            endTime: '12:00',
+            durationMinutes: 60,
+            timezone: 'IST (UTC+05:30)',
+            attemptWindowHours: 2,
+            candidateAvailability: 'all_assigned',
+          },
+          markingScheme: data.markingScheme || {
+            correctMarks: 2,
+            negativeMarks: 0.5,
+            unansweredMarks: 0,
+            description: '+2 for correct, -0.5 for wrong, 0 for unattempted.',
+          },
+          totalQuestions: data.totalQuestions || 0,
+          totalMarks: data.totalMarks || 0,
+          candidatesCount: 0,
+          createdAt: new Date().toISOString().split('T')[0],
+          updatedAt: new Date().toISOString().split('T')[0],
+          checklist: {
+            basicInfoComplete: true,
+            structureValid: (data.sections?.length || 0) > 0,
+            questionsAssigned: (data.totalQuestions || 0) > 0,
+            correctAnswersVerified: true,
+            markingSchemeConfigured: true,
+            accessibilityChecksPassed: true,
+            candidateGroupAssigned: (data.candidateGroupIds?.length || 0) > 0,
+            scheduleValid: true,
+            instructionsAccessible: true,
+            securityConfigured: true,
+            previewVerified: false,
+            blockingErrors: [],
+            warnings: ['Preview as Candidate recommended before live release.'],
+          },
+        };
 
     exams.unshift(newExam);
     this.saveStoredExams(exams);
@@ -289,6 +502,30 @@ class ExaminerService {
           `Cannot modify locked parameters [${attemptedForbidden.join(', ')}] while examination is in LIVE state.`
         );
       }
+    }
+
+    try {
+      const patchPayload: Record<string, any> = {};
+      if (updates.title !== undefined) patchPayload.title = updates.title;
+      if (updates.description !== undefined) patchPayload.description = updates.description;
+      if (updates.instructions !== undefined) patchPayload.instructions = updates.instructions;
+      if (updates.language !== undefined) patchPayload.language = updates.language;
+      if (updates.lifecycleStatus !== undefined) patchPayload.status = updates.lifecycleStatus;
+      if (updates.rules?.durationMinutes !== undefined) {
+        patchPayload.duration_seconds = updates.rules.durationMinutes * 60;
+      }
+
+      if (Object.keys(patchPayload).length > 0) {
+        const bExam = await apiClient.patch<BackendExamExaminerResponse>(`/examiner/exams/${id}`, patchPayload);
+        if (bExam && bExam.id) {
+          const merged = mapBackendExamToExaminerExam(bExam, { ...exams[idx], ...updates });
+          exams[idx] = merged;
+          this.saveStoredExams(exams);
+          return merged;
+        }
+      }
+    } catch (err) {
+      console.warn(`Backend update failed for exam ${id}, applying locally:`, err);
     }
 
     exams[idx] = {
@@ -358,6 +595,20 @@ class ExaminerService {
       throw new Error(`Cannot publish: ${checklist.blockingErrors.join(' | ')}`);
     }
 
+    try {
+      const bExam = await apiClient.post<BackendExamExaminerResponse>(`/examiner/exams/${id}/publish`, {});
+      if (bExam && bExam.id) {
+        return this.updateExam(id, {
+          lifecycleStatus: 'LIVE',
+          isImmutable: true,
+          publishedAt: bExam.published_at || `${new Date().toISOString().split('T')[0]} ${new Date().toLocaleTimeString('en-US', { hour12: false })} IST`,
+          checklist,
+        });
+      }
+    } catch (err) {
+      console.warn(`Backend publish for exam ${id} failed, applying local publish state:`, err);
+    }
+
     return this.updateExam(id, {
       lifecycleStatus: 'LIVE',
       isImmutable: true,
@@ -379,6 +630,38 @@ class ExaminerService {
   }
 
   async getAggregateMonitoring(examId: string): Promise<AggregateSessionMonitoring> {
+    try {
+      const bMon = await apiClient.get<BackendExamMonitorSummary>(`/examiner/exams/${examId}/monitor`);
+      if (bMon && bMon.exam_id) {
+        const exam = await this.getExamById(examId);
+        const candidates = bMon.candidates || [];
+        const answeredSum = candidates.reduce(
+          (acc, c) => acc + (c.total_questions > 0 ? (c.answered_count / c.total_questions) * 100 : 0),
+          0
+        );
+        const avgProgress = candidates.length > 0
+          ? Math.round(answeredSum / candidates.length)
+          : (bMon.submitted > 0 ? 100 : 0);
+
+        return {
+          examId: bMon.exam_id,
+          examTitle: exam?.title || 'Examination Telemetry',
+          totalCandidates: bMon.total_assigned,
+          notStarted: bMon.not_started,
+          inProgress: bMon.active,
+          submitted: bMon.submitted,
+          temporarilyDisconnected: bMon.interrupted,
+          expired: bMon.expired,
+          submissionPending: 0,
+          averageProgressPercentage: avgProgress,
+          lastUpdatedTimestamp: Date.now(),
+          isPaused: exam?.lifecycleStatus === 'PAUSED',
+        };
+      }
+    } catch (err) {
+      console.warn(`Backend /examiner/exams/${examId}/monitor call failed, falling back:`, err);
+    }
+
     const base = { ...INITIAL_AGGREGATE_MONITOR, examId };
     return base;
   }
