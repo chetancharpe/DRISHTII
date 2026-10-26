@@ -387,7 +387,12 @@ def list_candidate_exams(
             .filter(ExamCandidate.exam_id == exam.id, ExamCandidate.candidate_id == candidate_id)
             .first()
         )
-        is_eligible = cand_assignment is not None and cand_assignment.eligibility_status == EligibilityStatus.ELIGIBLE.value
+        assigned_count = db.query(ExamCandidate).filter(ExamCandidate.exam_id == exam.id).count()
+        if assigned_count > 0:
+            is_eligible = cand_assignment is not None and cand_assignment.eligibility_status == EligibilityStatus.ELIGIBLE.value
+        else:
+            is_eligible = True  # Open exam with no restricted candidate roster
+
         attempt_status = cand_assignment.attempt_status if cand_assignment else AttemptStatus.NOT_ATTEMPTED.value
 
         sec_count = db.query(ExamSection).filter(ExamSection.exam_id == exam.id).count()
@@ -415,7 +420,7 @@ def list_candidate_exams(
                 end_at=exam.end_at,
                 section_count=sec_count,
                 total_questions=total_q,
-                is_eligible=is_eligible or True,  # Eligible if open or assigned
+                is_eligible=is_eligible,
                 attempt_status=attempt_status,
                 time_multiplier=cand_multiplier,
                 organization_name=org_name,
@@ -437,7 +442,12 @@ def get_candidate_exam_details(db: Session, exam_id: str, candidate_id: str) -> 
         .filter(ExamCandidate.exam_id == exam.id, ExamCandidate.candidate_id == candidate_id)
         .first()
     )
-    is_eligible = cand_assignment is not None and cand_assignment.eligibility_status == EligibilityStatus.ELIGIBLE.value
+    assigned_count = db.query(ExamCandidate).filter(ExamCandidate.exam_id == exam.id).count()
+    if assigned_count > 0:
+        is_eligible = cand_assignment is not None and cand_assignment.eligibility_status == EligibilityStatus.ELIGIBLE.value
+    else:
+        is_eligible = True
+
     attempt_status = cand_assignment.attempt_status if cand_assignment else AttemptStatus.NOT_ATTEMPTED.value
     cand_multiplier = float(cand_assignment.time_multiplier) if (cand_assignment and cand_assignment.time_multiplier) else 1.0
 
@@ -462,7 +472,7 @@ def get_candidate_exam_details(db: Session, exam_id: str, candidate_id: str) -> 
         end_at=exam.end_at,
         section_count=sec_count,
         total_questions=total_q,
-        is_eligible=is_eligible or True,
+        is_eligible=is_eligible,
         attempt_status=attempt_status,
         time_multiplier=cand_multiplier,
         organization_name=org_name,

@@ -211,7 +211,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if settings.ENVIRONMENT.lower() == "test" and request.headers.get("X-Test-Rate-Limit") != "true":
             return await call_next(request)
 
-        client_ip = request.client.host if request.client else "unknown"
+        # Extract real client IP behind reverse proxies (Cloudflare, AWS ALB, Nginx, Render)
+        cf_connecting_ip = request.headers.get("CF-Connecting-IP")
+        forwarded_for = request.headers.get("X-Forwarded-For")
+        if cf_connecting_ip:
+            client_ip = cf_connecting_ip.strip()
+        elif forwarded_for:
+            client_ip = forwarded_for.split(",")[0].strip()
+        else:
+            client_ip = request.client.host if request.client else "unknown"
         user_id = extract_user_id_from_token(request)
 
         path = request.url.path

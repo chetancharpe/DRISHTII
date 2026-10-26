@@ -65,49 +65,8 @@ export const authService = {
       localStorage.setItem('drishti_current_user', JSON.stringify(user));
       return { user, token: res.access_token };
     } catch (err: any) {
-      // Re-throw explicit authentication credentials errors from server
-      if (err.status && err.status >= 400 && err.status < 500) {
-        throw err;
-      }
-
-      // If backend is waking up, sleeping, or network is unavailable, activate seamless session
-      console.warn('Backend unavailable, activating resilient local session:', err);
-      let role: UserRole = 'candidate';
-      if (normalizedEmail.includes('admin')) role = 'admin';
-      else if (normalizedEmail.includes('examiner')) role = 'examiner';
-
-      const fallbackUser: User = {
-        id: `usr-${Date.now()}`,
-        name: normalizedEmail.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) || 'Candidate User',
-        email: normalizedEmail,
-        role,
-        accessibilityPreferences: {
-          fontSize: 'default',
-          contrast: 'standard',
-          theme: 'dark',
-          audioEnabled: false,
-          speechRate: 'normal',
-          readQuestions: true,
-          readOptions: true,
-          readInstructions: true,
-          announceStatus: true,
-          timerAnnouncements: 'warnings',
-          keyboardFirst: false,
-          screenReaderOptimized: false,
-          reducedMotion: 'system',
-          simplifiedInterface: false,
-          language: 'en',
-          highContrast: false,
-          audioFeedbackEnabled: false,
-          keyboardOnlyMode: false,
-          preferredLanguage: 'en',
-        },
-      };
-
-      const fallbackToken = `offline-token-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      tokenStorage.setTokens(fallbackToken, `offline-refresh-${Date.now()}`);
-      localStorage.setItem('drishti_current_user', JSON.stringify(fallbackUser));
-      return { user: fallbackUser, token: fallbackToken };
+      // Re-throw authentication or network error directly without creating unauthorized local sessions
+      throw err;
     }
   },
 
@@ -137,45 +96,8 @@ export const authService = {
       localStorage.setItem('drishti_current_user', JSON.stringify(user));
       return { user, token: res.access_token };
     } catch (err: any) {
-      if (err.status && err.status >= 400 && err.status < 500) {
-        throw err;
-      }
-
-      // Offline / network failure fallback
-      console.warn('Backend unreachable for signup, activating resilient candidate session:', err);
-      const roleStr = (data.role || 'candidate').toLowerCase() as UserRole;
-      const fallbackUser: User = {
-        id: `usr-${Date.now()}`,
-        name: `${data.firstName.trim()} ${data.lastName.trim()}`.trim() || normalizedEmail,
-        email: normalizedEmail,
-        role: roleStr === 'examiner' ? 'examiner' : roleStr === 'admin' ? 'admin' : 'candidate',
-        accessibilityPreferences: {
-          fontSize: 'default',
-          contrast: 'standard',
-          theme: 'dark',
-          audioEnabled: false,
-          speechRate: 'normal',
-          readQuestions: true,
-          readOptions: true,
-          readInstructions: true,
-          announceStatus: true,
-          timerAnnouncements: 'warnings',
-          keyboardFirst: false,
-          screenReaderOptimized: false,
-          reducedMotion: 'system',
-          simplifiedInterface: false,
-          language: 'en',
-          highContrast: false,
-          audioFeedbackEnabled: false,
-          keyboardOnlyMode: false,
-          preferredLanguage: 'en',
-        },
-      };
-
-      const fallbackToken = `offline-token-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      tokenStorage.setTokens(fallbackToken, `offline-refresh-${Date.now()}`);
-      localStorage.setItem('drishti_current_user', JSON.stringify(fallbackUser));
-      return { user: fallbackUser, token: fallbackToken };
+      // Re-throw registration or network error directly without creating unauthorized local sessions
+      throw err;
     }
   },
 

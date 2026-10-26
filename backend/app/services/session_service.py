@@ -62,7 +62,11 @@ def start_exam_session(db: Session, exam_id: str, candidate_id: str) -> SessionR
         .filter(ExamCandidate.exam_id == exam_id, ExamCandidate.candidate_id == candidate_id)
         .first()
     )
-    if candidate_assignment and candidate_assignment.eligibility_status != EligibilityStatus.ELIGIBLE.value:
+    assigned_candidates_count = db.query(ExamCandidate).filter(ExamCandidate.exam_id == exam_id).count()
+    if assigned_candidates_count > 0:
+        if not candidate_assignment or candidate_assignment.eligibility_status != EligibilityStatus.ELIGIBLE.value:
+            raise ForbiddenException("Candidate is not eligible to take this examination.")
+    elif candidate_assignment and candidate_assignment.eligibility_status != EligibilityStatus.ELIGIBLE.value:
         raise ForbiddenException("Candidate is not eligible to take this examination.")
 
     # 3. Check for existing session
