@@ -40,6 +40,8 @@ services:
       BACKUP_RETENTION_DAYS: 30
       RATE_LIMIT_PER_MINUTE: 60
       AUTH_RATE_LIMIT_PER_MINUTE: 10
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     expose:
       - "8000"
     networks:

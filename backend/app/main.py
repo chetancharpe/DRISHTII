@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from app.api.routes import (
     accessibility,
     admin,
+    ai,
     analytics,
     auth,
     candidate,
@@ -152,4 +153,5 @@ app.include_router(analytics.router, prefix=api_v1_prefix)
 app.include_router(admin.router, prefix=api_v1_prefix)
 app.include_router(candidate.router, prefix=api_v1_prefix)
 app.include_router(mock_tests.router, prefix=api_v1_prefix)
+app.include_router(ai.router, prefix=api_v1_prefix)
 

@@ -1,4 +1,4 @@
-# GoWow Production Deployment Guide
+# DRISHTI Production Deployment Guide
 
 ## 1. Prerequisites & System Requirements
 
@@ -52,6 +52,9 @@ sed -i "s/GENERATE_64_CHAR_HEX_SECRET_VIA_OPENSSL_RAND_HEX_32/$JWT_SECRET/" .env
 # Set strong database password
 DB_PASS=$(openssl rand -hex 16)
 sed -i "s/CHANGE_ME_IN_PRODUCTION_STRONG_PASSWORD/$DB_PASS/" .env.production
+
+# Optional: Add Google Gemini or OpenAI API keys for real-time educational AI tutoring
+# echo "GEMINI_API_KEY=your_production_gemini_api_key" >> .env.production
 ```
 
 ### Step 3: Pre-Deployment Database Backup
@@ -66,9 +69,13 @@ docker compose --env-file .env.production -f docker-compose.prod.yml build --no-
 docker compose --env-file .env.production -f docker-compose.prod.yml up -d
 ```
 
-### Step 5: Execute Database Migrations
+### Step 5: Execute Database Migrations & Initial Seed
 ```bash
+# Apply relational database migrations
 docker compose -f docker-compose.prod.yml exec -T backend alembic upgrade head
+
+# Seed core roles, organizations, accessible curriculum, and mock exams (idempotent)
+docker compose -f docker-compose.prod.yml exec -T backend python -m app.db.seed
 ```
 
 ### Step 6: Post-Deployment Smoke Verification

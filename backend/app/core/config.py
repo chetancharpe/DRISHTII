@@ -35,6 +35,13 @@ class Settings(BaseSettings):
     # Backup & Retention
     BACKUP_RETENTION_DAYS: int = 30
 
+    # AI & LLM Service Configuration
+    GEMINI_API_KEY: Optional[str] = None
+    GEMINI_MODEL: str = "gemini-1.5-flash"
+    OPENAI_API_KEY: Optional[str] = None
+    OPENAI_MODEL: str = "gpt-4o-mini"
+    AI_PROVIDER: str = "gemini"  # "gemini", "openai", or "heuristic"
+
     # CORS
     CORS_ORIGINS: Union[str, List[str]] = [
         "http://localhost:5173",
