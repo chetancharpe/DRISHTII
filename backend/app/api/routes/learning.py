@@ -115,7 +115,10 @@ from app.core.curriculum import (
     CURRICULUM_TOPICS,
     PRACTICE_QUESTIONS_MASTER,
 )
+from app.models.curriculum import CurriculumSubject, CurriculumTopic
 from app.models.learning_profile import LearningActivity, TopicProgress
+from app.models.question import Question
+from app.models.question_version import QuestionVersion
 from app.schemas.learning import (
     LearningSubjectResponse,
     LearningTopicDetailResponse,
@@ -142,6 +145,7 @@ def get_learning_subjects(
 ):
     """
     Retrieve all learning subjects with candidate's actual progress calculated from TopicProgress.
+    Queries database CurriculumSubject models first with seamless fallback to static catalog.
     """
     topic_records = (
         db.query(TopicProgress)
@@ -150,10 +154,46 @@ def get_learning_subjects(
     )
     progress_map = {(tp.subject.lower(), tp.topic.lower()): tp for tp in topic_records}
 
+    db_subjects = db.query(CurriculumSubject).order_by(CurriculumSubject.display_order).all()
+    if db_subjects:
+        subjects_catalog = [
+            {
+                "id": s.id,
+                "examId": s.exam_id,
+                "name": s.name,
+                "code": s.code,
+                "description": s.description,
+                "iconName": s.icon_name,
+                "recommendedTopicId": s.recommended_topic_id,
+                "topics": [
+                    {
+                        "id": t.id,
+                        "subjectId": t.subject_id,
+                        "name": t.name,
+                        "shortDescription": t.short_description,
+                        "completedLessons": t.completed_lessons,
+                        "totalLessons": t.total_lessons,
+                        "estimatedMinutes": t.estimated_minutes,
+                        "isRecommended": t.is_recommended,
+                        "practiceAvailable": t.practice_available,
+                        "practiceCount": t.practice_count,
+                    }
+                    for t in s.topics
+                ],
+            }
+            for s in db_subjects
+        ]
+    else:
+        subjects_catalog = []
+        for s in CURRICULUM_SUBJECTS:
+            s_dict = dict(s)
+            s_dict["topics"] = CURRICULUM_TOPICS.get(s["id"], [])
+            subjects_catalog.append(s_dict)
+
     responses: List[LearningSubjectResponse] = []
-    for s in CURRICULUM_SUBJECTS:
+    for s in subjects_catalog:
         s_id = s["id"]
-        raw_topics = CURRICULUM_TOPICS.get(s_id, [])
+        raw_topics = s.get("topics", [])
         topic_summaries: List[LearningTopicSummary] = []
         completed_topics_count = 0
         total_acc = 0.0
@@ -217,20 +257,42 @@ def get_topic_detail(
 ):
     """
     Retrieve comprehensive topic lesson content, sections, formulas, and audio walkthrough.
+    Queries database CurriculumTopic first with fallback to static curriculum data.
     """
     target_topic = None
     target_subject_id = None
-    for subj_id, topics in CURRICULUM_TOPICS.items():
-        for t in topics:
-            if t["id"] == topic_id:
-                target_topic = t
-                target_subject_id = subj_id
+
+    db_topic = db.query(CurriculumTopic).filter(CurriculumTopic.id == topic_id).first()
+    if db_topic:
+        target_topic = {
+            "id": db_topic.id,
+            "subjectId": db_topic.subject_id,
+            "name": db_topic.name,
+            "shortDescription": db_topic.short_description,
+            "completedLessons": db_topic.completed_lessons,
+            "totalLessons": db_topic.total_lessons,
+            "estimatedMinutes": db_topic.estimated_minutes,
+            "isRecommended": db_topic.is_recommended,
+            "practiceAvailable": db_topic.practice_available,
+            "practiceCount": db_topic.practice_count,
+            "learningObjectives": db_topic.learning_objectives or [],
+            "overview": db_topic.overview or "",
+            "sections": db_topic.sections or [],
+            "quickRecap": db_topic.quick_recap,
+            "audioNarrative": db_topic.audio_narrative,
+        }
+        target_subject_id = db_topic.subject_id
+    else:
+        for subj_id, topics in CURRICULUM_TOPICS.items():
+            for t in topics:
+                if t["id"] == topic_id:
+                    target_topic = t
+                    target_subject_id = subj_id
+                    break
+            if target_topic:
                 break
-        if target_topic:
-            break
 
     if not target_topic:
-        # Fallback to percentages
         target_topic = CURRICULUM_TOPICS["mathematics"][0]
         target_subject_id = "mathematics"
 
@@ -393,11 +455,61 @@ def get_practice_questions(
     difficulty: Optional[str] = Query(None),
     limit: int = Query(10, ge=1, le=50),
     current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     """
     Retrieve questions for interactive candidate practice.
     Sanitized: Answer keys and explanations are strictly stripped.
+    Queries database questions first with seamless fallback to static catalog.
     """
+    # 1. Attempt database retrieval
+    query = db.query(Question).filter(Question.is_active == True)
+    if subjectId and subjectId != "all":
+        query = query.filter(Question.subject.ilike(f"%{subjectId}%"))
+    if topicId and topicId != "all":
+        query = query.filter(Question.topic.ilike(f"%{topicId}%"))
+    if difficulty and difficulty != "all":
+        query = query.filter(Question.difficulty == difficulty)
+
+    db_questions = query.limit(limit).all()
+    if db_questions:
+        results: List[PracticeQuestionSanitized] = []
+        for q in db_questions:
+            latest_v = (
+                db.query(QuestionVersion)
+                .filter(QuestionVersion.question_id == q.id)
+                .order_by(QuestionVersion.version_number.desc())
+                .first()
+            )
+            if latest_v:
+                options = [
+                    PracticeQuestionOption(
+                        id=opt.get("id", str(i)),
+                        label=opt.get("label", chr(65 + i)),
+                        text=opt.get("text", ""),
+                    )
+                    for i, opt in enumerate(latest_v.options or [])
+                ]
+                acc = latest_v.accessibility_metadata or {}
+                results.append(
+                    PracticeQuestionSanitized(
+                        id=q.id,
+                        subjectId=q.subject.lower().replace(" ", "-"),
+                        subjectName=q.subject,
+                        topicId=q.topic.lower().replace(" ", "-"),
+                        topicName=q.topic,
+                        type=q.question_type or "single_choice",
+                        difficulty=q.difficulty or "medium",
+                        questionText=latest_v.question_text,
+                        options=options,
+                        hint=acc.get("hint"),
+                        audioDescription=acc.get("audio_description") or acc.get("audio_text"),
+                    )
+                )
+        if results:
+            return results
+
+    # 2. Fallback to PRACTICE_QUESTIONS_MASTER
     filtered = PRACTICE_QUESTIONS_MASTER
 
     if subjectId and subjectId != "all":
@@ -446,9 +558,37 @@ def verify_practice_answer(
     """
     Authoritative server-side answer verification.
     Validates selected options, updates candidate TopicProgress, and logs learning activity.
-    Only after submission does the candidate receive the correct answer key and explanation.
+    Queries database question bank first with fallback to static catalog.
     """
-    question = next((q for q in PRACTICE_QUESTIONS_MASTER if q["id"] == submission.question_id), None)
+    question = None
+
+    # Check database questions first
+    db_q = db.query(Question).filter(Question.id == submission.question_id).first()
+    if db_q:
+        latest_v = (
+            db.query(QuestionVersion)
+            .filter(QuestionVersion.question_id == db_q.id)
+            .order_by(QuestionVersion.version_number.desc())
+            .first()
+        )
+        if latest_v:
+            correct_raw = latest_v.correct_answer or "A"
+            correct_options = (
+                [opt.strip() for opt in correct_raw.split(",")]
+                if isinstance(correct_raw, str)
+                else list(correct_raw)
+            )
+            question = {
+                "id": db_q.id,
+                "subjectName": db_q.subject,
+                "topicName": db_q.topic,
+                "correctOptionIds": correct_options,
+                "explanation": latest_v.explanation,
+            }
+
+    if not question:
+        question = next((q for q in PRACTICE_QUESTIONS_MASTER if q["id"] == submission.question_id), None)
+
     if not question:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

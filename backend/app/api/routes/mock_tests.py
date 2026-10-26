@@ -5,7 +5,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_current_user_optional, get_db
 from app.core.curriculum import MOCK_TESTS_MASTER
+from app.models.exam import Exam, ExamStatus
 from app.models.learning_profile import LearningActivity
+from app.models.question import Question
+from app.models.question_version import QuestionVersion
+from app.models.section import ExamSection, SectionQuestion
 from app.models.user import User
 from app.schemas.mock_test import (
     MockTestDetailResponse,
@@ -25,13 +29,161 @@ from app.utils.datetime import utc_now
 router = APIRouter(prefix="/mock-tests", tags=["Mock Test Engine"])
 
 
+def _extract_exam_as_mock_test(db_exam: Exam) -> Optional[dict]:
+    """Helper to convert a database Exam model into the mock test structure."""
+    if not db_exam or not db_exam.sections:
+        return None
+
+    sections_data = []
+    total_q = 0
+    for sec in sorted(db_exam.sections, key=lambda s: s.display_order):
+        q_list = []
+        for sq in sorted(sec.section_questions or [], key=lambda q: q.display_order):
+            qv = sq.question_version
+            if qv:
+                total_q += 1
+                correct_raw = qv.correct_answer or "A"
+                correct_opts = (
+                    [opt.strip() for opt in correct_raw.split(",")]
+                    if isinstance(correct_raw, str)
+                    else list(correct_raw)
+                )
+                meta = qv.accessibility_metadata or {}
+                q_list.append(
+                    {
+                        "id": sq.question_id,
+                        "sectionId": sec.id,
+                        "questionNumber": sq.display_order,
+                        "text": qv.question_text,
+                        "type": sq.question.question_type if sq.question else "single_choice",
+                        "difficulty": sq.question.difficulty if sq.question else "medium",
+                        "options": qv.options or [],
+                        "correctOptionIds": correct_opts,
+                        "explanation": qv.explanation or "Standard pedagogical explanation.",
+                        "audioText": meta.get("audio_text") or meta.get("audio_description"),
+                        "formula": meta.get("formula_spoken_text"),
+                        "table": meta.get("table_data"),
+                    }
+                )
+        sections_data.append(
+            {
+                "id": sec.id,
+                "name": sec.title,
+                "code": sec.title[:4].upper(),
+                "description": sec.description or "",
+                "totalQuestions": len(q_list),
+                "questions": q_list,
+            }
+        )
+
+    instructions = [i.strip() for i in (db_exam.instructions or "").split("\n") if i.strip()] or [
+        "Official accessible examination simulation.",
+        "Answers are automatically synchronized with the server.",
+    ]
+
+    return {
+        "id": db_exam.id,
+        "title": db_exam.title,
+        "examName": db_exam.organization.name if db_exam.organization else "GoWow Examination Board",
+        "examCode": f"GW-{db_exam.id[:8].upper()}",
+        "description": db_exam.description or "",
+        "totalQuestions": total_q,
+        "durationMinutes": max(15, db_exam.duration_seconds // 60),
+        "difficulty": "medium",
+        "status": "not_started",
+        "isRecommended": True,
+        "markingScheme": {
+            "correctMarks": 1.0,
+            "incorrectPenalty": 0.33,
+            "unansweredMarks": 0.0,
+        },
+        "instructionsSummary": instructions,
+        "accessibilityHighlights": {
+            "keyboard": "Full keyboard navigation supported (Tab, Shift+Tab, Arrow keys, Enter, Space).",
+            "screenReader": "Designed for screen-reader compatibility with semantic landmark hierarchy.",
+            "audio": "Audio assistance available for question prompts and choices per your settings.",
+            "visual": "High contrast outlines, dark mode compatibility, and scalable typography supported.",
+        },
+        "sections": sections_data,
+    }
+
+
+def _get_test_data(test_id: str, db: Session) -> dict:
+    """Retrieve test data by checking database Exam first, then static curriculum."""
+    db_exam = db.query(Exam).filter(Exam.id == test_id).first()
+    if db_exam:
+        converted = _extract_exam_as_mock_test(db_exam)
+        if converted:
+            return converted
+
+    test = next((t for t in MOCK_TESTS_MASTER if t["id"] == test_id), None)
+    if not test:
+        test = MOCK_TESTS_MASTER[0]
+    return test
+
+
 @router.get("", response_model=List[MockTestListItem])
 def list_mock_tests(
     current_user: Optional[User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db),
 ):
-    """Retrieve list of available mock tests."""
+    """Retrieve list of available mock tests, integrating both database-seeded exams and curriculum catalog."""
     results = []
+    seen_ids = set()
+
+    # 1. Database-backed ready exams
+    db_exams = (
+        db.query(Exam)
+        .filter(Exam.status.in_([ExamStatus.READY.value, ExamStatus.SCHEDULED.value]))
+        .order_by(Exam.created_at.desc())
+        .all()
+    )
+    for exam in db_exams:
+        seen_ids.add(exam.id)
+        sec_summaries = [
+            MockTestSectionHeader(
+                id=s.id,
+                name=s.title,
+                title=s.title,
+                code=s.title[:4].upper(),
+                description=s.description or "",
+                totalQuestions=s.question_count,
+                questions=[],
+            )
+            for s in exam.sections
+        ]
+        results.append(
+            MockTestListItem(
+                id=exam.id,
+                title=exam.title,
+                examName=exam.organization.name if exam.organization else "GoWow Examination Board",
+                examCode=f"GW-{exam.id[:8].upper()}",
+                description=exam.description or "",
+                totalQuestions=sum(s.question_count for s in exam.sections),
+                durationMinutes=max(15, exam.duration_seconds // 60),
+                difficulty="medium",
+                status="not_started",
+                isRecommended=True,
+                markingScheme={
+                    "correctMarks": 1.0,
+                    "incorrectPenalty": 0.33,
+                    "unansweredMarks": 0.0,
+                },
+                instructionsSummary=[i.strip() for i in (exam.instructions or "").split("\n") if i.strip()],
+                accessibilityHighlights={
+                    "keyboard": "Full keyboard navigation supported (Tab, Shift+Tab, Arrow keys, Enter, Space).",
+                    "screenReader": "Designed for screen-reader compatibility with semantic landmark hierarchy.",
+                    "audio": "Audio assistance available for question prompts and choices per your settings.",
+                    "visual": "High contrast outlines, dark mode compatibility, and scalable typography supported.",
+                },
+                sections=sec_summaries,
+            )
+        )
+
+    # 2. Add static curriculum tests if not already seeded
     for test in MOCK_TESTS_MASTER:
+        if test["id"] in seen_ids:
+            continue
         sections_summary = [
             MockTestSectionHeader(
                 id=s["id"],
@@ -164,14 +316,14 @@ def get_mock_test_history(
 def get_mock_test_detail(
     test_id: str,
     current_user: Optional[User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db),
 ):
     """
     Retrieve mock test sections and questions for test attempt.
     Sanitized: Answer keys and pedagogical explanations are strictly stripped.
+    Queries database Exam models first with seamless fallback to curriculum catalog.
     """
-    test = next((t for t in MOCK_TESTS_MASTER if t["id"] == test_id), None)
-    if not test:
-        test = MOCK_TESTS_MASTER[0]
+    test = _get_test_data(test_id, db)
 
     sanitized_sections: List[MockTestSectionSanitized] = []
     for sec in test["sections"]:
@@ -232,10 +384,9 @@ def submit_mock_test(
     Authoritative server-side scoring for mock tests.
     Evaluates submitted options against official answer key,
     calculates penalties and section metrics, and returns scored result with explanations.
+    Queries database Exam models first with seamless fallback to curriculum catalog.
     """
-    test = next((t for t in MOCK_TESTS_MASTER if t["id"] == submission.test_id), None)
-    if not test:
-        test = MOCK_TESTS_MASTER[0]
+    test = _get_test_data(submission.test_id, db)
 
     marking = test["markingScheme"]
     reviews: List[MockTestQuestionReview] = []

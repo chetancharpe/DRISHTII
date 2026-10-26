@@ -19,9 +19,12 @@ from app.models.accessibility_profile import AccessibilityProfile, Accessibility
 from app.models.learning_profile import LearningProfile, TopicProgress, LearningActivity, Recommendation
 from app.models.refresh_token import RefreshToken
 from app.models.password_reset_token import PasswordResetToken
+from app.models.curriculum import CurriculumSubject, CurriculumTopic
 
 __all__ = [
     "Base",
+    "CurriculumSubject",
+    "CurriculumTopic",
     "User",
     "RefreshToken",
     "PasswordResetToken",

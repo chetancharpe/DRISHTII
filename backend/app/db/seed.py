@@ -358,7 +358,12 @@ def seed_database():
                     )
 
         db.commit()
-        print("Database seeded successfully with accessible examination dataset.")
+
+        # 6. Seed Complete Curriculum, Question Bank, and Mock Tests
+        from app.db.seed_curriculum import seed_curriculum_and_mock_tests
+        seed_curriculum_and_mock_tests(db)
+
+        print("Database seeded successfully with accessible examination dataset and curriculum.")
     finally:
         db.close()
 
