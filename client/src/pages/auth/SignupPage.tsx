@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useAuthVoiceNavigator } from '../../hooks/useAuthVoiceNavigator';
+import { AuthVoiceAssistant } from '../../components/auth/AuthVoiceAssistant';
 import { UserRole } from '../../types/user';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Input } from '../../components/common/Input';
@@ -116,6 +118,70 @@ export const SignupPage: React.FC = () => {
     navigate('/auth/accessibility-setup');
   };
 
+  // Hands-free Voice Registration for Blind & Visually Impaired Candidates
+  const voiceState = useAuthVoiceNavigator({
+    page: 'signup',
+    onFillName: (val) => {
+      setName(val);
+      setErrors((prev) => ({ ...prev, name: '' }));
+    },
+    onFillEmail: (val) => {
+      setEmail(val);
+      setErrors((prev) => ({ ...prev, email: '' }));
+    },
+    onFillPassword: (val) => {
+      setPassword(val);
+      setConfirmPassword(val);
+      setErrors((prev) => ({ ...prev, password: '', confirmPassword: '' }));
+    },
+    onQuickCandidateRegister: async () => {
+      const demoCandidateName = 'Aarav Sharma';
+      const demoCandidateEmail = `candidate.demo${Date.now().toString().slice(-4)}@gowow.org`;
+      const demoCandidatePass = 'CandidateSecure123!';
+      setName(demoCandidateName);
+      setEmail(demoCandidateEmail);
+      setPassword(demoCandidatePass);
+      setConfirmPassword(demoCandidatePass);
+      setAgreeTerms(true);
+      try {
+        await signup({
+          name: demoCandidateName,
+          email: demoCandidateEmail,
+          password: demoCandidatePass,
+          role: 'candidate',
+          preferredLanguage: 'en',
+        });
+        setIsSuccess(true);
+      } catch (err: any) {
+        setFormError(err?.message || 'Quick registration failed.');
+      }
+    },
+    onSubmitForm: () => {
+      if (validate()) {
+        signup({
+          name,
+          email,
+          password,
+          role,
+          organization: role === 'examiner' ? organization : undefined,
+          preferredLanguage,
+        })
+          .then(() => {
+            setIsSuccess(true);
+          })
+          .catch((err: any) => {
+            setFormError(err?.message || 'Registration failed.');
+          });
+      }
+    },
+    onNavigateLogin: () => {
+      navigate('/auth/login');
+    },
+    currentEmail: email,
+    isPasswordSet: Boolean(password),
+    currentName: name,
+  });
+
   // 17. SIGNUP SUCCESS STATE
   if (isSuccess) {
     return (
@@ -217,6 +283,9 @@ export const SignupPage: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Accessible Voice Assistant Navigator Bar */}
+        <AuthVoiceAssistant voiceState={voiceState} pageType="signup" />
 
         {/* Global Live Region Form Error Alert */}
         {formError && (

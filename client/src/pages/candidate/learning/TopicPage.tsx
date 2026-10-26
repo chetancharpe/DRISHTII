@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { LearningSubject, LearningTopic } from '../../../types/learning';
 import { learningService } from '../../../services/learningService';
@@ -7,6 +7,7 @@ import { FormulaBlock } from '../../../components/learning/FormulaBlock';
 import { ExampleBlock } from '../../../components/learning/ExampleBlock';
 import { AudioLearningPlayer } from '../../../components/learning/AudioLearningPlayer';
 import { TopicNavigationFooter } from '../../../components/learning/TopicNavigationFooter';
+import { TopicFormulasModal } from '../../../components/learning/TopicFormulasModal';
 import { AccessibleDataTable } from '../../../components/common/AccessibleDataTable';
 import { KaTeXMath } from '../../../components/common/KaTeXMath';
 import { VoiceCommandBar } from '../../../components/common/VoiceCommandBar';
@@ -20,6 +21,7 @@ import {
   ListChecks,
   Loader2,
   Table as TableIcon,
+  Variable,
 } from 'lucide-react';
 
 export const TopicPage: React.FC = () => {
@@ -55,10 +57,74 @@ export const TopicPage: React.FC = () => {
     loadTopicData();
   }, [subjectId, topicId]);
 
+  const [isFormulasModalOpen, setIsFormulasModalOpen] = useState(false);
+
   // Find previous and next topics for non-linear navigation
   const currentIndex = subject && topic ? subject.topics.findIndex((t) => t.id === topic.id) : -1;
   const previousTopic = subject && currentIndex > 0 ? subject.topics[currentIndex - 1] : null;
   const nextTopic = subject && currentIndex < subject.topics.length - 1 ? subject.topics[currentIndex + 1] : null;
+
+  const handleOpenFormulas = useCallback(() => {
+    setIsFormulasModalOpen(true);
+    const el = document.getElementById('formulas-matrix') || document.getElementById('formula-table-heading');
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, []);
+
+  const handleOpenConcept = useCallback(() => {
+    const el = document.getElementById('learning-objectives-heading') || document.getElementById('topic-sections-container');
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
+  const handleStartPractice = useCallback(() => {
+    if (topic?.id) {
+      navigate(`/candidate/practice/session/demo-${topic.id}`);
+    }
+  }, [navigate, topic?.id]);
+
+  const handleBackToSubject = useCallback(() => {
+    if (subject?.id) {
+      navigate(`/candidate/learn/${subject.id}`);
+    }
+  }, [navigate, subject?.id]);
+
+  // Voice Event Listeners (Universal candidate voice control integration)
+  useEffect(() => {
+    const onOpenFormulas = () => {
+      setIsFormulasModalOpen(true);
+      const el = document.getElementById('formulas-matrix') || document.getElementById('formula-table-heading');
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+
+    const onCloseFormulas = () => {
+      setIsFormulasModalOpen(false);
+    };
+
+    const onOpenConcept = () => {
+      handleOpenConcept();
+    };
+
+    window.addEventListener('drishti:learn-open-formulas', onOpenFormulas);
+    window.addEventListener('drishti:learn-close-formulas', onCloseFormulas);
+    window.addEventListener('drishti:learn-open-concept', onOpenConcept);
+
+    return () => {
+      window.removeEventListener('drishti:learn-open-formulas', onOpenFormulas);
+      window.removeEventListener('drishti:learn-close-formulas', onCloseFormulas);
+      window.removeEventListener('drishti:learn-open-concept', onOpenConcept);
+    };
+  }, [handleOpenConcept]);
+
+  // Alt+F hotkey to toggle formulas dialog
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && (e.key.toLowerCase() === 'f' || e.key === 'F')) {
+        e.preventDefault();
+        setIsFormulasModalOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Hands-free Voice Commands for Topic Study
   const voice = useVoiceCommands({
@@ -167,6 +233,52 @@ export const TopicPage: React.FC = () => {
           textToRead={narrativeText}
           sectionTitle={topic.name}
         />
+
+        {/* Quick Access Voice & Click Action Bar (Options 1 to 4) */}
+        <nav
+          aria-label="Topic quick actions"
+          className="flex flex-wrap items-center gap-2 p-2.5 sm:p-3 rounded-2xl bg-surface-elevated/70 border border-border mt-1 shadow-xs"
+        >
+          <span className="text-[10px] font-bold uppercase tracking-wider text-foreground-secondary px-1">
+            Quick Actions:
+          </span>
+          <button
+            type="button"
+            onClick={handleOpenConcept}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface hover:bg-surface-elevated border border-border hover:border-primary/40 text-xs font-semibold text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[38px] transition-colors shadow-xs"
+            aria-label="Concept Notes (Option 1)"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
+            <span>Concept Notes (Option 1)</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleOpenFormulas}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/30 text-xs font-bold text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[38px] transition-colors shadow-xs"
+            aria-label="Open Formulas Cheat-Sheet (Option 2, Alt+F)"
+          >
+            <Variable className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>Formulas Cheat-Sheet (Option 2)</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleStartPractice}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface hover:bg-surface-elevated border border-border hover:border-primary/40 text-xs font-semibold text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[38px] transition-colors shadow-xs"
+            aria-label="Practice Questions (Option 3)"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" aria-hidden="true" />
+            <span>Practice Questions (Option 3)</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleBackToSubject}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface hover:bg-surface-elevated border border-border hover:border-primary/40 text-xs font-semibold text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[38px] transition-colors shadow-xs sm:ml-auto"
+            aria-label={`Back to ${subject.name} (Option 4)`}
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-foreground-muted" aria-hidden="true" />
+            <span>Back to {subject.name} (Option 4)</span>
+          </button>
+        </nav>
       </header>
 
       {/* Learning Objectives */}
@@ -263,12 +375,23 @@ export const TopicPage: React.FC = () => {
 
       {/* Accessible Formula & Concept Reference Matrix */}
       {allFormulas.length > 0 && (
-        <section aria-labelledby="formula-table-heading" className="flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <TableIcon className="w-4 h-4 text-primary" aria-hidden="true" />
-            <h2 id="formula-table-heading" className="text-sm font-bold text-foreground">
-              Mathematical Formula Reference Matrix
-            </h2>
+        <section id="formulas-matrix" tabIndex={-1} aria-labelledby="formula-table-heading" className="flex flex-col gap-3 scroll-mt-24 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-2xl">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <TableIcon className="w-4 h-4 text-primary" aria-hidden="true" />
+              <h2 id="formula-table-heading" className="text-sm font-bold text-foreground">
+                Mathematical Formula Reference Matrix
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={handleOpenFormulas}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/30 text-xs font-bold text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[34px] transition-colors shadow-xs"
+              aria-label="Open Formulas Cheat-Sheet Dialog"
+            >
+              <Variable className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>Open Cheat-Sheet Dialog (Option 2)</span>
+            </button>
           </div>
           <AccessibleDataTable
             caption={`Formulas & Notation in ${topic.name}`}
@@ -332,6 +455,15 @@ export const TopicPage: React.FC = () => {
         currentTopic={topic}
         previousTopic={previousTopic}
         nextTopic={nextTopic}
+      />
+
+      {/* Interactive Formulas Cheat-Sheet Modal */}
+      <TopicFormulasModal
+        isOpen={isFormulasModalOpen}
+        onClose={() => setIsFormulasModalOpen(false)}
+        topic={topic}
+        formulas={allFormulas}
+        onStartPractice={handleStartPractice}
       />
     </article>
   );

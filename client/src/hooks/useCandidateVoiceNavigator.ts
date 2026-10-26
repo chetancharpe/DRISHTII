@@ -417,17 +417,17 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         return;
       }
 
-      // F. Section Elements Selection by Number (Option 1 to Option 7)
+      // F. Section Elements Selection by Number (Option 1 to Option 7, both digits and word numbers)
       const currentSection = resolveSectionDescriptor(location.pathname, getSectionContext());
       let matchedIndex = -1;
 
-      if (/\b(option 1|select 1|choose 1|number 1|first|pehla|vikalp 1)\b/i.test(cleanText) || cleanText === '1') matchedIndex = 0;
-      else if (/\b(option 2|select 2|choose 2|number 2|second|dusra|vikalp 2)\b/i.test(cleanText) || cleanText === '2') matchedIndex = 1;
-      else if (/\b(option 3|select 3|choose 3|number 3|third|teesra|vikalp 3)\b/i.test(cleanText) || cleanText === '3') matchedIndex = 2;
-      else if (/\b(option 4|select 4|choose 4|number 4|fourth|chautha|vikalp 4)\b/i.test(cleanText) || cleanText === '4') matchedIndex = 3;
-      else if (/\b(option 5|select 5|choose 5|number 5|fifth|paanchwa|vikalp 5)\b/i.test(cleanText) || cleanText === '5') matchedIndex = 4;
-      else if (/\b(option 6|select 6|choose 6|number 6|sixth|chhatwa|vikalp 6)\b/i.test(cleanText) || cleanText === '6') matchedIndex = 5;
-      else if (/\b(option 7|select 7|choose 7|number 7|seventh|saatwa|vikalp 7)\b/i.test(cleanText) || cleanText === '7') matchedIndex = 6;
+      if (/\b(option (1|one)|select (1|one)|choose (1|one)|number (1|one)|first|pehla|vikalp (1|one))\b/i.test(cleanText) || cleanText === '1' || cleanText === 'one') matchedIndex = 0;
+      else if (/\b(option (2|two)|select (2|two)|choose (2|two)|number (2|two)|second|dusra|vikalp (2|two))\b/i.test(cleanText) || cleanText === '2' || cleanText === 'two') matchedIndex = 1;
+      else if (/\b(option (3|three)|select (3|three)|choose (3|three)|number (3|three)|third|teesra|vikalp (3|three))\b/i.test(cleanText) || cleanText === '3' || cleanText === 'three') matchedIndex = 2;
+      else if (/\b(option (4|four)|select (4|four)|choose (4|four)|number (4|four)|fourth|chautha|vikalp (4|four))\b/i.test(cleanText) || cleanText === '4' || cleanText === 'four') matchedIndex = 3;
+      else if (/\b(option (5|five)|select (5|five)|choose (5|five)|number (5|five)|fifth|paanchwa|vikalp (5|five))\b/i.test(cleanText) || cleanText === '5' || cleanText === 'five') matchedIndex = 4;
+      else if (/\b(option (6|six)|select (6|six)|choose (6|six)|number (6|six)|sixth|chhatwa|vikalp (6|six))\b/i.test(cleanText) || cleanText === '6' || cleanText === 'six') matchedIndex = 5;
+      else if (/\b(option (7|seven)|select (7|seven)|choose (7|seven)|number (7|seven)|seventh|saatwa|vikalp (7|seven))\b/i.test(cleanText) || cleanText === '7' || cleanText === 'seven') matchedIndex = 6;
 
       if (matchedIndex !== -1 && currentSection.elements[matchedIndex]) {
         const elem = currentSection.elements[matchedIndex];
@@ -435,8 +435,10 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
         lastExecutedTimeRef.current = now;
         playEarcon('action');
         elem.action(getSectionContext());
-        if (elem.confirmSpeech) {
+        if (elem.confirmSpeech && !elem.speaksOwnContent) {
           speak(elem.confirmSpeech);
+          announce(elem.confirmSpeech, 'polite');
+        } else if (elem.confirmSpeech) {
           announce(elem.confirmSpeech, 'polite');
         }
         setLastActionFeedback(`Selected Option ${elem.number}: ${elem.label}`);
@@ -451,14 +453,29 @@ export function useCandidateVoiceNavigator(): CandidateVoiceState {
           lastExecutedTimeRef.current = now;
           playEarcon('action');
           elem.action(getSectionContext());
-          if (elem.confirmSpeech) {
+          if (elem.confirmSpeech && !elem.speaksOwnContent) {
             speak(elem.confirmSpeech);
+            announce(elem.confirmSpeech, 'polite');
+          } else if (elem.confirmSpeech) {
             announce(elem.confirmSpeech, 'polite');
           }
           setLastActionFeedback(`Selected: ${elem.label}`);
           setLiveTranscript('');
           return;
         }
+      }
+
+      // G2. Close Modals / Dialogs
+      if (/\b(close formulas|close cheat sheet|close modal|close dialog|close|band karo|hatao)\b/i.test(cleanText)) {
+        lastExecutedTextRef.current = cleanText;
+        lastExecutedTimeRef.current = now;
+        playEarcon('action');
+        window.dispatchEvent(new CustomEvent('drishti:learn-close-formulas'));
+        setLastActionFeedback('Closed dialog.');
+        speak('Closed.');
+        announce('Dialog closed.', 'polite');
+        setLiveTranscript('');
+        return;
       }
 
       // H. Help & Commands

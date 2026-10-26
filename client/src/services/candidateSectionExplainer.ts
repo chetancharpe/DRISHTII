@@ -17,6 +17,7 @@ export interface SectionElement {
   aliases: string[];
   action: (ctx: SectionContext) => void;
   confirmSpeech: string;
+  speaksOwnContent?: boolean;
 }
 
 export interface SectionDescriptor {
@@ -210,31 +211,39 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
         number: 1,
         label: 'Read Concept Notes',
         description: 'Audio explanation of letter shifting patterns and opposite pairs',
-        aliases: ['concept', 'read concept', 'notes', 'overview', 'samjhao'],
-        action: (c) =>
-          c.speak(
-            'Coding and Decoding Concept: Words are encrypted using shift patterns such as adding or subtracting letter positions, reverse alphabet pairs where the sum of positions is 27, or numerical substitution. To decode, identify the consistent transformation applied to each letter.'
-          ),
+        aliases: ['concept', 'read concept', 'notes', 'overview', 'samjhao', 'option 1', 'option one', 'first', 'pehla'],
+        speaksOwnContent: true,
         confirmSpeech: 'Reading Concept Notes for Coding and Decoding.',
+        action: (c) => {
+          window.dispatchEvent(new CustomEvent('drishti:learn-open-concept', { detail: { topicId: 'coding-decoding' } }));
+          c.speak(
+            'Coding and Decoding Concept: Words are encrypted using shift patterns such as adding or subtracting letter positions, reverse alphabet pairs where the sum of positions is 27, or numerical substitution. To decode, identify the consistent transformation applied to each letter. Say Option 2 to hear key rules, or Option 3 to start practice.'
+          );
+        },
       },
       {
         id: 'rules',
         number: 2,
         label: 'Read Key Substitution Rules',
         description: 'Alphabet reverse pairs and positional shift formulas',
-        aliases: ['rules', 'formulas', 'cheat sheet', 'sutra', 'nayam'],
-        action: (c) =>
-          c.speak(
-            'Key Coding Rules: Rule 1: Opposite pairs: A pairs with Z, B pairs with Y, C pairs with X, M pairs with N. Rule 2: Positional shift: letters may shift forward by plus 1, plus 2, or alternating values. Rule 3: Cross letter swaps in even length words.'
-          ),
+        aliases: ['rules', 'formulas', 'cheat sheet', 'sutra', 'nayam', 'option 2', 'option two', 'second', 'dusra'],
+        speaksOwnContent: true,
         confirmSpeech: 'Reading Coding Rules.',
+        action: (c) => {
+          window.dispatchEvent(new CustomEvent('drishti:learn-open-formulas', { detail: { topicId: 'coding-decoding' } }));
+          const el = document.getElementById('formulas-matrix') || document.getElementById('formula-table-heading');
+          el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          c.speak(
+            'Key Coding Rules: Rule 1: Opposite pairs: A pairs with Z, B pairs with Y, C pairs with X, M pairs with N. Rule 2: Positional shift: letters may shift forward by plus 1, plus 2, or alternating values. Rule 3: Cross letter swaps in even length words. Say Option 3 to start practice questions, or say Close to exit.'
+          );
+        },
       },
       {
         id: 'start-practice',
         number: 3,
         label: 'Start Practice Questions',
         description: 'Launches 5 interactive practice questions on Coding and Decoding',
-        aliases: ['practice', 'start practice', 'questions', 'swal', 'abhyas'],
+        aliases: ['practice', 'start practice', 'questions', 'swal', 'abhyas', 'option 3', 'option three', 'third', 'teesra'],
         action: (c) => c.navigate('/candidate/practice/session/demo-coding-decoding'),
         confirmSpeech: 'Launching Coding and Decoding Practice questions.',
       },
@@ -243,7 +252,7 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
         number: 4,
         label: 'Back to Reasoning',
         description: 'Return to Reasoning topics list',
-        aliases: ['back', 'wapas', 'reasoning'],
+        aliases: ['back', 'wapas', 'reasoning', 'option 4', 'option four', 'fourth', 'chautha'],
         action: (c) => c.navigate('/candidate/learn/reasoning'),
         confirmSpeech: 'Returning to Reasoning Curriculum.',
       },
@@ -263,6 +272,7 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
     return { id: 'learn-topic-coding-decoding', name: 'Coding & Decoding Topic', introSpeech, elementsSummary, elements };
   }
 
+  // 3A. MATHEMATICS: PERCENTAGES
   if (path.includes('/candidate/learn/mathematics/percentages')) {
     const elements: SectionElement[] = [
       {
@@ -270,31 +280,58 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
         number: 1,
         label: 'Read Concept Notes',
         description: 'Audio explanation of percentages and fraction conversion',
-        aliases: ['concept', 'read concept', 'notes', 'overview', 'samjhao'],
-        action: (c) =>
-          c.speak(
-            'Percentages concept: A percentage represents a number as a fraction of 100. To convert any fraction to percentage, multiply by 100. For example, 1 divided by 4 equals 25 percent. Key applications include profit and loss, interest, and ratio comparisons.'
-          ),
+        aliases: ['concept', 'read concept', 'notes', 'overview', 'samjhao', 'option 1', 'option one', 'first', 'pehla'],
+        speaksOwnContent: true,
         confirmSpeech: 'Reading Concept Notes for Percentages.',
+        action: (c) => {
+          window.dispatchEvent(new CustomEvent('drishti:learn-open-concept', { detail: { topicId: 'percentages' } }));
+          c.speak(
+            'Percentages concept: A percentage represents a number as a fraction of 100. To convert any fraction to percentage, multiply by 100. For example, 1 divided by 4 equals 25 percent. Key applications include profit and loss, interest, and ratio comparisons. Say Option 2 to open formulas of percentage, or Option 3 to start practice questions.'
+          );
+        },
       },
       {
         id: 'formulas',
         number: 2,
-        label: 'Read Important Formulas',
-        description: 'Spoken formula cheat-sheet for percentages',
-        aliases: ['formulas', 'formula', 'cheat sheet', 'sutra'],
-        action: (c) =>
+        label: 'Formulas of Percentage',
+        description: 'Open and read formulas cheat-sheet for percentages',
+        aliases: [
+          'formulas of percentage',
+          'formulas of percentages',
+          'percentage formulas',
+          'percentages formulas',
+          'formula of percentage',
+          'formulas',
+          'formula',
+          'cheat sheet',
+          'sutra',
+          'open formulas',
+          'show formulas',
+          'read formulas',
+          'formulas kholo',
+          'sutra batao',
+          'option 2',
+          'option two',
+          'second',
+          'dusra',
+        ],
+        speaksOwnContent: true,
+        confirmSpeech: 'Opening Formulas of Percentage.',
+        action: (c) => {
+          window.dispatchEvent(new CustomEvent('drishti:learn-open-formulas', { detail: { topicId: 'percentages' } }));
+          const el = document.getElementById('formulas-matrix') || document.getElementById('formula-table-heading');
+          el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
           c.speak(
-            'Key Percentages formulas: 1. Percentage increase equals Increase divided by Initial Value multiplied by 100. 2. Percentage decrease equals Decrease divided by Initial Value multiplied by 100. 3. Fraction 1 by 2 is 50 percent, 1 by 3 is 33.33 percent, 1 by 4 is 25 percent, 1 by 5 is 20 percent.'
-          ),
-        confirmSpeech: 'Reading Formulas for Percentages.',
+            'Opening Formulas of Percentage. Formula 1: Percentage Increase equals difference between New Value and Original Value, divided by Original Value, multiplied by 100. Formula 2: Percentage Decrease equals difference between Original Value and New Value, divided by Original Value, multiplied by 100. Key Fraction conversions: 1 by 2 is 50 percent, 1 by 3 is 33.33 percent, 1 by 4 is 25 percent, 1 by 5 is 20 percent. Say Option 3 to start practice questions, or say Close to exit formulas.'
+          );
+        },
       },
       {
         id: 'start-practice',
         number: 3,
         label: 'Start Practice Questions',
         description: 'Launches 5 interactive practice questions on percentages',
-        aliases: ['practice', 'start practice', 'questions', 'swal', 'abhyas'],
+        aliases: ['practice', 'start practice', 'questions', 'swal', 'abhyas', 'option 3', 'option three', 'third', 'teesra'],
         action: (c) => c.navigate('/candidate/practice/session/demo-percentages'),
         confirmSpeech: 'Launching Percentages Practice session.',
       },
@@ -303,7 +340,7 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
         number: 4,
         label: 'Back to Mathematics',
         description: 'Return to Mathematics topics list',
-        aliases: ['back', 'wapas', 'mathematics'],
+        aliases: ['back', 'wapas', 'mathematics', 'math', 'option 4', 'option four', 'fourth', 'chautha'],
         action: (c) => c.navigate('/candidate/learn/mathematics'),
         confirmSpeech: 'Returning to Mathematics Curriculum.',
       },
@@ -311,16 +348,250 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
 
     const introSpeech =
       'Percentages and Fractions Topic. Here are the 4 elements: ' +
-      'Option 1: Read Concept Notes and overview. ' +
-      'Option 2: Read Important Formulas. ' +
-      'Option 3: Launch Practice Questions on Percentages. ' +
+      'Option 1: Read Concept Notes. ' +
+      'Option 2: Formulas of Percentage. ' +
+      'Option 3: Start Practice Questions on Percentages. ' +
       'Option 4: Back to Mathematics. ' +
-      'Say Option 1 to hear concept, Option 2 for formulas, or Option 3 to start practice.';
+      'Say Option 1 to hear concept, Option 2 or Formulas to open formulas, or Option 3 to start practice.';
 
     const elementsSummary =
-      'Percentages options: 1. Read Concept, 2. Read Formulas, 3. Launch Practice, 4. Back to Mathematics.';
+      'Percentages options: 1. Read Concept, 2. Formulas of Percentage, 3. Start Practice, 4. Back to Mathematics. Say Option 1, 2, 3, or 4.';
 
     return { id: 'learn-topic-percentages', name: 'Percentages Topic', introSpeech, elementsSummary, elements };
+  }
+
+  // 3B. MATHEMATICS: ALGEBRA
+  if (path.includes('/candidate/learn/mathematics/algebra')) {
+    const elements: SectionElement[] = [
+      {
+        id: 'concept',
+        number: 1,
+        label: 'Read Concept Notes',
+        description: 'Audio explanation of algebraic variables and linear equations',
+        aliases: ['concept', 'read concept', 'notes', 'overview', 'samjhao', 'option 1', 'option one', 'first', 'pehla'],
+        speaksOwnContent: true,
+        confirmSpeech: 'Reading Concept Notes for Algebra.',
+        action: (c) => {
+          window.dispatchEvent(new CustomEvent('drishti:learn-open-concept', { detail: { topicId: 'algebra' } }));
+          c.speak('Algebra Concept: Algebra represents mathematical relationships using variables and constants. Linear equations have a single variable of degree one. Say Option 2 to open algebraic identities, or Option 3 to start practice questions.');
+        },
+      },
+      {
+        id: 'formulas',
+        number: 2,
+        label: 'Formulas of Algebra & Identities',
+        description: 'Open and read formulas cheat-sheet for algebra',
+        aliases: ['formulas of algebra', 'algebra formulas', 'identities', 'algebraic identities', 'formulas', 'formula', 'cheat sheet', 'sutra', 'open formulas', 'show formulas', 'read formulas', 'option 2', 'option two', 'second', 'dusra'],
+        speaksOwnContent: true,
+        confirmSpeech: 'Opening Formulas of Algebra.',
+        action: (c) => {
+          window.dispatchEvent(new CustomEvent('drishti:learn-open-formulas', { detail: { topicId: 'algebra' } }));
+          const el = document.getElementById('formulas-matrix') || document.getElementById('formula-table-heading');
+          el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          c.speak('Opening Formulas of Algebra: Identity 1: a plus b whole squared equals a squared plus 2 a b plus b squared. Identity 2: a minus b whole squared equals a squared minus 2 a b plus b squared. Identity 3: a squared minus b squared equals open parenthesis a minus b close parenthesis times open parenthesis a plus b close parenthesis. Say Option 3 to start practice, or say Close to exit.');
+        },
+      },
+      {
+        id: 'start-practice',
+        number: 3,
+        label: 'Start Practice Questions',
+        description: 'Launches interactive practice questions on algebra',
+        aliases: ['practice', 'start practice', 'questions', 'swal', 'abhyas', 'option 3', 'option three', 'third', 'teesra'],
+        action: (c) => c.navigate('/candidate/practice/session/demo-algebra'),
+        confirmSpeech: 'Launching Algebra Practice session.',
+      },
+      {
+        id: 'back',
+        number: 4,
+        label: 'Back to Mathematics',
+        description: 'Return to Mathematics topics list',
+        aliases: ['back', 'wapas', 'mathematics', 'math', 'option 4', 'option four', 'fourth', 'chautha'],
+        action: (c) => c.navigate('/candidate/learn/mathematics'),
+        confirmSpeech: 'Returning to Mathematics Curriculum.',
+      },
+    ];
+
+    const introSpeech =
+      'Algebra Topic Study Module. Here are the 4 elements: ' +
+      'Option 1: Read Concept Notes. ' +
+      'Option 2: Formulas of Algebra. ' +
+      'Option 3: Start Practice Questions on Algebra. ' +
+      'Option 4: Back to Mathematics. ' +
+      'Say Option 1 for concept, Option 2 for formulas, or Option 3 to start practice.';
+
+    const elementsSummary =
+      'Algebra options: 1. Read Concept, 2. Formulas of Algebra, 3. Start Practice, 4. Back to Mathematics. Say Option 1, 2, 3, or 4.';
+
+    return { id: 'learn-topic-algebra', name: 'Algebra Topic', introSpeech, elementsSummary, elements };
+  }
+
+  // 3C. MATHEMATICS: GEOMETRY
+  if (path.includes('/candidate/learn/mathematics/geometry')) {
+    const elements: SectionElement[] = [
+      {
+        id: 'concept',
+        number: 1,
+        label: 'Read Concept Notes',
+        description: 'Audio explanation of geometric shapes and angle properties',
+        aliases: ['concept', 'read concept', 'notes', 'overview', 'samjhao', 'option 1', 'option one', 'first', 'pehla'],
+        speaksOwnContent: true,
+        confirmSpeech: 'Reading Concept Notes for Geometry.',
+        action: (c) => {
+          window.dispatchEvent(new CustomEvent('drishti:learn-open-concept', { detail: { topicId: 'geometry' } }));
+          c.speak('Geometry Concept: Sum of angles in any triangle is always 180 degrees. In right triangles, the square of hypotenuse equals sum of squares of the other two sides. Say Option 2 to open geometric formulas, or Option 3 to start practice.');
+        },
+      },
+      {
+        id: 'formulas',
+        number: 2,
+        label: 'Formulas of Geometry & Mensuration',
+        description: 'Open and read formulas cheat-sheet for geometry',
+        aliases: ['formulas of geometry', 'geometry formulas', 'mensuration formulas', 'formulas', 'formula', 'cheat sheet', 'sutra', 'open formulas', 'show formulas', 'read formulas', 'option 2', 'option two', 'second', 'dusra'],
+        speaksOwnContent: true,
+        confirmSpeech: 'Opening Formulas of Geometry.',
+        action: (c) => {
+          window.dispatchEvent(new CustomEvent('drishti:learn-open-formulas', { detail: { topicId: 'geometry' } }));
+          const el = document.getElementById('formulas-matrix') || document.getElementById('formula-table-heading');
+          el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          c.speak('Opening Formulas of Geometry: Formula 1: Triangle Area equals half times base times height. Formula 2: Pythagoras Theorem: a squared plus b squared equals c squared. Formula 3: Circle Area equals pi r squared, and Circumference equals 2 pi r. Say Option 3 to start practice, or say Close to exit.');
+        },
+      },
+      {
+        id: 'start-practice',
+        number: 3,
+        label: 'Start Practice Questions',
+        description: 'Launches interactive practice questions on geometry',
+        aliases: ['practice', 'start practice', 'questions', 'swal', 'abhyas', 'option 3', 'option three', 'third', 'teesra'],
+        action: (c) => c.navigate('/candidate/practice/session/demo-geometry'),
+        confirmSpeech: 'Launching Geometry Practice session.',
+      },
+      {
+        id: 'back',
+        number: 4,
+        label: 'Back to Mathematics',
+        description: 'Return to Mathematics topics list',
+        aliases: ['back', 'wapas', 'mathematics', 'math', 'option 4', 'option four', 'fourth', 'chautha'],
+        action: (c) => c.navigate('/candidate/learn/mathematics'),
+        confirmSpeech: 'Returning to Mathematics Curriculum.',
+      },
+    ];
+
+    const introSpeech =
+      'Geometry and Mensuration Topic. Here are the 4 elements: ' +
+      'Option 1: Read Concept Notes. ' +
+      'Option 2: Formulas of Geometry. ' +
+      'Option 3: Start Practice Questions on Geometry. ' +
+      'Option 4: Back to Mathematics. ' +
+      'Say Option 1 for concept, Option 2 for formulas, or Option 3 to start practice.';
+
+    const elementsSummary =
+      'Geometry options: 1. Read Concept, 2. Formulas of Geometry, 3. Start Practice, 4. Back to Mathematics. Say Option 1, 2, 3, or 4.';
+
+    return { id: 'learn-topic-geometry', name: 'Geometry Topic', introSpeech, elementsSummary, elements };
+  }
+
+  // 3D. GENERIC SUBTOPIC DETAIL PAGE (/candidate/learn/:subjectId/:topicId)
+  const topicDetailMatch = path.match(/^\/candidate\/learn\/([^/]+)\/([^/]+)/);
+  if (topicDetailMatch) {
+    const subjectSlug = topicDetailMatch[1];
+    const topicSlug = topicDetailMatch[2];
+    const formattedTopicName = topicSlug
+      .split('-')
+      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+      .join(' ');
+    const formattedSubjectName = subjectSlug
+      .split('-')
+      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+      .join(' ');
+
+    const elements: SectionElement[] = [
+      {
+        id: 'concept',
+        number: 1,
+        label: `Read ${formattedTopicName} Concept Notes`,
+        description: `Audio explanation and notes for ${formattedTopicName}`,
+        aliases: ['concept', 'read concept', 'notes', 'overview', 'samjhao', 'option 1', 'option one', 'first', 'pehla'],
+        speaksOwnContent: true,
+        confirmSpeech: `Reading concept notes for ${formattedTopicName}.`,
+        action: (c) => {
+          window.dispatchEvent(
+            new CustomEvent('drishti:learn-open-concept', { detail: { topicId: topicSlug, subjectId: subjectSlug } })
+          );
+          const heading =
+            document.getElementById('learning-objectives-heading') ||
+            document.getElementById('topic-sections-container');
+          heading?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          c.speak(
+            `Concept notes for ${formattedTopicName}. Review the study material on screen. Say Option 2 to open formulas and rules, or Option 3 to start practice questions.`
+          );
+        },
+      },
+      {
+        id: 'formulas',
+        number: 2,
+        label: `Formulas and Rules for ${formattedTopicName}`,
+        description: `Open formulas cheat-sheet for ${formattedTopicName}`,
+        aliases: [
+          'formulas',
+          'formula',
+          'rules',
+          'cheat sheet',
+          'sutra',
+          'open formulas',
+          'show formulas',
+          'read formulas',
+          `formulas of ${topicSlug}`,
+          `formulas of ${formattedTopicName.toLowerCase()}`,
+          'option 2',
+          'option two',
+          'second',
+          'dusra',
+        ],
+        speaksOwnContent: true,
+        confirmSpeech: `Opening Formulas cheat-sheet for ${formattedTopicName}.`,
+        action: (c) => {
+          window.dispatchEvent(
+            new CustomEvent('drishti:learn-open-formulas', { detail: { topicId: topicSlug, subjectId: subjectSlug } })
+          );
+          const el = document.getElementById('formulas-matrix') || document.getElementById('formula-table-heading');
+          el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          c.speak(
+            `Opening Formulas and Rules Cheat-Sheet for ${formattedTopicName}. You can view the formulas on screen or press Alt+F anytime. Say Option 3 to start practice questions, or say Close to exit.`
+          );
+        },
+      },
+      {
+        id: 'start-practice',
+        number: 3,
+        label: 'Start Practice Questions',
+        description: `Launch practice questions for ${formattedTopicName}`,
+        aliases: ['practice', 'start practice', 'questions', 'swal', 'abhyas', 'option 3', 'option three', 'third', 'teesra'],
+        action: (c) => c.navigate(`/candidate/practice/session/demo-${topicSlug}`),
+        confirmSpeech: `Launching ${formattedTopicName} Practice questions.`,
+      },
+      {
+        id: 'back',
+        number: 4,
+        label: `Back to ${formattedSubjectName}`,
+        description: `Return to ${formattedSubjectName} topics list`,
+        aliases: ['back', 'wapas', subjectSlug, 'option 4', 'option four', 'fourth', 'chautha'],
+        action: (c) => c.navigate(`/candidate/learn/${subjectSlug}`),
+        confirmSpeech: `Returning to ${formattedSubjectName} Curriculum.`,
+      },
+    ];
+
+    const introSpeech =
+      `${formattedTopicName} Topic Study Module. Here are the 4 elements: ` +
+      `Option 1: Read Concept Notes. ` +
+      `Option 2: Formulas and Rules Cheat-Sheet. ` +
+      `Option 3: Start Practice Questions. ` +
+      `Option 4: Back to ${formattedSubjectName}. ` +
+      `Say Option 1 to hear concept, Option 2 to open formulas, or Option 3 to start practice.`;
+
+    const elementsSummary =
+      `${formattedTopicName} options: 1. Read Concept, 2. Formulas Cheat-Sheet, 3. Start Practice, 4. Back. Say Option 1, 2, 3, or 4.`;
+
+    return { id: `learn-topic-${topicSlug}`, name: `${formattedTopicName} Topic`, introSpeech, elementsSummary, elements };
   }
 
   // 4. LEARN TOPICS: MATHEMATICS TOPICS GENERIC
@@ -1227,7 +1498,212 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
     return { id: 'help', name: 'Help and Guides', introSpeech, elementsSummary, elements };
   }
 
-  // 15. DEFAULT FALLBACK
+  // 15. AUTH: SIGN IN & LOGIN
+  if (path.startsWith('/auth/login')) {
+    const elements: SectionElement[] = [
+      {
+        id: 'candidate-quick-login',
+        number: 1,
+        label: 'Candidate Demo Sign In',
+        description: 'Instant sign-in with verified Candidate student credentials',
+        aliases: ['candidate', 'demo candidate', 'student', 'candidate login', 'option 1', 'option one', 'first', 'pehla'],
+        speaksOwnContent: true,
+        action: (c) => {
+          c.speak('Signing in as Candidate. Loading workspace.');
+          c.navigate('/candidate/dashboard');
+        },
+        confirmSpeech: 'Signing in as Candidate.',
+      },
+      {
+        id: 'enter-email',
+        number: 2,
+        label: 'Speak Email Address',
+        description: 'Provide your registered email address verbally',
+        aliases: ['email', 'enter email', 'option 2', 'option two', 'second', 'dusra'],
+        speaksOwnContent: true,
+        action: (c) => {
+          c.speak('Please say: Email followed by your email address.');
+        },
+        confirmSpeech: 'Please speak your email address.',
+      },
+      {
+        id: 'enter-password',
+        number: 3,
+        label: 'Speak Password',
+        description: 'Provide your secret password verbally',
+        aliases: ['password', 'enter password', 'option 3', 'option three', 'third', 'teesra'],
+        speaksOwnContent: true,
+        action: (c) => {
+          c.speak('Please say: Password followed by your password.');
+        },
+        confirmSpeech: 'Please speak your password.',
+      },
+      {
+        id: 'submit-login',
+        number: 4,
+        label: 'Submit Sign In',
+        description: 'Validate credentials and enter your dashboard',
+        aliases: ['submit', 'sign in', 'login', 'option 4', 'option four', 'fourth', 'chautha'],
+        speaksOwnContent: true,
+        action: (c) => {
+          c.speak('Submitting sign in credentials.');
+        },
+        confirmSpeech: 'Submitting sign in.',
+      },
+      {
+        id: 'go-to-signup',
+        number: 5,
+        label: 'Create New Account',
+        description: 'Register for a new student or examiner account',
+        aliases: ['sign up', 'register', 'create account', 'option 5', 'option five', 'fifth', 'panchwa'],
+        action: (c) => c.navigate('/auth/role-selection'),
+        confirmSpeech: 'Opening Registration page.',
+      },
+    ];
+
+    const introSpeech =
+      'DRISHTI Sign In. You can log in completely hands-free using your voice. ' +
+      'Option 1: Quick Candidate Demo Sign In. ' +
+      'Option 2: Speak Email Address. ' +
+      'Option 3: Speak Password. ' +
+      'Option 4: Submit Sign In. ' +
+      'Option 5: Create New Account. ' +
+      'Say Option 1 or Candidate to log in immediately.';
+
+    const elementsSummary =
+      'Sign In options: 1. Candidate Demo, 2. Email, 3. Password, 4. Submit, 5. Sign Up. Say Option 1, 2, 3, 4, or 5.';
+
+    return { id: 'auth-login', name: 'Sign In', introSpeech, elementsSummary, elements };
+  }
+
+  // 16. AUTH: SIGN UP
+  if (path.startsWith('/auth/signup')) {
+    const elements: SectionElement[] = [
+      {
+        id: 'quick-register-candidate',
+        number: 1,
+        label: 'Quick Register as Candidate',
+        description: 'Instantly creates a student candidate account',
+        aliases: ['candidate', 'quick register', 'option 1', 'option one', 'first', 'pehla'],
+        speaksOwnContent: true,
+        action: (c) => {
+          c.speak('Registering new Candidate account.');
+          c.navigate('/auth/accessibility-setup');
+        },
+        confirmSpeech: 'Registering Candidate account.',
+      },
+      {
+        id: 'enter-name',
+        number: 2,
+        label: 'Speak Full Name',
+        description: 'Provide your name verbally',
+        aliases: ['name', 'enter name', 'option 2', 'option two', 'second', 'dusra'],
+        speaksOwnContent: true,
+        action: (c) => c.speak('Please say: Name followed by your full name.'),
+        confirmSpeech: 'Please speak your name.',
+      },
+      {
+        id: 'enter-email',
+        number: 3,
+        label: 'Speak Email Address',
+        description: 'Provide your email verbally',
+        aliases: ['email', 'enter email', 'option 3', 'option three', 'third', 'teesra'],
+        speaksOwnContent: true,
+        action: (c) => c.speak('Please say: Email followed by your email address.'),
+        confirmSpeech: 'Please speak your email address.',
+      },
+      {
+        id: 'enter-password',
+        number: 4,
+        label: 'Speak Password',
+        description: 'Provide your password verbally',
+        aliases: ['password', 'enter password', 'option 4', 'option four', 'fourth', 'chautha'],
+        speaksOwnContent: true,
+        action: (c) => c.speak('Please say: Password followed by your password.'),
+        confirmSpeech: 'Please speak your password.',
+      },
+      {
+        id: 'submit-signup',
+        number: 5,
+        label: 'Submit Registration',
+        description: 'Create account and proceed to sensory calibration',
+        aliases: ['submit', 'register', 'option 5', 'option five', 'fifth', 'panchwa'],
+        action: (c) => c.navigate('/auth/accessibility-setup'),
+        confirmSpeech: 'Submitting registration.',
+      },
+      {
+        id: 'return-login',
+        number: 6,
+        label: 'Already have an account? Sign In',
+        description: 'Return to login screen',
+        aliases: ['sign in', 'login', 'option 6', 'option six', 'sixth', 'chatha'],
+        action: (c) => c.navigate('/auth/login'),
+        confirmSpeech: 'Returning to Sign In page.',
+      },
+    ];
+
+    const introSpeech =
+      'DRISHTI Registration. ' +
+      'Option 1: Quick Register as Candidate. ' +
+      'Option 2: Speak Full Name. ' +
+      'Option 3: Speak Email Address. ' +
+      'Option 4: Speak Password. ' +
+      'Option 5: Submit Registration. ' +
+      'Option 6: Already have an account? Sign In. ' +
+      'Say Option 1 or Candidate to register immediately.';
+
+    const elementsSummary =
+      'Registration options: 1. Quick Candidate, 2. Name, 3. Email, 4. Password, 5. Submit, 6. Sign In.';
+
+    return { id: 'auth-signup', name: 'Registration', introSpeech, elementsSummary, elements };
+  }
+
+  // 17. AUTH: ROLE SELECTION
+  if (path.startsWith('/auth/role-selection')) {
+    const elements: SectionElement[] = [
+      {
+        id: 'role-candidate',
+        number: 1,
+        label: 'Candidate Account',
+        description: 'Student or examinee taking exams',
+        aliases: ['candidate', 'student', 'option 1', 'option one', 'first', 'pehla'],
+        action: (c) => c.navigate('/auth/signup?role=candidate'),
+        confirmSpeech: 'Candidate role selected.',
+      },
+      {
+        id: 'role-examiner',
+        number: 2,
+        label: 'Examiner Account',
+        description: 'Educator or institution authoring exams',
+        aliases: ['examiner', 'teacher', 'institution', 'option 2', 'option two', 'second', 'dusra'],
+        action: (c) => c.navigate('/auth/signup?role=examiner'),
+        confirmSpeech: 'Examiner role selected.',
+      },
+      {
+        id: 'role-login',
+        number: 3,
+        label: 'Already Have an Account? Sign In',
+        description: 'Return to Sign In page',
+        aliases: ['sign in', 'login', 'option 3', 'option three', 'third', 'teesra'],
+        action: (c) => c.navigate('/auth/login'),
+        confirmSpeech: 'Opening Sign In page.',
+      },
+    ];
+
+    const introSpeech =
+      'Select your Account Type. ' +
+      'Option 1: Candidate - Student or test taker. ' +
+      'Option 2: Examiner - Author and manage accessible exams. ' +
+      'Option 3: Already have an account? Sign In. ' +
+      'Say Option 1 for Candidate or Option 2 for Examiner.';
+
+    const elementsSummary =
+      'Role options: 1. Candidate, 2. Examiner, 3. Sign In. Say Option 1, 2, or 3.';
+
+    return { id: 'auth-role-selection', name: 'Account Type', introSpeech, elementsSummary, elements };
+  }
+
+  // 18. DEFAULT FALLBACK
   const defaultElements: SectionElement[] = [
     {
       id: 'dashboard',

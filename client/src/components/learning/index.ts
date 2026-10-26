@@ -5,3 +5,4 @@ export * from './ExampleBlock';
 export * from './AudioLearningPlayer';
 export * from './LearningBreadcrumbs';
 export * from './TopicNavigationFooter';
+export * from './TopicFormulasModal';

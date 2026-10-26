@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { UserRole } from '../../types/user';
+import { useAuthVoiceNavigator } from '../../hooks/useAuthVoiceNavigator';
+import { AuthVoiceAssistant } from '../../components/auth/AuthVoiceAssistant';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Button } from '../../components/common/Button';
 import { GraduationCap, Building2, CheckCircle2, ArrowRight, ArrowLeft } from 'lucide-react';
@@ -12,6 +14,17 @@ export const RoleSelectionPage: React.FC = () => {
   const handleProceed = () => {
     navigate(`/auth/signup?role=${selectedRole}`);
   };
+
+  const voiceState = useAuthVoiceNavigator({
+    page: 'role-selection',
+    onSelectRole: (role) => {
+      setSelectedRole(role);
+      navigate(`/auth/signup?role=${role}`);
+    },
+    onNavigateLogin: () => {
+      navigate('/auth/login');
+    },
+  });
 
   const roles = [
     {
@@ -55,6 +68,9 @@ export const RoleSelectionPage: React.FC = () => {
             Choose whether you are registering to take examinations or to author and manage them.
           </p>
         </div>
+
+        {/* Accessible Voice Assistant Navigator Bar */}
+        <AuthVoiceAssistant voiceState={voiceState} pageType="role-selection" />
 
         {/* Accessible Radio Cards */}
         <div

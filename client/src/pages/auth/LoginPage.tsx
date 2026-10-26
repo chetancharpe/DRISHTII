@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useAuthVoiceNavigator } from '../../hooks/useAuthVoiceNavigator';
 import { AuthLayout } from '../../components/layout/AuthLayout';
+import { AuthVoiceAssistant } from '../../components/auth/AuthVoiceAssistant';
 import { Input } from '../../components/common/Input';
 import { Checkbox } from '../../components/common/Checkbox';
 import { Button } from '../../components/common/Button';
-import { AlertCircle, ArrowRight, UserCheck, Mic } from 'lucide-react';
+import { AlertCircle, ArrowRight, UserCheck } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -16,9 +18,6 @@ export const LoginPage: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [formError, setFormError] = useState<string | null>(null);
-
-  const [isVoiceListening, setIsVoiceListening] = useState(false);
-  const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
 
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -40,125 +39,80 @@ export const LoginPage: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const executeLogin = useCallback(
+    async (loginEmail: string, loginPass: string) => {
+      setFormError(null);
+      try {
+        const loggedInUser = await login(loginEmail, loginPass);
+
+        // Route candidate or examiner to their respective dashboard
+        if (loggedInUser.role === 'examiner') {
+          navigate('/examiner/dashboard');
+        } else if (loggedInUser.role === 'admin') {
+          navigate('/admin/dashboard');
+        } else {
+          navigate('/candidate/dashboard');
+        }
+      } catch (err: any) {
+        setFormError(
+          err?.message || "We couldn't sign you in. Check your email and password and try again."
+        );
+      }
+    },
+    [login, navigate]
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError(null);
-
     if (!validate()) return;
-
-    try {
-      const loggedInUser = await login(email, password);
-
-      // Route candidate or examiner to their respective dashboard
-      if (loggedInUser.role === 'examiner') {
-        navigate('/examiner/dashboard');
-      } else if (loggedInUser.role === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/candidate/dashboard');
-      }
-    } catch (err: any) {
-      setFormError(
-        err?.message || "We couldn't sign you in. Check your email and password and try again."
-      );
-    }
+    executeLogin(email, password);
   };
 
   // Quick Demo Autofill Helper for Development (calling real seeded demo accounts)
-  const fillDemoAccount = (demoEmail: string, demoPass: string) => {
+  const fillDemoAccount = useCallback((demoEmail: string, demoPass: string) => {
     setEmail(demoEmail);
     setPassword(demoPass);
     setErrors({});
     setFormError(null);
-  };
+  }, []);
 
-  const startVoiceLogin = async () => {
-    if (typeof window === 'undefined') return;
-    const SpeechClass =
-      window.SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechClass) {
-      setVoiceNotice('Speech recognition requires Chrome or Edge.');
-      return;
-    }
-
-    try {
-      if (navigator.mediaDevices?.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        stream.getTracks().forEach((t) => t.stop());
+  // Hands-free Voice Navigator for Blind & Visually Impaired Candidates
+  const voiceState = useAuthVoiceNavigator({
+    page: 'login',
+    onFillEmail: (val) => {
+      setEmail(val);
+      setErrors((prev) => ({ ...prev, email: undefined }));
+    },
+    onFillPassword: (val) => {
+      setPassword(val);
+      setErrors((prev) => ({ ...prev, password: undefined }));
+    },
+    onSubmitForm: () => {
+      if (validate()) {
+        executeLogin(email, password);
       }
-      const recognition = new SpeechClass();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = 'en-IN';
-
-      recognition.onstart = () => {
-        setIsVoiceListening(true);
-        setVoiceNotice('Listening... Say "Candidate" to sign in');
-      };
-
-      recognition.onresult = (event: any) => {
-        let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          transcript += event.results[i][0].transcript;
-        }
-        const lower = transcript.toLowerCase();
-        setVoiceNotice(`Heard: "${transcript}"`);
-        if (
-          lower.includes('candidate') ||
-          lower.includes('sign in') ||
-          lower.includes('login') ||
-          lower.includes('chalo') ||
-          lower.includes('learn') ||
-          lower.includes('practice') ||
-          lower.includes('dashboard')
-        ) {
-          try {
-            recognition.abort();
-          } catch {}
-          setIsVoiceListening(false);
-          fillDemoAccount('candidate1@gowow.org', 'CandidateSecure123!');
-          login('candidate1@gowow.org', 'CandidateSecure123!').then(() => {
-            if (lower.includes('learn')) {
-              navigate('/candidate/learn');
-            } else if (lower.includes('practice')) {
-              navigate('/candidate/practice');
-            } else {
-              navigate('/candidate/dashboard');
-            }
-          }).catch((err: any) => {
-            setFormError(err?.message || 'Login failed.');
-          });
-        }
-      };
-
-      recognition.onerror = () => {
-        setIsVoiceListening(false);
-      };
-
-      recognition.onend = () => {
-        setIsVoiceListening(false);
-      };
-
-      recognition.start();
-    } catch {
-      setIsVoiceListening(false);
-    }
-  };
-
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey && e.key.toLowerCase() === 'v') {
-        e.preventDefault();
-        if (isVoiceListening) {
-          setIsVoiceListening(false);
-        } else {
-          startVoiceLogin();
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isVoiceListening]);
+    },
+    onQuickCandidateLogin: () => {
+      fillDemoAccount('candidate1@gowow.org', 'CandidateSecure123!');
+      executeLogin('candidate1@gowow.org', 'CandidateSecure123!');
+    },
+    onQuickExaminerLogin: () => {
+      fillDemoAccount('examiner@gowow.org', 'ExaminerSecure123!');
+      executeLogin('examiner@gowow.org', 'ExaminerSecure123!');
+    },
+    onQuickAdminLogin: () => {
+      fillDemoAccount('admin@gowow.org', 'AdminSecurePass123!');
+      executeLogin('admin@gowow.org', 'AdminSecurePass123!');
+    },
+    onNavigateSignup: () => {
+      navigate('/auth/role-selection');
+    },
+    onNavigateForgotPassword: () => {
+      navigate('/auth/forgot-password');
+    },
+    currentEmail: email,
+    isPasswordSet: Boolean(password),
+  });
 
   return (
     <AuthLayout
@@ -174,37 +128,8 @@ export const LoginPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Hands-Free Voice Sign-In Banner */}
-        <div className="p-3 rounded-xl border border-primary/40 bg-primary/10 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div
-              className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                isVoiceListening
-                  ? 'bg-status-success/20 text-status-success'
-                  : 'bg-primary/20 text-primary'
-              }`}
-            >
-              <Mic className="w-4 h-4" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-foreground truncate">
-                {voiceNotice || 'Hands-Free Voice Sign In'}
-              </p>
-              <p className="text-[10px] text-foreground-secondary truncate">
-                {isVoiceListening
-                  ? 'Say "Candidate" or "Sign In" now'
-                  : 'Click button or press Alt+V to speak'}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={isVoiceListening ? () => setIsVoiceListening(false) : startVoiceLogin}
-            className="px-3 py-1.5 rounded-lg bg-primary text-primary-contrast text-xs font-bold shrink-0 hover:bg-primary-hover min-h-[34px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            {isVoiceListening ? 'Stop' : 'Voice Sign In'}
-          </button>
-        </div>
+        {/* Accessible Voice Assistant Navigator Bar */}
+        <AuthVoiceAssistant voiceState={voiceState} pageType="login" />
 
         {/* Global Live Region Form Error Alert */}
         {formError && (
