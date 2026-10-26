@@ -7,6 +7,7 @@ import {
   ExamSessionStatus,
 } from '../../../types/exam';
 import { examService } from '../../../services/examService';
+import { examinerService } from '../../../services/examinerService';
 import { DEMO_EXAM_01_CONFIG } from '../../../fixtures/examFixtures';
 import { ExamHeader } from '../../../components/exam/ExamHeader';
 import { ExamSectionNavigation } from '../../../components/exam/ExamSectionNavigation';
@@ -17,7 +18,9 @@ import { ExamAccessibilityBar } from '../../../components/exam/ExamAccessibility
 import { ExamSupportModal } from '../../../components/exam/ExamSupportModal';
 import { ExamShortcutsModal } from '../../../components/exam/ExamShortcutsModal';
 import { ExamInterruptionDialog } from '../../../components/exam/ExamInterruptionDialog';
-import { LayoutGrid, Loader2, AlertTriangle, Keyboard } from 'lucide-react';
+import { Modal } from '../../../components/common/Modal';
+import { Button } from '../../../components/common/Button';
+import { LayoutGrid, Loader2, AlertTriangle, Keyboard, ShieldAlert } from 'lucide-react';
 import { useAccessibility } from '../../../contexts/AccessibilityContext';
 import { VoiceCommandBar } from '../../../components/common/VoiceCommandBar';
 import { useVoiceCommands } from '../../../hooks/useVoiceCommands';
@@ -47,6 +50,10 @@ export const LiveExamSessionPage: React.FC = () => {
   const [isInterruptionModalOpen, setIsInterruptionModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Anti-cheat & integrity tracking
+  const [integrityWarningOpen, setIntegrityWarningOpen] = useState(false);
+  const [tabSwitchViolations, setTabSwitchViolations] = useState(0);
 
   // Time remaining tracking for low-time warning banner (15m, 5m, 1m)
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
@@ -146,6 +153,38 @@ export const LiveExamSessionPage: React.FC = () => {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [sessionStatus]);
+
+  // Anti-cheat: Track tab switches and window unfocus events
+  useEffect(() => {
+    if (sessionStatus !== 'ACTIVE' || !examId) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        setTabSwitchViolations((prev) => {
+          const nextCount = prev + 1;
+          const severity = nextCount >= 3 ? 'high' : nextCount === 2 ? 'medium' : 'low';
+          examinerService.recordIncident({
+            examId,
+            candidateRef: 'Active Candidate',
+            type: 'tab_switch',
+            severity,
+            notes: `Candidate tab switch or window hidden (Occurrence #${nextCount})`,
+          });
+          return nextCount;
+        });
+        setIntegrityWarningOpen(true);
+        announce(
+          'Security Notice: Navigating away from the active examination window has been logged to the examiner console.',
+          'assertive'
+        );
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [sessionStatus, examId, announce]);
 
   // Flattened questions list for navigation
   const allQuestions = useMemo(() => {
@@ -553,6 +592,28 @@ export const LiveExamSessionPage: React.FC = () => {
       isInterruptionModalOpen;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // DevTools and source inspection prevention
+      const isDevToolsKey =
+        e.key === 'F12' ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && ['i', 'I', 'j', 'J', 'c', 'C'].includes(e.key)) ||
+        ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U'));
+
+      if (isDevToolsKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (examId) {
+          examinerService.recordIncident({
+            examId,
+            candidateRef: 'Active Candidate',
+            type: 'devtools_attempt',
+            severity: 'high',
+            notes: `Candidate attempted restricted shortcut: ${e.key}`,
+          });
+        }
+        announce('Developer tools and page source inspection are restricted during the examination.', 'assertive');
+        return;
+      }
+
       // If voice pending selection is awaiting candidate confirmation, Enter confirms and Escape cancels
       if (voice.pendingSelection) {
         if (e.key === 'Enter') {
@@ -804,7 +865,20 @@ export const LiveExamSessionPage: React.FC = () => {
       </div>
 
       {/* Main Focus Area: Question Card */}
-      <main id="main-content" className="flex-1 max-w-5xl mx-auto w-full px-4 pt-6 sm:pt-8 flex flex-col justify-between">
+      <main
+        id="main-content"
+        className="flex-1 max-w-5xl mx-auto w-full px-4 pt-6 sm:pt-8 flex flex-col justify-between select-none"
+        onCopy={(e) => {
+          e.preventDefault();
+          announce('Copying examination content is prohibited during live examinations.', 'assertive');
+        }}
+        onCut={(e) => {
+          e.preventDefault();
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+        }}
+      >
         <VoiceCommandBar
           isListening={voice.isListening}
           isSupported={voice.isSupported}
@@ -895,6 +969,38 @@ export const LiveExamSessionPage: React.FC = () => {
         onResume={() => setIsInterruptionModalOpen(false)}
         onViewStatus={() => navigate(`/candidate/exams/${exam.id}/status`)}
       />
+
+      {/* Security & Integrity Notice Modal */}
+      <Modal
+        isOpen={integrityWarningOpen}
+        onClose={() => setIntegrityWarningOpen(false)}
+        title="Security & Integrity Notice"
+        maxWidth="md"
+      >
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-danger/10 border border-danger/20 text-danger">
+            <ShieldAlert className="w-6 h-6 flex-shrink-0" aria-hidden="true" />
+            <div>
+              <h3 className="text-sm font-bold">Unfocused Window / Tab Switch Detected</h3>
+              <p className="text-xs mt-0.5">
+                You have navigated away from the active examination window {tabSwitchViolations} time{tabSwitchViolations === 1 ? '' : 's'}.
+              </p>
+            </div>
+          </div>
+          <p className="text-xs text-foreground-secondary leading-relaxed">
+            All tab switches, focus losses, and developer inspection attempts are logged directly to the proctoring incident stream. Continued navigation away from the examination window may result in automatic submission or invalidation.
+          </p>
+          <div className="flex justify-end pt-2">
+            <Button
+              variant="primary"
+              onClick={() => setIntegrityWarningOpen(false)}
+              autoFocus
+            >
+              I Understand, Return to Exam
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

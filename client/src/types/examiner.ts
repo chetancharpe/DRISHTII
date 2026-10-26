@@ -255,7 +255,7 @@ export interface ExamIncident {
   examId: string;
   candidateRef: string;
   timestamp: string;
-  type: 'disconnect' | 'reconnect' | 'sync_delay' | 'session_expired' | 'assistive_key_pressed';
+  type: 'disconnect' | 'reconnect' | 'sync_delay' | 'session_expired' | 'assistive_key_pressed' | 'tab_switch' | 'devtools_attempt';
   severity: 'low' | 'medium' | 'high';
   status: 'logged' | 'investigating' | 'resolved';
   actionTaken?: string;

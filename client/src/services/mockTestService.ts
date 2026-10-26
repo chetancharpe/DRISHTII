@@ -938,6 +938,28 @@ export const FALLBACK_MOCK_TESTS: MockTest[] = [
 ];
 
 /**
+ * Isolated authoritative offline answer-key and explanation registry.
+ * Strictly encapsulated for offline fallback scoring upon submission.
+ * NEVER attached to candidate-facing question models or accessible in test-taking DOM.
+ */
+const OFFLINE_MOCK_EVAL_STORE: Record<string, { correctOptionIds: string[]; explanation: string }> = {};
+
+// Extract answer keys and explanations to isolated offline store and sanitize questions
+FALLBACK_MOCK_TESTS.forEach((test) => {
+  test.sections.forEach((sec) => {
+    sec.questions.forEach((q) => {
+      OFFLINE_MOCK_EVAL_STORE[q.id] = {
+        correctOptionIds: q.correctOptionIds || ['A'],
+        explanation: q.explanation || 'Official pedagogical explanation and solution rationale.',
+      };
+      // Strictly sanitize candidate question instances
+      delete q.correctOptionIds;
+      delete q.explanation;
+    });
+  });
+});
+
+/**
  * Intelligent helper to resolve mock tests by ID or subject name (math, english, gk, reasoning, etc.)
  */
 export function findFallbackMockTest(identifier: string): MockTest {
@@ -1002,8 +1024,6 @@ function normalizeMockTest(rawTest: any): MockTest {
         text: o.text || o.optionText || o.option_text || '',
         ariaLabel: o.ariaLabel || `Option ${o.label || String.fromCharCode(65 + oIdx)}: ${o.text || ''}`,
       })),
-      correctOptionIds: q.correctOptionIds || q.correct_option_ids || (q.options?.[0]?.id ? [String(q.options[0].id)] : ['A']),
-      explanation: q.explanation || '',
       formula: q.formula,
       table: q.table,
       audioText: q.audioText || q.audio_text || q.text,
@@ -1118,7 +1138,6 @@ export const mockTestService = {
       type: 'single_choice' as const,
       difficulty: 'easy' as const,
       options: [],
-      correctOptionIds: ['A'],
     };
 
     const sessionId = `mock-sess-${test.id}-${Date.now()}`;
@@ -1400,7 +1419,11 @@ export const mockTestService = {
 
       Object.entries(session.answers).forEach(([qId, ans], idx) => {
         const origQ = qMap.get(qId);
-        const correctOpts = origQ?.correctOptionIds || ['A'];
+        const evalInfo = OFFLINE_MOCK_EVAL_STORE[qId] || {
+          correctOptionIds: ['A'],
+          explanation: 'Standard verified solution and comprehensive pedagogical rationale.',
+        };
+        const correctOpts = evalInfo.correctOptionIds;
         const selected = ans.selectedOptionIds || [];
         const isAnswered = selected.length > 0;
         const isCorrect = isAnswered && JSON.stringify(selected.sort()) === JSON.stringify(correctOpts.sort());
@@ -1421,7 +1444,7 @@ export const mockTestService = {
           correctOptionIds: correctOpts,
           status: isCorrect ? 'correct' : !isAnswered ? 'unanswered' : 'incorrect',
           markedForReview: ans.markedForReview,
-          explanation: origQ?.explanation || 'Standard verified solution and comprehensive pedagogical rationale.',
+          explanation: evalInfo.explanation,
         });
       });
 
@@ -1446,11 +1469,13 @@ export const mockTestService = {
           attemptedCount: s.questions.filter((q) => (session.answers[q.id]?.selectedOptionIds?.length || 0) > 0).length,
           correctCount: s.questions.filter((q) => {
             const sel = session.answers[q.id]?.selectedOptionIds || [];
-            return sel.length > 0 && JSON.stringify(sel.sort()) === JSON.stringify(q.correctOptionIds.sort());
+            const cOpts = OFFLINE_MOCK_EVAL_STORE[q.id]?.correctOptionIds || ['A'];
+            return sel.length > 0 && JSON.stringify(sel.sort()) === JSON.stringify(cOpts.sort());
           }).length,
           incorrectCount: s.questions.filter((q) => {
             const sel = session.answers[q.id]?.selectedOptionIds || [];
-            return sel.length > 0 && JSON.stringify(sel.sort()) !== JSON.stringify(q.correctOptionIds.sort());
+            const cOpts = OFFLINE_MOCK_EVAL_STORE[q.id]?.correctOptionIds || ['A'];
+            return sel.length > 0 && JSON.stringify(sel.sort()) !== JSON.stringify(cOpts.sort());
           }).length,
           unansweredCount: s.questions.filter((q) => (session.answers[q.id]?.selectedOptionIds?.length || 0) === 0).length,
           score: Math.max(0, correct * 1 - incorrect * 0.33),
@@ -1658,6 +1683,10 @@ export const mockTestService = {
           const fallbackReviews: MockTestQuestionReview[] = [];
           test.sections.forEach((sec) => {
             sec.questions?.forEach((q, idx) => {
+              const evalInfo = OFFLINE_MOCK_EVAL_STORE[q.id] || {
+                correctOptionIds: ['A'],
+                explanation: 'Official explanation and solution rationale.',
+              };
               fallbackReviews.push({
                 questionId: q.id,
                 questionNumber: q.questionNumber || idx + 1,
@@ -1667,10 +1696,10 @@ export const mockTestService = {
                 type: 'single_choice',
                 options: q.options || [],
                 userOptionIds: [],
-                correctOptionIds: q.correctOptionIds || [(q.options?.[0]?.id || 'A')],
+                correctOptionIds: evalInfo.correctOptionIds,
                 status: 'unanswered',
                 markedForReview: false,
-                explanation: q.explanation || 'Official explanation and solution rationale.',
+                explanation: evalInfo.explanation,
                 formula: q.formula,
                 table: q.table,
               });

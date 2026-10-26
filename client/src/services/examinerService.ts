@@ -671,6 +671,21 @@ class ExaminerService {
     return incidents.filter((i) => i.examId === examId);
   }
 
+  async recordIncident(
+    incident: Omit<ExamIncident, 'id' | 'timestamp' | 'status'> & Partial<Pick<ExamIncident, 'id' | 'timestamp' | 'status'>>
+  ): Promise<ExamIncident> {
+    const incidents = storage.get<ExamIncident[]>(INCIDENTS_STORAGE_KEY, INITIAL_EXAM_INCIDENTS);
+    const newIncident: ExamIncident = {
+      id: incident.id || `inc-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: incident.timestamp || `${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} IST`,
+      status: incident.status || 'logged',
+      ...incident,
+    };
+    incidents.unshift(newIncident);
+    storage.set(INCIDENTS_STORAGE_KEY, incidents);
+    return newIncident;
+  }
+
   async resolveIncident(incidentId: string, actionTaken: string): Promise<void> {
     const incidents = storage.get<ExamIncident[]>(INCIDENTS_STORAGE_KEY, INITIAL_EXAM_INCIDENTS);
     const updated = incidents.map((i) =>

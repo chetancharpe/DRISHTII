@@ -33,7 +33,7 @@ export interface MockTestQuestion {
   text: string;
   type: MockQuestionType;
   options: MockTestOption[];
-  correctOptionIds: string[];
+  correctOptionIds?: string[];
   explanation?: string;
   difficulty: MockTestDifficulty;
   formula?: MockTestFormula;

@@ -41,16 +41,17 @@ from app.schemas.question import (
 from app.services.audit_service import log_audit_event
 from app.utils.datetime import utc_now
 from app.utils.pagination import paginate
+from app.utils.sanitizer import sanitize_text
 from app.utils.validators import validate_question_accessibility
 
 
 def create_exam(db: Session, data: ExamCreate, creator_id: str) -> ExamExaminerResponse:
-    """Create a new examination in DRAFT status."""
+    """Create a new examination in DRAFT status with anti-XSS sanitization."""
     exam = Exam(
         organization_id=data.organization_id,
-        title=data.title.strip(),
-        description=data.description,
-        instructions=data.instructions,
+        title=sanitize_text(data.title),
+        description=sanitize_text(data.description) if data.description else None,
+        instructions=sanitize_text(data.instructions) if data.instructions else None,
         status=ExamStatus.DRAFT.value,
         duration_seconds=data.duration_seconds,
         extra_time_seconds=data.extra_time_seconds,
@@ -85,11 +86,11 @@ def update_exam(db: Session, exam_id: str, data: ExamUpdate, user_id: str) -> Ex
             raise ValidationConflictException("Cannot modify exam duration once the exam has transitioned to LIVE.")
 
     if data.title is not None:
-        exam.title = data.title.strip()
+        exam.title = sanitize_text(data.title)
     if data.description is not None:
-        exam.description = data.description
+        exam.description = sanitize_text(data.description)
     if data.instructions is not None:
-        exam.instructions = data.instructions
+        exam.instructions = sanitize_text(data.instructions)
     if data.duration_seconds is not None:
         exam.duration_seconds = data.duration_seconds
     if data.extra_time_seconds is not None:
@@ -120,8 +121,8 @@ def add_section_to_exam(db: Session, exam_id: str, data: SectionCreate, user_id:
 
     section = ExamSection(
         exam_id=exam_id,
-        title=data.title,
-        description=data.description,
+        title=sanitize_text(data.title),
+        description=sanitize_text(data.description) if data.description else None,
         display_order=data.display_order,
         duration_seconds=data.duration_seconds,
         navigation_policy=data.navigation_policy,

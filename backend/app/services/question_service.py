@@ -15,17 +15,26 @@ from app.schemas.question import (
 from app.services.audit_service import log_audit_event
 from app.utils.datetime import utc_now
 from app.utils.pagination import paginate
+from app.utils.sanitizer import (
+    sanitize_accessibility_metadata,
+    sanitize_options,
+    sanitize_text,
+)
 from app.utils.validators import validate_question_accessibility
 
 
 def create_question(db: Session, data: QuestionCreate, creator_id: str) -> QuestionExaminerResponse:
-    """Create a new question and its version 1 with server-side accessibility validation."""
-    raw_options = [opt.model_dump() for opt in data.options]
-    raw_metadata = data.accessibility_metadata.model_dump() if data.accessibility_metadata else {}
+    """Create a new question and its version 1 with server-side accessibility validation and anti-XSS sanitization."""
+    sanitized_question_text = sanitize_text(data.question_text)
+    raw_options = sanitize_options([opt.model_dump() for opt in data.options])
+    raw_metadata = sanitize_accessibility_metadata(
+        data.accessibility_metadata.model_dump() if data.accessibility_metadata else {}
+    )
+    sanitized_explanation = sanitize_text(data.explanation) if data.explanation else None
 
     # Run accessibility gate checks
     is_valid, errors, warnings = validate_question_accessibility(
-        question_text=data.question_text,
+        question_text=sanitized_question_text,
         options=raw_options,
         metadata=raw_metadata,
     )
@@ -49,10 +58,10 @@ def create_question(db: Session, data: QuestionCreate, creator_id: str) -> Quest
     v1 = QuestionVersion(
         question_id=question.id,
         version_number=1,
-        question_text=data.question_text,
+        question_text=sanitized_question_text,
         options=raw_options,
         correct_answer=data.correct_answer,
-        explanation=data.explanation,
+        explanation=sanitized_explanation,
         marks=data.marks,
         negative_marks=data.negative_marks,
         accessibility_metadata=raw_metadata,
@@ -91,11 +100,15 @@ def create_question_version(
     )
     next_ver = (latest_version.version_number + 1) if latest_version else 1
 
-    raw_options = [opt.model_dump() for opt in data.options]
-    raw_metadata = data.accessibility_metadata.model_dump() if data.accessibility_metadata else {}
+    sanitized_question_text = sanitize_text(data.question_text)
+    raw_options = sanitize_options([opt.model_dump() for opt in data.options])
+    raw_metadata = sanitize_accessibility_metadata(
+        data.accessibility_metadata.model_dump() if data.accessibility_metadata else {}
+    )
+    sanitized_explanation = sanitize_text(data.explanation) if data.explanation else None
 
     is_valid, errors, warnings = validate_question_accessibility(
-        question_text=data.question_text,
+        question_text=sanitized_question_text,
         options=raw_options,
         metadata=raw_metadata,
     )
@@ -106,10 +119,10 @@ def create_question_version(
     new_v = QuestionVersion(
         question_id=question.id,
         version_number=next_ver,
-        question_text=data.question_text,
+        question_text=sanitized_question_text,
         options=raw_options,
         correct_answer=data.correct_answer,
-        explanation=data.explanation,
+        explanation=sanitized_explanation,
         marks=data.marks,
         negative_marks=data.negative_marks,
         accessibility_metadata=raw_metadata,

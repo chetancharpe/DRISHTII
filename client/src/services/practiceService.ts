@@ -124,7 +124,12 @@ export const practiceService = {
       topicName,
       difficulty: filter.difficulty,
       totalQuestions: sessionQuestions.length,
-      questions: sessionQuestions,
+      questions: sessionQuestions.map((q) => {
+        const sanitized = { ...q };
+        delete (sanitized as any).correctOptionIds;
+        delete (sanitized as any).explanation;
+        return sanitized;
+      }),
       answers: {},
       currentQuestionIndex: 0,
       status: 'in_progress',
@@ -134,16 +139,6 @@ export const practiceService = {
       explanations: {},
       correctOptions: {},
     };
-
-    // Pre-populate explanation and options if available on question fixtures
-    sessionQuestions.forEach((q) => {
-      if ((q as any).explanation && newSession.explanations) {
-        newSession.explanations[q.id] = (q as any).explanation;
-      }
-      if ((q as any).correctOptionIds && newSession.correctOptions) {
-        newSession.correctOptions[q.id] = (q as any).correctOptionIds;
-      }
-    });
 
     activeSessions.set(sessionId, newSession);
     setStoredPracticeSession(newSession);
