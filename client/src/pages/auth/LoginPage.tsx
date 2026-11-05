@@ -7,11 +7,26 @@ import { AuthVoiceAssistant } from '../../components/auth/AuthVoiceAssistant';
 import { Input } from '../../components/common/Input';
 import { Checkbox } from '../../components/common/Checkbox';
 import { Button } from '../../components/common/Button';
-import { AlertCircle, ArrowRight, UserCheck } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowRight,
+  UserCheck,
+  GraduationCap,
+  Shield,
+  Lock,
+  VolumeX,
+} from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const isSessionExpired = searchParams.get('session_expired') === 'true';
+
+  // Role Tab: Voice command login strictly for Candidate; direct login for Examiner & Admin
+  const [selectedRole, setSelectedRole] = useState<'candidate' | 'examiner' | 'admin'>(() => {
+    const roleParam = searchParams.get('role');
+    if (roleParam === 'examiner' || roleParam === 'admin') return roleParam;
+    return 'candidate';
+  });
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,6 +36,17 @@ export const LoginPage: React.FC = () => {
 
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
+
+  const handleRoleChange = useCallback((role: 'candidate' | 'examiner' | 'admin') => {
+    setSelectedRole(role);
+    setFormError(null);
+    setErrors({});
+    if (role !== 'candidate') {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    }
+  }, []);
 
   const validate = (): boolean => {
     const newErrors: { email?: string; password?: string } = {};
@@ -45,7 +71,7 @@ export const LoginPage: React.FC = () => {
       try {
         const loggedInUser = await login(loginEmail, loginPass);
 
-        // Route candidate or examiner to their respective dashboard
+        // Route candidate, examiner, or admin to their respective dashboard
         if (loggedInUser.role === 'examiner') {
           navigate('/examiner/dashboard');
         } else if (loggedInUser.role === 'admin') {
@@ -68,17 +94,22 @@ export const LoginPage: React.FC = () => {
     executeLogin(email, password);
   };
 
-  // Quick Demo Autofill Helper for Development (calling real seeded demo accounts)
-  const fillDemoAccount = useCallback((demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setErrors({});
-    setFormError(null);
-  }, []);
+  // Quick Demo Autofill Helper (switches role tab and fills seeded demo credentials)
+  const fillDemoAccount = useCallback(
+    (role: 'candidate' | 'examiner' | 'admin', demoEmail: string, demoPass: string) => {
+      handleRoleChange(role);
+      setEmail(demoEmail);
+      setPassword(demoPass);
+      setErrors({});
+      setFormError(null);
+    },
+    [handleRoleChange]
+  );
 
-  // Hands-free Voice Navigator for Blind & Visually Impaired Candidates
+  // Hands-free Voice Navigator - ONLY active when selectedRole === 'candidate'
   const voiceState = useAuthVoiceNavigator({
     page: 'login',
+    enabled: selectedRole === 'candidate',
     onFillEmail: (val) => {
       setEmail(val);
       setErrors((prev) => ({ ...prev, email: undefined }));
@@ -93,15 +124,15 @@ export const LoginPage: React.FC = () => {
       }
     },
     onQuickCandidateLogin: () => {
-      fillDemoAccount('candidate1@gowow.org', 'CandidateSecure123!');
+      fillDemoAccount('candidate', 'candidate1@gowow.org', 'CandidateSecure123!');
       executeLogin('candidate1@gowow.org', 'CandidateSecure123!');
     },
     onQuickExaminerLogin: () => {
-      fillDemoAccount('examiner@gowow.org', 'ExaminerSecure123!');
+      fillDemoAccount('examiner', 'examiner@gowow.org', 'ExaminerSecure123!');
       executeLogin('examiner@gowow.org', 'ExaminerSecure123!');
     },
     onQuickAdminLogin: () => {
-      fillDemoAccount('admin@gowow.org', 'AdminSecurePass123!');
+      fillDemoAccount('admin', 'admin@gowow.org', 'AdminSecurePass123!');
       executeLogin('admin@gowow.org', 'AdminSecurePass123!');
     },
     onNavigateSignup: () => {
@@ -118,18 +149,103 @@ export const LoginPage: React.FC = () => {
     <AuthLayout
       title="Welcome Back"
       subtitle="Sign in to your accessible learning and examination workspace."
-      badge="Candidate & Examiner Portal"
+      badge={
+        selectedRole === 'candidate'
+          ? 'Candidate Portal (Voice Guided)'
+          : selectedRole === 'examiner'
+          ? 'Examiner Studio (Direct Login)'
+          : 'Admin Console (Direct Login)'
+      }
     >
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
         <div>
           <h2 className="text-xl font-bold text-foreground">Sign In</h2>
           <p className="text-xs text-foreground-muted mt-0.5">
-            Enter your registered credentials to access your assessment session.
+            Select your portal role to sign in to your workspace.
           </p>
         </div>
 
-        {/* Accessible Voice Assistant Navigator Bar */}
-        <AuthVoiceAssistant voiceState={voiceState} pageType="login" />
+        {/* Architectural Role Tabs: Separates Candidate (Voice) from Examiner/Admin (Standard) */}
+        <div
+          role="tablist"
+          aria-label="Select Sign In Portal"
+          className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-surface-elevated border border-border"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={selectedRole === 'candidate'}
+            onClick={() => handleRoleChange('candidate')}
+            className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              selectedRole === 'candidate'
+                ? 'bg-primary text-primary-contrast shadow-xs'
+                : 'text-foreground-secondary hover:text-foreground hover:bg-surface'
+            }`}
+          >
+            <div className="flex items-center gap-1.5">
+              <GraduationCap className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <span>Candidate</span>
+            </div>
+            <span className="text-[10px] opacity-80 font-normal">Voice Guided</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={selectedRole === 'examiner'}
+            onClick={() => handleRoleChange('examiner')}
+            className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              selectedRole === 'examiner'
+                ? 'bg-primary text-primary-contrast shadow-xs'
+                : 'text-foreground-secondary hover:text-foreground hover:bg-surface'
+            }`}
+          >
+            <div className="flex items-center gap-1.5">
+              <Shield className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <span>Examiner</span>
+            </div>
+            <span className="text-[10px] opacity-80 font-normal">Direct Form</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={selectedRole === 'admin'}
+            onClick={() => handleRoleChange('admin')}
+            className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              selectedRole === 'admin'
+                ? 'bg-primary text-primary-contrast shadow-xs'
+                : 'text-foreground-secondary hover:text-foreground hover:bg-surface'
+            }`}
+          >
+            <div className="flex items-center gap-1.5">
+              <Lock className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <span>Admin</span>
+            </div>
+            <span className="text-[10px] opacity-80 font-normal">Direct Form</span>
+          </button>
+        </div>
+
+        {/* Accessible Voice Assistant Navigator Bar - ONLY for Candidate */}
+        {selectedRole === 'candidate' ? (
+          <AuthVoiceAssistant voiceState={voiceState} pageType="login" />
+        ) : (
+          <div className="p-3 rounded-lg border border-border bg-surface-elevated/40 flex items-center justify-between text-xs text-foreground-muted">
+            <span className="flex items-center gap-2">
+              <VolumeX className="w-4 h-4 text-foreground-muted shrink-0" aria-hidden="true" />
+              <span>
+                Standard login: Voice assistant is disabled for{' '}
+                <strong className="text-foreground">
+                  {selectedRole === 'examiner' ? 'Examiners' : 'Administrators'}
+                </strong>
+                .
+              </span>
+            </span>
+            <span className="text-[10px] font-mono uppercase bg-surface px-1.5 py-0.5 rounded border border-border">
+              Direct
+            </span>
+          </div>
+        )}
 
         {/* Global Live Region Form Error Alert */}
         {formError && (
@@ -231,30 +347,42 @@ export const LoginPage: React.FC = () => {
           <p className="text-[11px] text-foreground-muted leading-tight">
             Autofill credentials to sign in directly:
           </p>
-            <div className="grid grid-cols-3 gap-2 mt-1">
-              <button
-                type="button"
-                onClick={() => fillDemoAccount('candidate1@gowow.org', 'CandidateSecure123!')}
-                className="px-2 py-1.5 rounded border border-border bg-surface hover:bg-surface-elevated text-xs font-semibold text-foreground text-center"
-              >
-                Candidate
-              </button>
-              <button
-                type="button"
-                onClick={() => fillDemoAccount('examiner@gowow.org', 'ExaminerSecure123!')}
-                className="px-2 py-1.5 rounded border border-border bg-surface hover:bg-surface-elevated text-xs font-semibold text-foreground text-center"
-              >
-                Examiner
-              </button>
-              <button
-                type="button"
-                onClick={() => fillDemoAccount('admin@gowow.org', 'AdminSecurePass123!')}
-                className="px-2 py-1.5 rounded border border-border bg-surface hover:bg-surface-elevated text-xs font-semibold text-foreground text-center"
-              >
-                Admin
-              </button>
-            </div>
+          <div className="grid grid-cols-3 gap-2 mt-1">
+            <button
+              type="button"
+              onClick={() => fillDemoAccount('candidate', 'candidate1@gowow.org', 'CandidateSecure123!')}
+              className={`px-2 py-1.5 rounded border text-xs font-semibold text-center cursor-pointer transition-colors ${
+                selectedRole === 'candidate'
+                  ? 'border-primary bg-primary/10 text-primary font-bold'
+                  : 'border-border bg-surface hover:bg-surface-elevated text-foreground'
+              }`}
+            >
+              Candidate
+            </button>
+            <button
+              type="button"
+              onClick={() => fillDemoAccount('examiner', 'examiner@gowow.org', 'ExaminerSecure123!')}
+              className={`px-2 py-1.5 rounded border text-xs font-semibold text-center cursor-pointer transition-colors ${
+                selectedRole === 'examiner'
+                  ? 'border-primary bg-primary/10 text-primary font-bold'
+                  : 'border-border bg-surface hover:bg-surface-elevated text-foreground'
+              }`}
+            >
+              Examiner
+            </button>
+            <button
+              type="button"
+              onClick={() => fillDemoAccount('admin', 'admin@gowow.org', 'AdminSecurePass123!')}
+              className={`px-2 py-1.5 rounded border text-xs font-semibold text-center cursor-pointer transition-colors ${
+                selectedRole === 'admin'
+                  ? 'border-primary bg-primary/10 text-primary font-bold'
+                  : 'border-border bg-surface hover:bg-surface-elevated text-foreground'
+              }`}
+            >
+              Admin
+            </button>
           </div>
+        </div>
 
         {/* Link to Registration */}
         <div className="text-center pt-2">

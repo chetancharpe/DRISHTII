@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ExaminerExam, ExamLifecycleStatus } from '../../../types/examiner';
 import { examinerService } from '../../../services/examinerService';
 import { Button } from '../../../components/common/Button';
+import { UploadQuestionPaperModal } from '../../../components/examiner/UploadQuestionPaperModal';
 import {
   PlusCircle,
   Search,
@@ -14,28 +15,30 @@ import {
   Layers,
   FileQuestion,
   Users,
+  Upload,
 } from 'lucide-react';
-
 
 export const ExamListPage: React.FC = () => {
   const [exams, setExams] = useState<ExaminerExam[]>([]);
   const [search, setSearch] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
+
+  const fetchExams = useCallback(async () => {
+    try {
+      const data = await examinerService.getExams();
+      setExams(data);
+    } catch (err) {
+      console.error('Failed to load examinations', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchExams = async () => {
-      try {
-        const data = await examinerService.getExams();
-        setExams(data);
-      } catch (err) {
-        console.error('Failed to load examinations', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchExams();
-  }, []);
+  }, [fetchExams]);
 
   const filteredExams = exams.filter((exam) => {
     const matchesSearch =
@@ -104,12 +107,24 @@ export const ExamListPage: React.FC = () => {
           </p>
         </div>
 
-        <Link to="/examiner/exams/create">
-          <Button variant="primary" className="flex items-center gap-2">
-            <PlusCircle className="w-4 h-4" aria-hidden="true" />
-            Create Examination
+        <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsUploadModalOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Upload className="w-4 h-4 text-primary" aria-hidden="true" />
+            Upload Question Paper
           </Button>
-        </Link>
+
+          <Link to="/examiner/exams/create">
+            <Button variant="primary" className="flex items-center gap-2">
+              <PlusCircle className="w-4 h-4" aria-hidden="true" />
+              Create Examination
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Search & Filter Controls */}
@@ -270,6 +285,15 @@ export const ExamListPage: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Upload Question Paper & Mock Assessment Modal */}
+      <UploadQuestionPaperModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onSuccess={() => {
+          fetchExams();
+        }}
+      />
     </div>
   );
 };

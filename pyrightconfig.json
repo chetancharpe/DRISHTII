@@ -6,8 +6,8 @@
   "extraPaths": [
     "backend"
   ],
-  "venvPath": ".",
-  "venv": ".venv",
+  "venvPath": "backend",
+  "venv": "venv",
   "typeCheckingMode": "off",
   "reportAttributeAccessIssue": "none",
   "reportGeneralTypeIssues": "none",

@@ -12,11 +12,11 @@
 
 import { tokenStorage } from '../utils/tokenStorage';
 
-const DEFAULT_RENDER_BACKEND = 'https://drishtii-1d0b.onrender.com/api/v1';
+const DEFAULT_LOCAL_BACKEND = '/api/v1';
 
-let rawBaseUrl = (import.meta.env.VITE_API_BASE_URL || DEFAULT_RENDER_BACKEND).trim().replace(/\/+$/, '');
+let rawBaseUrl = (import.meta.env.VITE_API_BASE_URL || DEFAULT_LOCAL_BACKEND).trim().replace(/\/+$/, '');
 if (rawBaseUrl.includes('<') || rawBaseUrl.includes('>') || rawBaseUrl.includes('your-render-backend-url') || !rawBaseUrl) {
-  rawBaseUrl = DEFAULT_RENDER_BACKEND;
+  rawBaseUrl = DEFAULT_LOCAL_BACKEND;
 }
 
 export const API_BASE_URL = rawBaseUrl.endsWith('/api/v1') ? rawBaseUrl : `${rawBaseUrl}/api/v1`;

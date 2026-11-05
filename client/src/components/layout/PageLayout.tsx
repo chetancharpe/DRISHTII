@@ -24,12 +24,16 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
 }) => {
   const location = useLocation();
   const isCandidateRoute = location.pathname.startsWith('/candidate');
+  const isExaminerOrAdmin =
+    location.pathname.startsWith('/examiner') || location.pathname.startsWith('/admin');
   const { isCalibrationOpen, openCalibration, closeCalibration } = useAccessibility();
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   // Global hotkeys: Alt+A toggles Accessibility Settings, Alt+H toggles Accessibility Help
+  // Strictly restricted to Candidate routes and public portal; disabled for Examiner & Admin
   useKeyboardNavigation({
     'Alt+A': () => {
+      if (isExaminerOrAdmin) return;
       if (isCalibrationOpen) {
         closeCalibration();
       } else {
@@ -37,6 +41,7 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
       }
     },
     'Alt+H': () => {
+      if (isExaminerOrAdmin) return;
       setIsHelpOpen((prev) => !prev);
     },
   });
@@ -50,8 +55,8 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
 
       {/* Global Application Navbar */}
       <Navbar
-        onOpenAccessibility={openCalibration}
-        onOpenHelp={() => setIsHelpOpen(true)}
+        onOpenAccessibility={isExaminerOrAdmin ? undefined : openCalibration}
+        onOpenHelp={isExaminerOrAdmin ? undefined : () => setIsHelpOpen(true)}
       />
 
       {/* Layout Content Body */}
@@ -74,27 +79,31 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
 
       {/* Global Application Footer */}
       <Footer
-        onOpenAccessibility={openCalibration}
-        onOpenHelp={() => setIsHelpOpen(true)}
+        onOpenAccessibility={isExaminerOrAdmin ? undefined : openCalibration}
+        onOpenHelp={isExaminerOrAdmin ? undefined : () => setIsHelpOpen(true)}
       />
 
-      {/* Global Accessible Calibration Center Modal */}
-      <Modal
-        isOpen={isCalibrationOpen}
-        onClose={closeCalibration}
-        title="Accessibility Calibration Center"
-        description="Fine-tune sensory, typography, and keyboard controls. All settings persist on your device."
-        maxWidth="lg"
-      >
-        <AccessibilityPanel onClose={closeCalibration} />
-      </Modal>
+      {/* Global Accessible Calibration Center Modal - Candidate Only */}
+      {!isExaminerOrAdmin && (
+        <Modal
+          isOpen={isCalibrationOpen}
+          onClose={closeCalibration}
+          title="Accessibility Calibration Center"
+          description="Fine-tune sensory, typography, and keyboard controls. All settings persist on your device."
+          maxWidth="lg"
+        >
+          <AccessibilityPanel onClose={closeCalibration} />
+        </Modal>
+      )}
 
-      {/* Global Accessible Help & Keyboard Shortcuts Modal */}
-      <AccessibilityHelpModal
-        isOpen={isHelpOpen}
-        onClose={() => setIsHelpOpen(false)}
-        onOpenSettings={openCalibration}
-      />
+      {/* Global Accessible Help & Keyboard Shortcuts Modal - Candidate Only */}
+      {!isExaminerOrAdmin && (
+        <AccessibilityHelpModal
+          isOpen={isHelpOpen}
+          onClose={() => setIsHelpOpen(false)}
+          onOpenSettings={openCalibration}
+        />
+      )}
     </div>
   );
 };

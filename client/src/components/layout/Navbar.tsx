@@ -22,6 +22,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
 
   // Landing page elements are only shown on the public landing page when unauthenticated
   const isLandingPage = !isAuthenticated && location.pathname === '/';
+  const isExaminerOrAdmin =
+    user?.role === 'examiner' ||
+    user?.role === 'admin' ||
+    location.pathname.startsWith('/examiner') ||
+    location.pathname.startsWith('/admin');
 
   const navLinks = [
     { label: 'Home', href: '/' },
@@ -101,8 +106,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
             </button>
           )}
 
-          {/* Accessibility Quick Action */}
-          {onOpenAccessibility && (
+          {/* Accessibility Quick Action - Candidate & Public Portal Only */}
+          {!isExaminerOrAdmin && onOpenAccessibility && (
             <button
               type="button"
               onClick={onOpenAccessibility}
@@ -143,27 +148,29 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
             <span className="hidden xl:inline capitalize">{theme.replace('_', ' ')}</span>
           </button>
 
-          {/* High Contrast Mode Quick Toggle */}
-          <button
-            type="button"
-            onClick={() => setHighContrast(!preferences.highContrast)}
-            aria-pressed={preferences.highContrast}
-            aria-label={
-              preferences.highContrast
-                ? 'Disable high contrast mode'
-                : 'Enable high contrast AAA mode'
-            }
-            className={`px-3 py-2 text-xs font-semibold rounded-md border cursor-pointer min-h-[44px] hidden sm:inline-flex items-center gap-1.5 ${
-              preferences.highContrast
-                ? 'bg-primary text-primary-contrast border-primary font-bold'
-                : 'border-border bg-surface hover:bg-surface-elevated text-foreground'
-            }`}
-          >
-            <span>Contrast</span>
-            <span className="text-[10px] font-mono px-1 rounded bg-black/20">
-              {preferences.highContrast ? 'AAA' : 'AA'}
-            </span>
-          </button>
+          {/* High Contrast Mode Quick Toggle - Candidate & Public Portal Only */}
+          {!isExaminerOrAdmin && (
+            <button
+              type="button"
+              onClick={() => setHighContrast(!preferences.highContrast)}
+              aria-pressed={preferences.highContrast}
+              aria-label={
+                preferences.highContrast
+                  ? 'Disable high contrast mode'
+                  : 'Enable high contrast AAA mode'
+              }
+              className={`px-3 py-2 text-xs font-semibold rounded-md border cursor-pointer min-h-[44px] hidden sm:inline-flex items-center gap-1.5 ${
+                preferences.highContrast
+                  ? 'bg-primary text-primary-contrast border-primary font-bold'
+                  : 'border-border bg-surface hover:bg-surface-elevated text-foreground'
+              }`}
+            >
+              <span>Contrast</span>
+              <span className="text-[10px] font-mono px-1 rounded bg-black/20">
+                {preferences.highContrast ? 'AAA' : 'AA'}
+              </span>
+            </button>
+          )}
 
           {/* User Sign In / Get Started */}
           {isAuthenticated ? (

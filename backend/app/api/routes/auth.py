@@ -12,6 +12,8 @@ from app.schemas.auth import (
     ResetPasswordRequest,
     TokenResponse,
 )
+from app.schemas.candidate_pass import CandidateQuickAccessRequest
+from app.services.candidate_pass_service import authenticate_candidate_quick_access
 from typing import Optional
 from app.services.auth_service import (
     authenticate_user,
@@ -30,6 +32,12 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     """Authenticate user with email and password, returning JWT access and refresh tokens."""
     return authenticate_user(db, login_data)
+
+
+@router.post("/quick-access", response_model=TokenResponse)
+def quick_access(data: CandidateQuickAccessRequest, db: Session = Depends(get_db)):
+    """Authenticate candidate directly with Unique Access Pass ID (No password required)."""
+    return authenticate_candidate_quick_access(db, data.pass_code)
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)

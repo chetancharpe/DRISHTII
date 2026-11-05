@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   AccessibilityPreferences,
   FontSizeOption,
@@ -196,6 +197,9 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
     return { ...DEFAULT_PREFERENCES };
   });
 
+  const location = useLocation();
+  const isExaminerOrAdmin = location.pathname.startsWith('/examiner') || location.pathname.startsWith('/admin');
+
   const [isCalibrationOpen, setIsCalibrationOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -203,6 +207,13 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
   const announcementTimeoutRef = useRef<number | null>(null);
 
   const isSpeechSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+
+  // Immediately cancel any speech synthesis when navigating to examiner or admin areas
+  useEffect(() => {
+    if (isExaminerOrAdmin && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+  }, [isExaminerOrAdmin]);
 
   // 2. Resolve Theme Mode (System / Light / Dark / High Contrast)
   const [systemDark, setSystemDark] = useState<boolean>(() => {
@@ -227,8 +238,9 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
         : 'light'
       : preferences.theme;
 
-  // 3. Screen Reader Announcement Service
+  // 3. Screen Reader Announcement Service - Scoped to Candidate Portal
   const announce = useCallback((message: string, politeness: 'polite' | 'assertive' = 'polite') => {
+    if (isExaminerOrAdmin) return;
     if (announcementTimeoutRef.current) {
       window.clearTimeout(announcementTimeoutRef.current);
     }
@@ -236,9 +248,9 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
     announcementTimeoutRef.current = window.setTimeout(() => {
       setCurrentAnnouncement(null);
     }, 4000);
-  }, []);
+  }, [isExaminerOrAdmin]);
 
-  // 4. Speech Synthesis Service (Manual user action & automated exam readout)
+  // 4. Speech Synthesis Service - Scoped to Candidate Portal
   const speakTimeoutRef = useRef<number | null>(null);
 
   const stopSpeaking = useCallback(() => {
@@ -255,6 +267,7 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const speak = useCallback(
     (text: string) => {
+      if (isExaminerOrAdmin) return;
       if (!isSpeechSupported || !text.trim()) return;
 
       if (speakTimeoutRef.current) {
@@ -312,7 +325,7 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
         window.speechSynthesis.speak(utterance);
       }, 40);
     },
-    [isSpeechSupported, preferences.language, preferences.speechRate, preferences.speechRateMultiplier, preferences.voiceURI]
+    [isExaminerOrAdmin, isSpeechSupported, preferences.language, preferences.speechRate, preferences.speechRateMultiplier, preferences.voiceURI]
   );
 
   // Sync with backend profile on mount/authentication
@@ -485,25 +498,47 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [updatePreference, announce]);
 
   // 8. Synchronize Document Root Attributes for Global CSS Styling & Accessibility
+  // Visually impaired accessibility modes (high contrast, extra-large fonts, simplified interface)
+  // are strictly scoped to Candidate portal routes and public portal. Examiner & Admin workspaces retain standard UI.
   useEffect(() => {
     const root = document.documentElement;
 
-    root.setAttribute('data-font-size', preferences.fontSize);
-    root.setAttribute('data-contrast', preferences.contrast);
-    root.setAttribute('data-theme', resolvedTheme);
-    root.setAttribute('data-reduced-motion', preferences.reducedMotion);
-    root.setAttribute('data-simplified', String(preferences.simplifiedInterface));
-    root.setAttribute('data-keyboard-mode', String(preferences.keyboardFirst));
-    root.setAttribute('lang', preferences.language || 'en');
-    root.setAttribute('dir', 'ltr');
-
-    // High contrast class support for Tailwind variants
-    if (preferences.contrast === 'high') {
-      root.classList.add('high-contrast');
-    } else {
+    if (isExaminerOrAdmin) {
+      // Clean, standard desktop UI for Examiner and Admin portals
+      root.setAttribute('data-font-size', 'default');
+      root.setAttribute('data-contrast', 'standard');
+      root.setAttribute(
+        'data-theme',
+        preferences.theme === 'system'
+          ? systemDark
+            ? 'dark'
+            : 'light'
+          : preferences.theme
+      );
+      root.setAttribute('data-reduced-motion', preferences.reducedMotion);
+      root.setAttribute('data-simplified', 'false');
+      root.setAttribute('data-keyboard-mode', 'false');
+      root.setAttribute('lang', preferences.language || 'en');
+      root.setAttribute('dir', 'ltr');
       root.classList.remove('high-contrast');
+    } else {
+      // Candidate and accessible public portal
+      root.setAttribute('data-font-size', preferences.fontSize);
+      root.setAttribute('data-contrast', preferences.contrast);
+      root.setAttribute('data-theme', resolvedTheme);
+      root.setAttribute('data-reduced-motion', preferences.reducedMotion);
+      root.setAttribute('data-simplified', String(preferences.simplifiedInterface));
+      root.setAttribute('data-keyboard-mode', String(preferences.keyboardFirst));
+      root.setAttribute('lang', preferences.language || 'en');
+      root.setAttribute('dir', 'ltr');
+
+      if (preferences.contrast === 'high') {
+        root.classList.add('high-contrast');
+      } else {
+        root.classList.remove('high-contrast');
+      }
     }
-  }, [preferences, resolvedTheme]);
+  }, [preferences, resolvedTheme, isExaminerOrAdmin, systemDark]);
 
   return (
     <AccessibilityContext.Provider

@@ -20,9 +20,11 @@ from app.models.learning_profile import LearningProfile, TopicProgress, Learning
 from app.models.refresh_token import RefreshToken
 from app.models.password_reset_token import PasswordResetToken
 from app.models.curriculum import CurriculumSubject, CurriculumTopic
+from app.models.candidate_access_pass import CandidateAccessPass
 
 __all__ = [
     "Base",
+    "CandidateAccessPass",
     "CurriculumSubject",
     "CurriculumTopic",
     "User",

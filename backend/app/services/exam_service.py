@@ -23,6 +23,8 @@ from app.schemas.exam import (
     ExamCandidateResponse,
     ExamCreate,
     ExamExaminerResponse,
+    ExamPaperUploadRequest,
+    ExamPaperUploadResponse,
     ExamScheduleRequest,
     ExamUpdate,
     RosterCsvImportResponse,
@@ -691,6 +693,161 @@ def import_candidate_roster_csv(
         error_count=skipped_count,
         skipped_or_errored=skipped_count,
         results=results,
+    )
+
+
+def upload_and_create_exam_paper(
+    db: Session, examiner_id: str, data: ExamPaperUploadRequest
+) -> ExamPaperUploadResponse:
+    """
+    Upload and create a complete Question Paper / Mock Test by Examiner.
+    If publish_immediately is True:
+        - Exam status is marked LIVE
+        - Immediately visible on Candidate Portal for practice/mock/exam
+    If publish_immediately is False:
+        - Exam status is DRAFT
+        - Stays private in Examiner Studio until published
+    """
+    now = utc_now()
+    exam_id = str(uuid.uuid4())
+    status_val = ExamStatus.LIVE.value if data.publish_immediately else ExamStatus.DRAFT.value
+
+    creator_id = examiner_id.id if hasattr(examiner_id, "id") else str(examiner_id)
+    examiner = db.query(User).filter(User.id == creator_id).first()
+    org_id = None
+    if examiner and hasattr(examiner, "organizations") and examiner.organizations:
+        org_id = examiner.organizations[0].organization_id
+
+    exam = Exam(
+        id=exam_id,
+        organization_id=org_id,
+        title=sanitize_text(data.title),
+        description=sanitize_text(data.description) if data.description else None,
+        instructions=sanitize_text(data.instructions) if data.instructions else None,
+        status=status_val,
+        duration_seconds=data.duration_seconds,
+        extra_time_seconds=data.extra_time_seconds,
+        language=data.language or "en",
+        created_by=creator_id,
+        published_at=now if data.publish_immediately else None,
+        created_at=now,
+        updated_at=now,
+    )
+    db.add(exam)
+    db.flush()
+
+    total_questions = 0
+    total_sections = 0
+
+    for s_idx, sec_data in enumerate(data.sections):
+        total_sections += 1
+        sec_id = str(uuid.uuid4())
+        sec = ExamSection(
+            id=sec_id,
+            exam_id=exam_id,
+            title=sanitize_text(sec_data.title),
+            description=sanitize_text(sec_data.description) if sec_data.description else None,
+            display_order=sec_data.display_order or (s_idx + 1),
+            duration_seconds=sec_data.duration_seconds,
+            navigation_policy="FREE",
+            question_count=len(sec_data.questions),
+        )
+        db.add(sec)
+        db.flush()
+
+        for q_idx, q_data in enumerate(sec_data.questions):
+            total_questions += 1
+            q_id = str(uuid.uuid4())
+            qv_id = str(uuid.uuid4())
+
+            formatted_options = []
+            for opt_idx, opt in enumerate(q_data.options):
+                opt_id = opt.get("id") or chr(65 + opt_idx)
+                opt_text = opt.get("text") or str(opt)
+                formatted_options.append({
+                    "id": opt_id,
+                    "text": sanitize_text(opt_text),
+                    "aria_label": opt.get("aria_label") or f"Option {opt_id}: {opt_text}",
+                    "display_order": opt_idx + 1,
+                })
+
+            meta = {
+                "has_alt_text": bool(q_data.alt_text),
+                "alt_text": sanitize_text(q_data.alt_text) if q_data.alt_text else None,
+                "audio_text": sanitize_text(q_data.audio_text) if q_data.audio_text else None,
+                "has_accessible_formula": bool(q_data.formula),
+                "formula_spoken_text": sanitize_text(q_data.formula) if q_data.formula else None,
+            }
+
+            question = Question(
+                id=q_id,
+                subject=sanitize_text(q_data.subject),
+                topic=sanitize_text(q_data.topic),
+                difficulty=q_data.difficulty or "medium",
+                question_type=q_data.question_type or "single_choice",
+                created_by=creator_id,
+                created_at=now,
+                updated_at=now,
+            )
+            db.add(question)
+            db.flush()
+
+            version = QuestionVersion(
+                id=qv_id,
+                question_id=q_id,
+                version_number=1,
+                question_text=sanitize_text(q_data.question_text),
+                options=formatted_options,
+                correct_answer=q_data.correct_answer or "A",
+                marks=q_data.marks,
+                negative_marks=q_data.negative_marks,
+                explanation=sanitize_text(q_data.explanation) if q_data.explanation else "Pedagogical explanation.",
+                accessibility_metadata=meta,
+                created_by=creator_id,
+                created_at=now,
+            )
+            db.add(version)
+            db.flush()
+
+            sec_q = SectionQuestion(
+                section_id=sec_id,
+                question_id=q_id,
+                question_version_id=qv_id,
+                display_order=q_idx + 1,
+            )
+            db.add(sec_q)
+
+    db.commit()
+
+    log_audit_event(
+        db,
+        action="EXAM_PAPER_UPLOADED",
+        resource_type="Exam",
+        resource_id=exam_id,
+        actor_id=creator_id,
+        metadata={
+            "title": data.title,
+            "status": status_val,
+            "sections": total_sections,
+            "questions": total_questions,
+            "published": data.publish_immediately,
+        },
+    )
+
+    msg = (
+        f"Question Paper '{data.title}' uploaded and published to Candidate Portal!"
+        if data.publish_immediately
+        else f"Question Paper '{data.title}' uploaded and saved as Draft in Examiner Studio."
+    )
+
+    return ExamPaperUploadResponse(
+        exam_id=exam_id,
+        title=data.title,
+        status=status_val,
+        total_sections=total_sections,
+        total_questions=total_questions,
+        published_to_candidates=data.publish_immediately,
+        message=msg,
     )
 
 

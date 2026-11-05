@@ -134,7 +134,7 @@ def list_mock_tests(
     # 1. Database-backed ready exams
     db_exams = (
         db.query(Exam)
-        .filter(Exam.status.in_([ExamStatus.READY.value, ExamStatus.SCHEDULED.value]))
+        .filter(Exam.status.in_([ExamStatus.READY.value, ExamStatus.SCHEDULED.value, ExamStatus.LIVE.value]))
         .order_by(Exam.created_at.desc())
         .all()
     )

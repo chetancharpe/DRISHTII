@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { examinerService } from '../../services/examinerService';
 import { ExaminerExam } from '../../types/examiner';
+import { UploadQuestionPaperModal } from '../../components/examiner/UploadQuestionPaperModal';
 import {
   Calendar,
   CheckCircle,
-
   Users,
   Clock,
   PlusCircle,
@@ -17,6 +17,7 @@ import {
   ArrowRight,
   Database,
   BarChart3,
+  Upload,
 } from 'lucide-react';
 
 export const ExaminerDashboardPage: React.FC = () => {
@@ -30,24 +31,26 @@ export const ExaminerDashboardPage: React.FC = () => {
   });
   const [recentExams, setRecentExams] = useState<ExaminerExam[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
+
+  const loadData = useCallback(async () => {
+    try {
+      const [stats, exams] = await Promise.all([
+        examinerService.getDashboardKPIs(),
+        examinerService.getExams(),
+      ]);
+      setKpis(stats);
+      setRecentExams(exams.slice(0, 4));
+    } catch (err) {
+      console.error('Failed to load examiner dashboard telemetry', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [stats, exams] = await Promise.all([
-          examinerService.getDashboardKPIs(),
-          examinerService.getExams(),
-        ]);
-        setKpis(stats);
-        setRecentExams(exams.slice(0, 4));
-      } catch (err) {
-        console.error('Failed to load examiner dashboard telemetry', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     loadData();
-  }, []);
+  }, [loadData]);
 
   return (
     <div className="flex flex-col gap-6" role="main" aria-label="Examiner Authoring and Monitoring Dashboard">
@@ -66,6 +69,16 @@ export const ExaminerDashboardPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsUploadModalOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Upload className="w-4 h-4 text-primary" aria-hidden="true" />
+            Upload Paper / Mock Test
+          </Button>
+
           <Link to="/examiner/question-bank">
             <Button variant="secondary" className="flex items-center gap-2">
               <Database className="w-4 h-4" aria-hidden="true" />
@@ -315,6 +328,15 @@ export const ExaminerDashboardPage: React.FC = () => {
           </Card>
         </div>
       </div>
+
+      {/* Upload Question Paper / Mock Assessment Modal */}
+      <UploadQuestionPaperModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onSuccess={() => {
+          loadData();
+        }}
+      />
     </div>
   );
 };

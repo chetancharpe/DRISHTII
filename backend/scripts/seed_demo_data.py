@@ -29,6 +29,7 @@ from app.models.exam_answer import ExamAnswer
 from app.models.result import Result, ResultStatus
 from app.models.accessibility_profile import AccessibilityProfile
 from app.models.section import ExamSection, SectionQuestion
+from app.db.seed_curriculum import seed_curriculum_and_mock_tests
 
 
 def seed_demo_data(force: bool = False):
@@ -561,6 +562,9 @@ def seed_demo_data(force: bool = False):
                     ip_address="192.168.1.100",
                 )
                 db.add(log)
+
+        # 9. Seed Curriculum, Topics, Lessons, and CDS Mock Tests
+        seed_curriculum_and_mock_tests(db)
 
         db.commit()
         print("\n[SUCCESS] Demo Environment Seeded Successfully!")

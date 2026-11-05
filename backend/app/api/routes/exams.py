@@ -8,6 +8,8 @@ from app.schemas.exam import (
     ExamCandidateResponse,
     ExamCreate,
     ExamExaminerResponse,
+    ExamPaperUploadRequest,
+    ExamPaperUploadResponse,
     ExamScheduleRequest,
     ExamUpdate,
     RosterCsvImportRequest,
@@ -28,6 +30,7 @@ from app.services.exam_service import (
     publish_exam,
     schedule_exam,
     update_exam,
+    upload_and_create_exam_paper,
 )
 from app.services.session_service import start_exam_session
 
@@ -93,6 +96,26 @@ def create_new_exam(
 ):
     """Create a new exam in DRAFT status."""
     return create_exam(db, data, current_user.id)
+
+
+@router.post(
+    "/examiner/exams/upload-paper",
+    response_model=ExamPaperUploadResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def upload_question_paper_or_mock_test(
+    data: ExamPaperUploadRequest,
+    current_user: User = Depends(require_examiner_access),
+    db: Session = Depends(get_db),
+):
+    """
+    Direct upload & publication endpoint for Question Papers and Mock Tests by Examiner.
+    If publish_immediately is True:
+        - Exam is marked LIVE and instantly appears on Candidate Portal.
+    If False:
+        - Saved as DRAFT in Examiner Studio only.
+    """
+    return upload_and_create_exam_paper(db, current_user.id, data)
 
 
 @router.get("/examiner/exams/{exam_id}", response_model=ExamExaminerResponse)

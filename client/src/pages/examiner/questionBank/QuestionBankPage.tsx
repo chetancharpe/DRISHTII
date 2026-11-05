@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { QuestionBankItem } from '../../../types/examiner';
 import { questionBankService } from '../../../services/questionBankService';
 import { Button } from '../../../components/common/Button';
 import { CandidatePreviewModal } from '../../../components/examiner/CandidatePreviewModal';
+import { UploadQuestionPaperModal } from '../../../components/examiner/UploadQuestionPaperModal';
 import {
   PlusCircle,
   Search,
@@ -12,10 +13,10 @@ import {
   Edit3,
   CheckCircle2,
   History,
-
   Image as ImageIcon,
   Sigma,
   Table as TableIcon,
+  Upload,
 } from 'lucide-react';
 
 export const QuestionBankPage: React.FC = () => {
@@ -25,23 +26,25 @@ export const QuestionBankPage: React.FC = () => {
   const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
 
   // Preview modal state
   const [previewQuestion, setPreviewQuestion] = useState<QuestionBankItem | null>(null);
 
-  useEffect(() => {
-    const fetchQuestions = async () => {
-      try {
-        const data = await questionBankService.getQuestions();
-        setQuestions(data);
-      } catch (err) {
-        console.error('Failed to load question bank', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchQuestions();
+  const fetchQuestions = useCallback(async () => {
+    try {
+      const data = await questionBankService.getQuestions();
+      setQuestions(data);
+    } catch (err) {
+      console.error('Failed to load question bank', err);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchQuestions();
+  }, [fetchQuestions]);
 
   const filteredQuestions = questions.filter((q) => {
     const matchesSearch =
@@ -68,12 +71,24 @@ export const QuestionBankPage: React.FC = () => {
           </p>
         </div>
 
-        <Link to="/examiner/question-bank/create">
-          <Button variant="primary" className="flex items-center gap-2">
-            <PlusCircle className="w-4 h-4" aria-hidden="true" />
-            Create Question
+        <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsUploadModalOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Upload className="w-4 h-4 text-primary" aria-hidden="true" />
+            Upload Question Paper
           </Button>
-        </Link>
+
+          <Link to="/examiner/question-bank/create">
+            <Button variant="primary" className="flex items-center gap-2">
+              <PlusCircle className="w-4 h-4" aria-hidden="true" />
+              Create Question
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filter Toolbar */}
@@ -262,6 +277,15 @@ export const QuestionBankPage: React.FC = () => {
           onClose={() => setPreviewQuestion(null)}
         />
       )}
+
+      {/* Upload Question Paper / Mock Assessment Modal */}
+      <UploadQuestionPaperModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onSuccess={() => {
+          fetchQuestions();
+        }}
+      />
     </div>
   );
 };

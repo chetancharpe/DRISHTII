@@ -109,25 +109,27 @@ export const Sidebar: React.FC = () => {
           ))}
         </nav>
 
-        {/* Preferences & Quick Tools for All Roles */}
+        {/* Preferences & Quick Tools */}
         <div className="flex flex-col gap-2 pt-3 border-t border-border">
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-foreground-muted px-2">
             Tools &amp; Preferences
           </span>
 
-          {/* Accessibility Quick Calibration Button */}
-          <button
-            type="button"
-            onClick={openCalibration}
-            aria-label="Open Accessibility Calibration Center (Alt+A)"
-            className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold text-foreground hover:bg-surface-elevated hover:text-primary transition-colors text-left min-h-[40px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            <div className="flex items-center gap-3">
-              <Sliders className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
-              <span>Accessibility</span>
-            </div>
-            <span className="keyboard-indicator text-[10px]">Alt+A</span>
-          </button>
+          {/* Accessibility Quick Calibration Button - Candidate Only */}
+          {isCandidate && (
+            <button
+              type="button"
+              onClick={openCalibration}
+              aria-label="Open Accessibility Calibration Center (Alt+A)"
+              className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold text-foreground hover:bg-surface-elevated hover:text-primary transition-colors text-left min-h-[40px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <Sliders className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
+                <span>Accessibility</span>
+              </div>
+              <span className="keyboard-indicator text-[10px]">Alt+A</span>
+            </button>
+          )}
 
           {isCandidate &&
             candidateSecondaryLinks.map((link) => (

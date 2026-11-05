@@ -75,6 +75,7 @@ export function parseSpokenName(rawText: string): string {
 
 export interface UseAuthVoiceNavigatorOptions {
   page: 'login' | 'signup' | 'role-selection' | 'forgot-password';
+  enabled?: boolean;
   onFillEmail?: (email: string) => void;
   onFillPassword?: (password: string) => void;
   onFillName?: (name: string) => void;
@@ -108,8 +109,10 @@ export interface AuthVoiceState {
 
 export function useAuthVoiceNavigator(options: UseAuthVoiceNavigatorOptions): AuthVoiceState {
   const { speak, announce } = useAccessibility();
+  const isEnabled = options.enabled !== false;
 
   const [isListening, setIsListening] = useState<boolean>(() => {
+    if (options.enabled === false) return false;
     try {
       const stored = sessionStorage.getItem('drishti_auth_voice_active');
       return stored !== null ? stored === 'true' : true;
@@ -825,7 +828,16 @@ export function useAuthVoiceNavigator(options: UseAuthVoiceNavigatorOptions): Au
 
   // Speech Recognition Lifecycle
   useEffect(() => {
-    if (!isSupported) return;
+    if (!isEnabled || !isSupported) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch {}
+        recognitionRef.current = null;
+      }
+      setIsActuallyRecognizing(false);
+      return;
+    }
 
     const SpeechClass = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechClass();
@@ -894,7 +906,7 @@ export function useAuthVoiceNavigator(options: UseAuthVoiceNavigatorOptions): Au
     recognition.onend = () => {
       setIsActuallyRecognizing(false);
       // Auto-restart if user still wants it active
-      if (isListeningRef.current) {
+      if (isListeningRef.current && isEnabled) {
         try {
           recognition.start();
         } catch {}
@@ -913,10 +925,11 @@ export function useAuthVoiceNavigator(options: UseAuthVoiceNavigatorOptions): Au
       } catch {}
       recognitionRef.current = null;
     };
-  }, [isSupported, isListening, executeAuthCommand]);
+  }, [isEnabled, isSupported, isListening, executeAuthCommand]);
 
   // Global Keyboard Shortcuts (Alt+V toggles mic, Alt+H speaks commands, Alt+G speaks guidance)
   useEffect(() => {
+    if (!isEnabled) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.altKey && e.key.toLowerCase() === 'v') {
         e.preventDefault();
@@ -932,10 +945,16 @@ export function useAuthVoiceNavigator(options: UseAuthVoiceNavigatorOptions): Au
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [toggleListening, speakCommandsHelp, speakGuidance]);
+  }, [isEnabled, toggleListening, speakCommandsHelp, speakGuidance]);
 
   // Welcome Announcement on Mount
   useEffect(() => {
+    if (!isEnabled) {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      return;
+    }
     if (hasSpokenWelcomeRef.current) return;
     hasSpokenWelcomeRef.current = true;
 
@@ -944,7 +963,7 @@ export function useAuthVoiceNavigator(options: UseAuthVoiceNavigatorOptions): Au
     }, 450);
 
     return () => clearTimeout(timer);
-  }, [speakGuidance]);
+  }, [isEnabled, speakGuidance]);
 
   return {
     isListening,

@@ -9,6 +9,7 @@ from app.api.routes import (
     analytics,
     auth,
     candidate,
+    candidate_passes,
     exams,
     learning,
     mock_tests,
@@ -57,11 +58,11 @@ app.add_middleware(SecurityHeadersMiddleware)
 # 4. Correlation / Request ID Middleware (Section 36)
 app.add_middleware(RequestIDMiddleware)
 
-# 5. CORS Middleware (Section 16: Supports configured origins + all Vercel deployments)
+# 5. CORS Middleware (Section 16: Supports configured origins, LAN IPs, + all Vercel deployments)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
-    allow_origin_regex=r"^https:\/\/.*\.vercel\.app$",
+    allow_origin_regex=r"^https:\/\/.*\.vercel\.app$|^http:\/\/(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.\d+\.\d+\.\d+)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -152,6 +153,7 @@ app.include_router(questions.router, prefix=api_v1_prefix)
 app.include_router(analytics.router, prefix=api_v1_prefix)
 app.include_router(admin.router, prefix=api_v1_prefix)
 app.include_router(candidate.router, prefix=api_v1_prefix)
+app.include_router(candidate_passes.router, prefix=api_v1_prefix)
 app.include_router(mock_tests.router, prefix=api_v1_prefix)
 app.include_router(ai.router, prefix=api_v1_prefix)
 
