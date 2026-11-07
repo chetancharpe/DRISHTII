@@ -45,3 +45,4 @@ def delete_or_revoke_candidate_pass(
     """Deactivate or revoke an access pass."""
     revoke_candidate_pass(db, pass_id, current_user.id)
     return {"message": "Candidate access pass revoked successfully."}
+

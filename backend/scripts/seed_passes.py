@@ -31,3 +31,4 @@ if cand:
     else:
         print("DRISHTI-PASS-8842 already exists")
 db.close()
+

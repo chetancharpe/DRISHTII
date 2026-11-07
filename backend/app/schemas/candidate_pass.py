@@ -32,3 +32,4 @@ class CandidateAccessPassResponse(BaseModel):
 
 class CandidateQuickAccessRequest(BaseModel):
     pass_code: str = Field(..., min_length=3, max_length=64, description="Unique candidate access code")
+

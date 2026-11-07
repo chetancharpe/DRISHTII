@@ -26,3 +26,4 @@ class CandidateAccessPass(Base):
 
     candidate = relationship("User", foreign_keys=[candidate_id])
     examiner = relationship("User", foreign_keys=[examiner_id])
+
