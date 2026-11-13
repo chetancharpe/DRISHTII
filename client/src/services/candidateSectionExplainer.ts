@@ -50,7 +50,7 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
         number: 1,
         label: 'Continue Percentages Practice',
         description: 'Resumes your practice session on Percentages in Mathematics',
-        aliases: ['continue', 'percentages practice', 'resume', 'continue practice', 'abhyas chalu'],
+        aliases: ['continue', 'percentages practice', 'resume', 'continue practice', 'abhyas chalu', 'प्रतिशत', 'प्रतिशत अभ्यास', 'अभ्यास जारी', 'प्रैक्टिस चालू', 'जारी रखो'],
         action: (c) => c.navigate('/candidate/practice/session/demo-percentages'),
         confirmSpeech: 'Launching Percentages Practice session.',
       },
@@ -59,7 +59,7 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
         number: 2,
         label: 'Learn Curriculum',
         description: 'Open curriculum subjects: Mathematics, English, General Knowledge, and Reasoning',
-        aliases: ['learn', 'curriculum', 'syllabus', 'padho', 'sikho', 'learning'],
+        aliases: ['learn', 'curriculum', 'syllabus', 'padho', 'sikho', 'learning', 'पढ़ाई', 'पाठ्यक्रम', 'विषय', 'सीखो'],
         action: (c) => c.navigate('/candidate/learn'),
         confirmSpeech: 'Opening Learning Curriculum.',
       },
@@ -68,7 +68,7 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
         number: 3,
         label: 'Interactive Practice Hub',
         description: 'Practice questions by exam, subject, and topic with instant feedback',
-        aliases: ['practice', 'abhyas', 'practice hub'],
+        aliases: ['practice', 'abhyas', 'practice hub', 'अभ्यास', 'अभ्यास केंद्र', 'सवाल'],
         action: (c) => c.navigate('/candidate/practice'),
         confirmSpeech: 'Opening Practice Hub.',
       },
@@ -77,7 +77,7 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
         number: 4,
         label: 'Official Mock Tests',
         description: 'Full-length simulated timed examinations',
-        aliases: ['mock tests', 'mock test', 'mocks', 'test series'],
+        aliases: ['mock tests', 'mock test', 'mocks', 'test series', 'मॉक टेस्ट', 'मॉक', 'टेस्ट सीरीज'],
         action: (c) => c.navigate('/candidate/mock-tests'),
         confirmSpeech: 'Opening Mock Tests Portal.',
       },
@@ -86,7 +86,7 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
         number: 5,
         label: 'Scheduled Examinations',
         description: 'Official exam schedule and proctored examination hall',
-        aliases: ['exams', 'exam', 'pariksha', 'examination', 'examinations'],
+        aliases: ['exams', 'exam', 'pariksha', 'examination', 'examinations', 'परीक्षा', 'परीक्षाएं', 'परीक्षा सूची'],
         action: (c) => c.navigate('/candidate/exams'),
         confirmSpeech: 'Opening Official Examinations Portal.',
       },
@@ -95,7 +95,7 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
         number: 6,
         label: 'Results and Analytics',
         description: 'Review scorecards, accuracy breakdown, and study insights',
-        aliases: ['results', 'scores', 'result', 'parinam', 'scorecard'],
+        aliases: ['results', 'scores', 'result', 'parinam', 'scorecard', 'परिणाम', 'स्कोरकार्ड', 'नतीजे'],
         action: (c) => c.navigate('/candidate/results'),
         confirmSpeech: 'Opening Results and Analytics.',
       },
@@ -104,25 +104,48 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
         number: 7,
         label: 'Sensory Accessibility Settings',
         description: 'Adjust high contrast, font size scale, audio narration, and themes',
-        aliases: ['settings', 'accessibility', 'preferences', 'contrast', 'font size'],
+        aliases: ['settings', 'accessibility', 'preferences', 'contrast', 'font size', 'सेटिंग्स', 'सुलभता', 'कंट्रास्ट'],
         action: (c) => c.navigate('/candidate/settings'),
         confirmSpeech: 'Opening Accessibility Settings.',
       },
     ];
 
-    const introSpeech =
-      `Welcome to Candidate Dashboard, ${name}. Here are your 7 options: ` +
-      `Option 1: Continue Percentages Practice. ` +
-      `Option 2: Learn Curriculum. ` +
-      `Option 3: Interactive Practice Hub. ` +
-      `Option 4: Official Mock Tests. ` +
-      `Option 5: Scheduled Examinations. ` +
-      `Option 6: Results and Analytics. ` +
-      `Option 7: Sensory Accessibility Settings. ` +
-      `Say Option 1 to resume practice, or say any option number or name to select.`;
+    const isHindi =
+      ctx.preferences?.language === 'hi' ||
+      (typeof localStorage !== 'undefined' && (
+        localStorage.getItem('gowow_preferred_lang') === 'hi' ||
+        localStorage.getItem('gowow_accessibility_preferences')?.includes('"language":"hi"')
+      )) ||
+      (typeof document !== 'undefined' && document.documentElement.getAttribute('lang') === 'hi');
 
-    const elementsSummary =
-      `Options available: 1. Continue Practice, 2. Learn Curriculum, 3. Practice Hub, 4. Mock Tests, 5. Scheduled Exams, 6. Results, 7. Settings. Say Option 1 through 7 to select.`;
+    const displayName = (name && name !== 'Candidate') ? `, ${name}` : '';
+    const introSpeech = isHindi
+      ? `कैंडिडेट डैशबोर्ड का पूरा विवरण${displayName}। ` +
+        `आपकी समग्र तैयारी 78 प्रतिशत पूर्ण है और 7 दिन का दैनिक अध्ययन सिलसिला सक्रिय है। ` +
+        `आज का अध्ययन लक्ष्य: 45 में से 30 मिनट पूर्ण। ` +
+        `अनुशंसित अगला कदम: प्रतिशत अभ्यास जारी रखें। ` +
+        `डैशबोर्ड पर 7 मुख्य विकल्प उपलब्ध हैं: ` +
+        `विकल्प 1: प्रतिशत अभ्यास जारी रखें। ` +
+        `विकल्प 2: पाठ्यक्रम और विषय पढ़ें - गणित, अंग्रेजी, सामान्य ज्ञान और रीजनिंग। ` +
+        `विकल्प 3: इंटरैक्टिव अभ्यास केंद्र। ` +
+        `विकल्प 4: आधिकारिक मॉक टेस्ट पोर्टल। ` +
+        `विकल्प 5: आधिकारिक निर्धारित परीक्षाएं। ` +
+        `विकल्प 6: परिणाम, स्कोरकार्ड और विश्लेषण। ` +
+        `विकल्प 7: सुलभता और आवाज सेटिंग्स। ` +
+        `किसी भी विकल्प को खोलने के लिए उसका नाम या विकल्प संख्या बोलें।`
+      : `Welcome to Candidate Dashboard, ${name}. Here are your 7 options: ` +
+        `Option 1: Continue Percentages Practice. ` +
+        `Option 2: Learn Curriculum. ` +
+        `Option 3: Interactive Practice Hub. ` +
+        `Option 4: Official Mock Tests. ` +
+        `Option 5: Scheduled Examinations. ` +
+        `Option 6: Results and Analytics. ` +
+        `Option 7: Sensory Accessibility Settings. ` +
+        `Say Option 1 to resume practice, or say any option number or name to select.`;
+
+    const elementsSummary = isHindi
+      ? `उपलब्ध विकल्प: 1. प्रतिशत अभ्यास, 2. पाठ्यक्रम, 3. अभ्यास केंद्र, 4. मॉक टेस्ट, 5. परीक्षाएं, 6. परिणाम, 7. सुलभता सेटिंग्स। विकल्प 1 से 7 बोलें।`
+      : `Options available: 1. Continue Practice, 2. Learn Curriculum, 3. Practice Hub, 4. Mock Tests, 5. Scheduled Exams, 6. Results, 7. Settings. Say Option 1 through 7 to select.`;
 
     return { id: 'dashboard', name: 'Candidate Dashboard', introSpeech, elementsSummary, elements };
   }
@@ -195,10 +218,13 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
       },
     ];
 
-    const introSpeech =
-      'Interactive Practice Session. Say Read Question to hear the current question and options, or say Option A, Option B, Option C, or Option D to submit your answer, or say Next Question.';
-    const elementsSummary =
-      'Practice Session options: Say Option A, Option B, Option C, Option D, Next Question, or Read Question.';
+    const isHindi = ctx.preferences?.language === 'hi';
+    const introSpeech = isHindi
+      ? 'इंटरैक्टिव अभ्यास सत्र। वर्तमान प्रश्न और विकल्पों को सुनने के लिए प्रश्न पढ़ो बोलें, या उत्तर देने के लिए विकल्प ए, विकल्प बी, विकल्प सी, या विकल्प डी बोलें, या अगला प्रश्न बोलें।'
+      : 'Interactive Practice Session. Say Read Question to hear the current question and options, or say Option A, Option B, Option C, or Option D to submit your answer, or say Next Question.';
+    const elementsSummary = isHindi
+      ? 'अभ्यास सत्र विकल्प: विकल्प ए, विकल्प बी, विकल्प सी, विकल्प डी, अगला प्रश्न, या प्रश्न पढ़ो बोलें।'
+      : 'Practice Session options: Say Option A, Option B, Option C, Option D, Next Question, or Read Question.';
 
     return { id: 'practice-session', name: 'Practice Session', introSpeech, elementsSummary, elements };
   }
@@ -850,16 +876,24 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
       },
     ];
 
-    const introSpeech =
-      `Learning Curriculum. Here are the 4 subjects available: ` +
-      `Option 1: Mathematics - covering Percentages, Algebra, and Geometry. ` +
-      `Option 2: English Language - covering Reading Comprehension, Grammar Rules, and Vocabulary. ` +
-      `Option 3: General Knowledge - covering Modern History, Indian Polity, and Geography. ` +
-      `Option 4: Reasoning Ability - covering Coding-Decoding and Number Series. ` +
-      `Say Option 1 or Mathematics, Option 2 or English, Option 3 or GK, or Option 4 or Reasoning.`;
+    const isHindi = ctx.preferences?.language === 'hi';
+    const introSpeech = isHindi
+      ? `सीखने का पाठ्यक्रम। आपके पास 4 विषय उपलब्ध हैं: ` +
+        `विकल्प 1: गणित - प्रतिशत, बीजगणित, और ज्यामिति। ` +
+        `विकल्प 2: अंग्रेजी भाषा - रीडिंग कॉम्प्रिहेंशन, व्याकरण नियम, और शब्दावली। ` +
+        `विकल्प 3: सामान्य ज्ञान - आधुनिक इतिहास, भारतीय राजव्यवस्था, और भूगोल। ` +
+        `विकल्प 4: रीजनिंग - कोडिंग-डिकोडिंग और नंबर सीरीज। ` +
+        `विषय खोलने के लिए विकल्प 1 से 4 बोलें या विषय का नाम बोलें।`
+      : `Learning Curriculum. Here are the 4 subjects available: ` +
+        `Option 1: Mathematics - covering Percentages, Algebra, and Geometry. ` +
+        `Option 2: English Language - covering Reading Comprehension, Grammar Rules, and Vocabulary. ` +
+        `Option 3: General Knowledge - covering Modern History, Indian Polity, and Geography. ` +
+        `Option 4: Reasoning Ability - covering Coding-Decoding and Number Series. ` +
+        `Say Option 1 or Mathematics, Option 2 or English, Option 3 or GK, or Option 4 or Reasoning.`;
 
-    const elementsSummary =
-      `Curriculum options: 1. Mathematics, 2. English, 3. General Knowledge, 4. Reasoning, 5. Dashboard.`;
+    const elementsSummary = isHindi
+      ? `पाठ्यक्रम विकल्प: 1. गणित, 2. अंग्रेजी, 3. सामान्य ज्ञान, 4. रीजनिंग, 5. डैशबोर्ड।`
+      : `Curriculum options: 1. Mathematics, 2. English, 3. General Knowledge, 4. Reasoning, 5. Dashboard.`;
 
     return { id: 'learn-index', name: 'Learning Curriculum', introSpeech, elementsSummary, elements };
   }
@@ -988,14 +1022,20 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
       },
     ];
 
-    const introSpeech =
-      `Official Examinations Portal. Here are your scheduled examinations: ` +
-      `Option 1: Combined Defence Services (CDS) Official Mock Exam - 100 Marks. ` +
-      `Option 2: SSC Combined Graduate Level Tier 1 Practice Exam - 200 Marks. ` +
-      `Say Option 1 or CDS Exam, Option 2 or SSC Exam, or say Dashboard to return.`;
+    const isHindi = ctx.preferences?.language === 'hi';
+    const introSpeech = isHindi
+      ? `आधिकारिक परीक्षा पोर्टल। आपकी निर्धारित परीक्षाएं: ` +
+        `विकल्प 1: कंबाइंड डिफेंस सर्विसेज (CDS) आधिकारिक मॉक परीक्षा - 100 अंक। ` +
+        `विकल्प 2: एसएससी सीजीएल टियर 1 अभ्यास परीक्षा - 200 अंक। ` +
+        `विकल्प 1 या सीडीएस परीक्षा बोलें, या विकल्प 2 या एसएससी परीक्षा बोलें।`
+      : `Official Examinations Portal. Here are your scheduled examinations: ` +
+        `Option 1: Combined Defence Services (CDS) Official Mock Exam - 100 Marks. ` +
+        `Option 2: SSC Combined Graduate Level Tier 1 Practice Exam - 200 Marks. ` +
+        `Say Option 1 or CDS Exam, Option 2 or SSC Exam, or say Dashboard to return.`;
 
-    const elementsSummary =
-      `Exams options: 1. CDS Mock Exam, 2. SSC Practice Exam, 3. Dashboard. Say Option 1, 2, or 3.`;
+    const elementsSummary = isHindi
+      ? `परीक्षा विकल्प: 1. सीडीएस मॉक परीक्षा, 2. एसएससी अभ्यास परीक्षा, 3. डैशबोर्ड। विकल्प 1, 2, या 3 बोलें।`
+      : `Exams options: 1. CDS Mock Exam, 2. SSC Practice Exam, 3. Dashboard. Say Option 1, 2, or 3.`;
 
     return { id: 'exams-portal', name: 'Official Examinations Portal', introSpeech, elementsSummary, elements };
   }
@@ -1068,10 +1108,13 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
       },
     ];
 
-    const introSpeech =
-      'Mock Test Session in progress. Say Option A, B, C, or D to answer. Say Next or Previous to navigate. Say Read Question to hear details, Mark for Review to flag, or Submit to finish.';
-    const elementsSummary =
-      'Mock Session: 1. Read Question, 2. Option A, 3. Option B, 4. Option C, 5. Option D, 6. Next Question, 7. Submit Test.';
+    const isHindi = ctx.preferences?.language === 'hi';
+    const introSpeech = isHindi
+      ? 'मॉक टेस्ट परीक्षा सत्र चल रहा है। उत्तर देने के लिए विकल्प ए, बी, सी, या डी बोलें। आगे या पीछे जाने के लिए अगला या पिछला बोलें। प्रश्न दोबारा सुनने के लिए प्रश्न पढ़ो, समीक्षा के लिए रिव्यू मार्क, या समाप्त करने के लिए सबमिट बोलें।'
+      : 'Mock Test Session in progress. Say Option A, B, C, or D to answer. Say Next or Previous to navigate. Say Read Question to hear details, Mark for Review to flag, or Submit to finish.';
+    const elementsSummary = isHindi
+      ? 'मॉक सत्र विकल्प: 1. प्रश्न पढ़ो, 2. विकल्प ए, 3. विकल्प बी, 4. विकल्प सी, 5. विकल्प डी, 6. अगला प्रश्न, 7. टेस्ट सबमिट करें।'
+      : 'Mock Session: 1. Read Question, 2. Option A, 3. Option B, 4. Option C, 5. Option D, 6. Next Question, 7. Submit Test.';
 
     return { id: 'mock-session', name: 'Mock Test Examination Session', introSpeech, elementsSummary, elements };
   }
@@ -1287,16 +1330,24 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
       },
     ];
 
-    const introSpeech =
-      `Results and Analytics Portal. Here are your 4 available actions: ` +
-      `Option 1: Read Complete Scorecard Summary. ` +
-      `Option 2: Read Subject-wise Accuracy Breakdown. ` +
-      `Option 3: Practice Weak Topics. ` +
-      `Option 4: Return to Dashboard. ` +
-      `Say Option 1 to hear your scores, Option 2 for breakdown, or Option 3 to practice weak topics.`;
+    const isHindi = ctx.preferences?.language === 'hi';
+    const introSpeech = isHindi
+      ? `परिणाम और एनालिटिक्स पोर्टल। आपके पास 4 विकल्प हैं: ` +
+        `विकल्प 1: पूरा स्कोरकार्ड सारांश सुनें। ` +
+        `विकल्प 2: विषयवार सटीकता विवरण सुनें। ` +
+        `विकल्प 3: कमजोर विषयों का अभ्यास करें। ` +
+        `विकल्प 4: डैशबोर्ड पर वापस जाएं। ` +
+        `अपना स्कोर सुनने के लिए विकल्प 1 बोलें, या विकल्प 2, 3 या 4 बोलें।`
+      : `Results and Analytics Portal. Here are your 4 available actions: ` +
+        `Option 1: Read Complete Scorecard Summary. ` +
+        `Option 2: Read Subject-wise Accuracy Breakdown. ` +
+        `Option 3: Practice Weak Topics. ` +
+        `Option 4: Return to Dashboard. ` +
+        `Say Option 1 to hear your scores, Option 2 for breakdown, or Option 3 to practice weak topics.`;
 
-    const elementsSummary =
-      `Results options: 1. Read Scorecard, 2. Subject Breakdown, 3. Practice Weak Topics, 4. Dashboard.`;
+    const elementsSummary = isHindi
+      ? `परिणाम विकल्प: 1. स्कोरकार्ड, 2. विषयवार विवरण, 3. कमजोर विषय अभ्यास, 4. डैशबोर्ड।`
+      : `Results options: 1. Read Scorecard, 2. Subject Breakdown, 3. Practice Weak Topics, 4. Dashboard.`;
 
     return { id: 'results', name: 'Results and Analytics', introSpeech, elementsSummary, elements };
   }

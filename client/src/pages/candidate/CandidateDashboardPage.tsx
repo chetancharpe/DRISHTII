@@ -28,6 +28,7 @@ import { useNavigate } from 'react-router-dom';
 
 export const CandidateDashboardPage: React.FC = () => {
   const { preferences } = useAccessibility();
+  const isHindi = preferences?.language === 'hi' || (typeof document !== 'undefined' && document.documentElement.lang === 'hi');
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState<CandidateDashboardData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -83,7 +84,7 @@ export const CandidateDashboardPage: React.FC = () => {
                 <span className="text-xl" aria-hidden="true">⚠️</span>
                 <div>
                   <p className="font-semibold text-sm">
-                    Offline Preview / Local Telemetry Mode
+                    {isHindi ? 'ऑफ़लाइन पूर्वावलोकन / स्थानीय टेलीमेट्री मोड' : 'Offline Preview / Local Telemetry Mode'}
                   </p>
                   <p className="text-xs opacity-90 mt-0.5">
                     {dashboardData.fallbackMessage || 'Live examination server is currently offline or unreachable. Displaying local offline telemetry. Your mock and practice sessions remain active and saved locally.'}
@@ -105,7 +106,7 @@ export const CandidateDashboardPage: React.FC = () => {
             <div id="candidate-main-content" className="flex flex-col gap-6 focus:outline-none" tabIndex={-1}>
               <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between">
                 <span className="text-xs font-semibold text-primary">
-                  ✨ Simplified High-Focus Mode Active
+                  {isHindi ? '✨ सरल हाई-फोकस मोड सक्रिय' : '✨ Simplified High-Focus Mode Active'}
                 </span>
                 <button
                   type="button"
@@ -120,7 +121,7 @@ export const CandidateDashboardPage: React.FC = () => {
               <div className="p-6 rounded-2xl bg-surface border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wider text-primary">
-                    {dashboardData.continueLearning ? 'Current Study Topic' : 'Recommended Topic'}
+                    {dashboardData.continueLearning ? (isHindi ? 'वर्तमान अध्ययन विषय' : 'Current Study Topic') : (isHindi ? 'अनुशंसित विषय' : 'Recommended Topic')}
                   </span>
                   <h3 className="text-xl font-bold text-foreground mt-1">
                     {dashboardData.continueLearning
@@ -138,15 +139,15 @@ export const CandidateDashboardPage: React.FC = () => {
                   onClick={() => navigate('/candidate/learn')}
                   className="px-6 py-3 rounded-xl bg-primary hover:bg-primary-hover text-primary-contrast font-bold text-sm focus:ring-2 focus:ring-primary min-h-[44px]"
                 >
-                  {dashboardData.continueLearning ? 'Continue Learning' : 'Start Learning'}
+                  {dashboardData.continueLearning ? (isHindi ? 'पढ़ाई जारी रखें' : 'Continue Learning') : (isHindi ? 'पढ़ाई शुरू करें' : 'Start Learning')}
                 </button>
               </div>
 
               {/* Practice */}
               <div className="p-6 rounded-2xl bg-surface border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-status-success">Adaptive Practice</span>
-                  <h3 className="text-xl font-bold text-foreground mt-1">Targeted Question Practice</h3>
+                  <span className="text-xs font-bold uppercase tracking-wider text-status-success">{isHindi ? 'अनुकूली अभ्यास' : 'Adaptive Practice'}</span>
+                  <h3 className="text-xl font-bold text-foreground mt-1">{isHindi ? 'लक्षित प्रश्न अभ्यास' : 'Targeted Question Practice'}</h3>
                   <p className="text-xs text-foreground-muted mt-1">Practice questions tailored with full audio explanations</p>
                 </div>
                 <button
@@ -161,8 +162,8 @@ export const CandidateDashboardPage: React.FC = () => {
               {/* Mock Test */}
               <div className="p-6 rounded-2xl bg-surface border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-status-warning">Exam Simulation</span>
-                  <h3 className="text-xl font-bold text-foreground mt-1">Timed Mock Tests</h3>
+                  <span className="text-xs font-bold uppercase tracking-wider text-status-warning">{isHindi ? 'परीक्षा सिमुलेशन' : 'Exam Simulation'}</span>
+                  <h3 className="text-xl font-bold text-foreground mt-1">{isHindi ? 'समयबद्ध मॉक टेस्ट' : 'Timed Mock Tests'}</h3>
                   <p className="text-xs text-foreground-muted mt-1">Practice pacing under simulated conditions</p>
                 </div>
                 <button
@@ -177,8 +178,8 @@ export const CandidateDashboardPage: React.FC = () => {
               {/* Examination */}
               <div className="p-6 rounded-2xl bg-surface border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-status-error">Official Examination</span>
-                  <h3 className="text-xl font-bold text-foreground mt-1">Official Scheduled Exams</h3>
+                  <span className="text-xs font-bold uppercase tracking-wider text-status-error">{isHindi ? 'आधिकारिक परीक्षा' : 'Official Examination'}</span>
+                  <h3 className="text-xl font-bold text-foreground mt-1">{isHindi ? 'आधिकारिक निर्धारित परीक्षाएं' : 'Official Scheduled Exams'}</h3>
                   <p className="text-xs text-foreground-muted mt-1">Check scheduled live examinations and eligibility</p>
                 </div>
                 <button
@@ -193,7 +194,7 @@ export const CandidateDashboardPage: React.FC = () => {
               {/* Progress */}
               <div className="p-6 rounded-2xl bg-surface border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-primary">Progress Analytics</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-primary">{isHindi ? 'प्रगति और विश्लेषण' : 'Progress Analytics'}</span>
                   <h3 className="text-xl font-bold text-foreground mt-1">Progress & Analytics</h3>
                   <p className="text-xs text-foreground-muted mt-1">Review accuracy trends and weekly narrative report</p>
                 </div>

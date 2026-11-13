@@ -20,6 +20,7 @@ interface AuthContextType {
   authError: string | null;
   clearAuthError: () => void;
   login: (email: string, password?: string) => Promise<User>;
+  loginWithUser: (user: User) => void;
   signup: (data: SignupData) => Promise<User>;
   logout: () => Promise<void>;
   // Dev-only demo helper calling real API with seeded credentials
@@ -120,6 +121,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const loginWithUser = (loggedInUser: User): void => {
+    setUser(loggedInUser);
+    setAuthError(null);
+    setIsLoading(false);
+  };
+
   const logout = async (): Promise<void> => {
     setIsLoading(true);
     try {
@@ -134,14 +141,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Dev-only demo account helper that makes REAL login calls against seeded accounts
   const loginDemo = import.meta.env.DEV
     ? async (targetRole: UserRole): Promise<User> => {
-        if (targetRole === 'admin') {
-          return await login('admin@gowow.org', 'AdminSecurePass123!');
-        }
-        if (targetRole === 'examiner') {
-          return await login('examiner@gowow.org', 'ExaminerSecure123!');
-        }
-        return await login('candidate1@gowow.org', 'CandidateSecure123!');
+      if (targetRole === 'admin') {
+        return await login('admin@gowow.org', 'AdminSecurePass123!');
       }
+      if (targetRole === 'examiner') {
+        return await login('examiner@gowow.org', 'ExaminerSecure123!');
+      }
+      return await login('candidate1@gowow.org', 'CandidateSecure123!');
+    }
     : undefined;
 
   return (
@@ -154,6 +161,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authError,
         clearAuthError,
         login,
+        loginWithUser,
         signup,
         logout,
         loginDemo,

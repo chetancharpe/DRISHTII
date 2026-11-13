@@ -13,7 +13,21 @@ from app.schemas.auth import (
     TokenResponse,
 )
 from app.schemas.candidate_pass import CandidateQuickAccessRequest
+from app.schemas.face_access import (
+    FaceAccessChallengeRequest,
+    FaceAccessChallengeResponse,
+    FaceAccessEnrollRequest,
+    FaceAccessEnrollResponse,
+    FaceAccessVerifyRequest,
+)
 from app.services.candidate_pass_service import authenticate_candidate_quick_access
+from app.services.face_access_service import (
+    create_face_access_challenge,
+    enroll_face_access,
+    get_face_access_status,
+    revoke_face_access,
+    verify_face_access,
+)
 from typing import Optional
 from app.services.auth_service import (
     authenticate_user,
@@ -97,4 +111,73 @@ def logout(
         refresh_token=data.refresh_token if data else None,
     )
     return None
+
+
+# ============================================================================
+# DRISHTI FACEACCESS AI (Accessible Biometric Authentication & Verification)
+# ============================================================================
+
+@router.post("/face-access/challenge", response_model=FaceAccessChallengeResponse)
+def get_face_access_challenge(
+    data: Optional[FaceAccessChallengeRequest] = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Generate an anti-replay challenge session for Drishti FaceAccess AI.
+    Returns challenge ID, cryptographic nonce, randomized liveness action, and Hindi/English instructions.
+    """
+    email = data.email if data else None
+    return create_face_access_challenge(db, email=email)
+
+
+@router.post("/face-access/verify", response_model=TokenResponse)
+def verify_face_access_route(
+    data: FaceAccessVerifyRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Verifies FaceAccess AI alignment, liveness challenge, and biometric token.
+    Issues JWT access and refresh tokens without requiring a password.
+    """
+    return verify_face_access(db, data)
+
+
+@router.post("/face-access/enroll", response_model=FaceAccessEnrollResponse)
+def enroll_face_access_route(
+    data: FaceAccessEnrollRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Enrolls candidate's facial biometric template under informed consent.
+    Hashes biometric vectors so raw video/images are never stored.
+    """
+    return enroll_face_access(
+        db,
+        user_id=current_user.id,
+        biometric_token=data.biometric_token,
+        consent_agreed=data.consent_agreed,
+    )
+
+
+@router.delete("/face-access")
+def revoke_face_access_route(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Withdraws consent and permanently deletes all stored FaceAccess biometric templates.
+    """
+    return revoke_face_access(db, user_id=current_user.id)
+
+
+@router.get("/face-access/status")
+def check_face_access_status(
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Check whether the candidate has FaceAccess AI biometric login enabled.
+    """
+    return get_face_access_status(user_id=current_user.id)
+
 

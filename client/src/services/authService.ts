@@ -139,6 +139,7 @@ export const authService = {
     } finally {
       tokenStorage.clearTokens();
       localStorage.removeItem('drishti_current_user');
+      localStorage.removeItem('drishti_onboarding_completed');
     }
   },
 

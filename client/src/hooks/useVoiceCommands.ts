@@ -33,7 +33,7 @@ declare global {
 }
 
 export function useVoiceCommands(handlers: VoiceCommandHandlers) {
-  const { announce, speak } = useAccessibility();
+  const { announce, speak, preferences } = useAccessibility();
   const [isListening, setIsListening] = useState(false);
   const [lastCommand, setLastCommand] = useState<string | null>(null);
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
@@ -58,6 +58,12 @@ export function useVoiceCommands(handlers: VoiceCommandHandlers) {
   const dictatedTextRef = useRef(dictatedText);
   dictatedTextRef.current = dictatedText;
 
+  const isListeningRef = useRef(isListening);
+  isListeningRef.current = isListening;
+
+  const restartTimerRef = useRef<any>(null);
+  const processTranscriptRef = useRef<(transcript: string) => void>(() => {});
+
   const isSupported =
     typeof window !== 'undefined' &&
     ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
@@ -67,20 +73,24 @@ export function useVoiceCommands(handlers: VoiceCommandHandlers) {
     if (pendingRef.current) {
       const { optionIndex, label } = pendingRef.current;
       handlersRef.current.onSelectOption?.(optionIndex);
-      speak(`Option ${label} confirmed and saved.`);
-      announce(`Option ${label} confirmed and saved.`, 'polite');
+      const isHindi = preferences?.language === 'hi';
+      const msg = isHindi ? `विकल्प ${label} सुरक्षित कर दिया गया है।` : `Option ${label} confirmed and saved.`;
+      speak(msg);
+      announce(msg, 'polite');
       setPendingSelection(null);
     }
-  }, [speak, announce]);
+  }, [speak, announce, preferences]);
 
   // Scribe: Cancel pending option selection
   const cancelPendingSelection = useCallback(() => {
     if (pendingRef.current) {
-      speak('Option selection cancelled. What choice would you like to select?');
-      announce('Option selection cancelled.', 'polite');
+      const isHindi = preferences?.language === 'hi';
+      const msg = isHindi ? 'विकल्प चयन रद्द कर दिया गया। आप कौन सा विकल्प चुनना चाहते हैं?' : 'Option selection cancelled. What choice would you like to select?';
+      speak(msg);
+      announce(msg, 'polite');
       setPendingSelection(null);
     }
-  }, [speak, announce]);
+  }, [speak, announce, preferences]);
 
   // Scribe Dictation: Read back full answer
   const readBackDictation = useCallback(() => {
@@ -201,6 +211,11 @@ export function useVoiceCommands(handlers: VoiceCommandHandlers) {
           text.includes('haan') ||
           text.includes('theek hai') ||
           text.includes('sahi hai') ||
+          text.includes('कन्फर्म') ||
+          text.includes('हाँ') ||
+          text.includes('हां') ||
+          text.includes('सही है') ||
+          text.includes('ठीक है') ||
           text === 'ok'
         ) {
           confirmPendingSelection();
@@ -212,7 +227,11 @@ export function useVoiceCommands(handlers: VoiceCommandHandlers) {
           text.includes('no') ||
           text.includes('nahi') ||
           text.includes('badlo') ||
-          text.includes('hatao')
+          text.includes('hatao') ||
+          text.includes('बदलो') ||
+          text.includes('नहीं') ||
+          text.includes('रद्द') ||
+          text.includes('हटाओ')
         ) {
           cancelPendingSelection();
           return;
@@ -237,23 +256,43 @@ export function useVoiceCommands(handlers: VoiceCommandHandlers) {
         setPendingSelection(pendingObj);
 
         // Audible verification prompt with confirmation step
-        speak(`You selected Option ${label}: ${optText}. Say confirm or say change.`);
-        announce(`Selected Option ${label}: ${optText}. Say confirm or say change.`, 'assertive');
+        const isHindi = preferences?.language === 'hi';
+        const prompt = isHindi
+          ? `आपने विकल्प ${label} चुना है: ${optText}। पुष्टि के लिए 'हाँ' या 'कन्फर्म' बोलें, या बदलने के लिए 'बदलो' बोलें।`
+          : `You selected Option ${label}: ${optText}. Say confirm or say change.`;
+        speak(prompt);
+        announce(prompt, 'assertive');
       };
 
-      if (text.includes('option a') || text.includes('option 1') || text.includes('choose a') || text.includes('select a')) {
+      if (
+        text.includes('option a') || text.includes('option 1') || text.includes('choose a') || text.includes('select a') ||
+        text.includes('विकल्प ए') || text.includes('विकल्प 1') || text.includes('पहला विकल्प') || text.includes('विकल्प एक') ||
+        text === 'विकल्प ए' || text === 'विकल्प 1' || text === 'ए'
+      ) {
         handleOptionVoiceSelect(0, 'A');
         return;
       }
-      if (text.includes('option b') || text.includes('option 2') || text.includes('choose b') || text.includes('select b')) {
+      if (
+        text.includes('option b') || text.includes('option 2') || text.includes('choose b') || text.includes('select b') ||
+        text.includes('विकल्प बी') || text.includes('विकल्प 2') || text.includes('दूसरा विकल्प') || text.includes('विकल्प दो') ||
+        text === 'विकल्प बी' || text === 'विकल्प 2' || text === 'बी'
+      ) {
         handleOptionVoiceSelect(1, 'B');
         return;
       }
-      if (text.includes('option c') || text.includes('option 3') || text.includes('choose c') || text.includes('select c')) {
+      if (
+        text.includes('option c') || text.includes('option 3') || text.includes('choose c') || text.includes('select c') ||
+        text.includes('विकल्प सी') || text.includes('विकल्प 3') || text.includes('तीसरा विकल्प') || text.includes('विकल्प तीन') ||
+        text === 'विकल्प सी' || text === 'विकल्प 3' || text === 'सी'
+      ) {
         handleOptionVoiceSelect(2, 'C');
         return;
       }
-      if (text.includes('option d') || text.includes('option 4') || text.includes('choose d') || text.includes('select d')) {
+      if (
+        text.includes('option d') || text.includes('option 4') || text.includes('choose d') || text.includes('select d') ||
+        text.includes('विकल्प डी') || text.includes('विकल्प 4') || text.includes('चौथा विकल्प') || text.includes('विकल्प चार') ||
+        text === 'विकल्प डी' || text === 'विकल्प 4' || text === 'डी'
+      ) {
         handleOptionVoiceSelect(3, 'D');
         return;
       }
@@ -261,22 +300,22 @@ export function useVoiceCommands(handlers: VoiceCommandHandlers) {
       // ==========================================
       // 4. GENERAL NAVIGATION & TIME COMMANDS
       // ==========================================
-      if (text.includes('next') || text.includes('agla')) {
+      if (text.includes('next') || text.includes('agla') || text.includes('अगला') || text.includes('आगे')) {
         announce('Voice command: Next', 'polite');
         handlersRef.current.onNext?.();
-      } else if (text.includes('previous') || text.includes('back') || text.includes('pichhla')) {
+      } else if (text.includes('previous') || text.includes('back') || text.includes('pichhla') || text.includes('पिछला') || text.includes('पीछे')) {
         announce('Voice command: Previous', 'polite');
         handlersRef.current.onPrevious?.();
-      } else if (text.includes('mark') || text.includes('review') || text.includes('flag')) {
+      } else if (text.includes('mark') || text.includes('review') || text.includes('flag') || text.includes('मार्क') || text.includes('निशान')) {
         announce('Voice command: Marked for review', 'polite');
         handlersRef.current.onMarkReview?.();
-      } else if (text.includes('clear') || text.includes('reset')) {
+      } else if (text.includes('clear') || text.includes('reset') || text.includes('saaf karo') || text.includes('हटाओ') || text.includes('साफ करो')) {
         announce('Voice command: Cleared answer', 'polite');
         handlersRef.current.onClearAnswer?.();
-      } else if (text.includes('submit') || text.includes('finish')) {
+      } else if (text.includes('submit') || text.includes('finish') || text.includes('सबमिट') || text.includes('समाप्त')) {
         announce('Voice command: Submit', 'polite');
         handlersRef.current.onSubmit?.();
-      } else if (text.includes('time') || text.includes('samay') || text.includes('kitna time') || text.includes('remaining')) {
+      } else if (text.includes('time') || text.includes('samay') || text.includes('kitna time') || text.includes('remaining') || text.includes('समय') || text.includes('समय बताओ')) {
         handlersRef.current.onAnnounceTime?.();
       } else if (text.includes('dictate') || text.includes('scribe')) {
         startDictating();
@@ -305,52 +344,18 @@ export function useVoiceCommands(handlers: VoiceCommandHandlers) {
     ]
   );
 
-  const startListening = useCallback(() => {
-    if (!isSupported) {
-      setErrorNotice('Voice recognition is not supported in this browser. Try Chrome or Edge.');
-      return;
-    }
-
-    try {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = false;
-      recognition.lang = 'en-US';
-
-      recognition.onstart = () => {
-        setIsListening(true);
-        setErrorNotice(null);
-        announce('Scribe Voice Mode activated. Say Option A through D, Next, Previous, or Time.', 'polite');
-      };
-
-      recognition.onresult = (event: any) => {
-        const current = event.resultIndex;
-        const transcript = event.results[current][0].transcript;
-        processTranscript(transcript);
-      };
-
-      recognition.onerror = (event: any) => {
-        if (event.error !== 'no-speech') {
-          setErrorNotice(`Voice recognition notice: ${event.error}`);
-        }
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognition.start();
-      recognitionRef.current = recognition;
-    } catch (err) {
-      setErrorNotice('Could not start microphone voice listener.');
-    }
-  }, [isSupported, announce, processTranscript]);
+  useEffect(() => {
+    processTranscriptRef.current = processTranscript;
+  }, [processTranscript]);
 
   const stopListening = useCallback(() => {
+    isListeningRef.current = false;
+    clearTimeout(restartTimerRef.current);
     if (recognitionRef.current) {
       try {
-        recognitionRef.current.stop();
+        recognitionRef.current.onend = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.abort();
       } catch {
         // Safe ignore
       }
@@ -362,22 +367,132 @@ export function useVoiceCommands(handlers: VoiceCommandHandlers) {
     announce('Voice commands deactivated.', 'polite');
   }, [announce]);
 
+  const startListening = useCallback(async () => {
+    if (!isSupported) {
+      setErrorNotice('Voice recognition is not supported in this browser. Try Chrome or Edge.');
+      return;
+    }
+
+    if (navigator.mediaDevices?.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((t) => t.stop());
+      } catch {
+        setErrorNotice('Microphone permission denied. Please allow microphone access.');
+        return;
+      }
+    }
+
+    isListeningRef.current = true;
+    setIsListening(true);
+    setErrorNotice(null);
+
+    const SpeechRecognitionClass =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognitionClass) return;
+
+    function runRecognition() {
+      if (!isListeningRef.current) return;
+
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.onend = null;
+          recognitionRef.current.onerror = null;
+          recognitionRef.current.abort();
+        } catch {}
+        recognitionRef.current = null;
+      }
+
+      try {
+        const recognition = new SpeechRecognitionClass();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = preferences?.language === 'hi' ? 'hi-IN' : 'en-IN';
+
+        recognition.onstart = () => {
+          setIsListening(true);
+          setErrorNotice(null);
+          announce('Scribe Voice Mode activated.', 'polite');
+        };
+
+        recognition.onresult = (event: any) => {
+          let interim = '';
+          let final = '';
+
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            const item = event.results[i];
+            if (item.isFinal) {
+              final += item[0].transcript;
+            } else {
+              interim += item[0].transcript;
+            }
+          }
+
+          if (final.trim()) {
+            processTranscriptRef.current(final.trim());
+          } else if (interim.trim()) {
+            const raw = interim.trim().toLowerCase();
+            const quickInterim = [
+              'next', 'previous', 'agla', 'pichhla', 'option a', 'option b', 'option c', 'option d',
+              'option 1', 'option 2', 'option 3', 'option 4', 'confirm', 'cancel', 'submit', 'time',
+              'अगला', 'पिछला', 'विकल्प ए', 'विकल्प बी', 'विकल्प सी', 'विकल्प डी',
+              'विकल्प 1', 'विकल्प 2', 'विकल्प 3', 'विकल्प 4', 'कन्फर्म', 'हाँ', 'नहीं', 'सबमिट', 'समय'
+            ];
+            if (quickInterim.includes(raw)) {
+              processTranscriptRef.current(raw);
+            }
+          }
+        };
+
+        recognition.onerror = (event: any) => {
+          if (event.error !== 'no-speech' && event.error !== 'aborted') {
+            setErrorNotice(`Voice recognition notice: ${event.error}`);
+          }
+        };
+
+        recognition.onend = () => {
+          if (isListeningRef.current) {
+            clearTimeout(restartTimerRef.current);
+            restartTimerRef.current = setTimeout(() => {
+              if (isListeningRef.current) {
+                runRecognition();
+              }
+            }, 300);
+          } else {
+            setIsListening(false);
+          }
+        };
+
+        recognition.start();
+        recognitionRef.current = recognition;
+      } catch (err) {
+        setErrorNotice('Could not start microphone voice listener.');
+      }
+    }
+
+    runRecognition();
+  }, [isSupported, preferences?.language, announce]);
+
   const toggleListening = useCallback(() => {
-    if (isListening) {
+    if (isListeningRef.current) {
       stopListening();
     } else {
       startListening();
     }
-  }, [isListening, startListening, stopListening]);
+  }, [startListening, stopListening]);
 
   useEffect(() => {
     return () => {
+      clearTimeout(restartTimerRef.current);
       if (recognitionRef.current) {
         try {
-          recognitionRef.current.stop();
+          recognitionRef.current.onend = null;
+          recognitionRef.current.onerror = null;
+          recognitionRef.current.abort();
         } catch {
           // ignore
         }
+        recognitionRef.current = null;
       }
     };
   }, []);

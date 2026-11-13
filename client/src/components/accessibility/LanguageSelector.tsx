@@ -10,7 +10,7 @@ export interface LanguageSelectorProps {
 }
 
 export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ className = '' }) => {
-  const { preferences, updatePreference, announce } = useAccessibility();
+  const { preferences, updatePreference, setPreferredLanguage, announce } = useAccessibility();
   const { t, language } = useTranslation();
 
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -34,7 +34,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ className = 
   }, [preferences.language]);
 
   const handleSelectLanguage = (code: string, nativeName: string) => {
-    updatePreference('language', code);
+    setPreferredLanguage(code);
     speechService.setLanguage(code);
 
     // Auto-select first matching voice for new language if available

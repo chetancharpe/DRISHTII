@@ -1,6 +1,7 @@
 import React from 'react';
 import { DashboardStats } from '../../types/candidateDashboard';
 import { BarChart, CheckCircle2, Award, TrendingUp } from 'lucide-react';
+import { useAccessibility } from '../../hooks/useAccessibility';
 
 export interface PreparationStatsOverviewProps {
   stats: DashboardStats;
@@ -11,6 +12,8 @@ export const PreparationStatsOverview: React.FC<PreparationStatsOverviewProps> =
   stats,
   className = '',
 }) => {
+  const { preferences } = useAccessibility();
+  const isHindi = preferences?.language === 'hi' || (typeof document !== 'undefined' && document.documentElement.lang === 'hi');
   return (
     <section
       aria-labelledby="preparation-overview-heading"
@@ -20,20 +23,20 @@ export const PreparationStatsOverview: React.FC<PreparationStatsOverviewProps> =
         <div className="flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-primary shrink-0" aria-hidden="true" />
           <h2 id="preparation-overview-heading" className="text-base sm:text-lg font-bold text-foreground">
-            Preparation Overview
+            {isHindi ? 'तैयारी का अवलोकन' : 'Preparation Overview'}
           </h2>
         </div>
         <span className="text-xs text-foreground-muted">
-          Updated in real-time as you practice
+          {isHindi ? 'अभ्यास के साथ स्वतः अपडेट होता है' : 'Updated in real-time as you practice'}
         </span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        {/* 1. Overall Progress */}
+        {/* 1. {isHindi ? 'कुल प्रगति' : 'Overall Progress'} */}
         <div className="p-4 rounded-xl border border-border bg-surface flex flex-col justify-between gap-3 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-foreground-muted">
-              Overall Progress
+              {isHindi ? 'कुल प्रगति' : 'Overall Progress'}
             </span>
             <BarChart className="w-4 h-4 text-primary" aria-hidden="true" />
           </div>
@@ -59,15 +62,15 @@ export const PreparationStatsOverview: React.FC<PreparationStatsOverviewProps> =
           </div>
 
           <span className="text-[11px] text-foreground-secondary">
-            Overall preparation: {stats.overallProgressPercent}% completed
+            {isHindi ? `कुल तैयारी: ${stats.overallProgressPercent}% पूर्ण` : `Overall preparation: ${stats.overallProgressPercent}% completed`}
           </span>
         </div>
 
-        {/* 2. Questions Practiced */}
+        {/* 2. {isHindi ? 'हल किए गए प्रश्न' : 'Questions Practiced'} */}
         <div className="p-4 rounded-xl border border-border bg-surface flex flex-col justify-between gap-3 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-foreground-muted">
-              Questions Practiced
+              {isHindi ? 'हल किए गए प्रश्न' : 'Questions Practiced'}
             </span>
             <CheckCircle2 className="w-4 h-4 text-status-success" aria-hidden="true" />
           </div>
@@ -77,20 +80,20 @@ export const PreparationStatsOverview: React.FC<PreparationStatsOverviewProps> =
               {stats.questionsPracticedCount}
             </div>
             <p className="text-xs text-foreground-secondary mt-1">
-              Total questions attempted across all topics
+              {isHindi ? 'सभी विषयों में हल किए गए कुल प्रश्न' : 'Total questions attempted across all topics'}
             </p>
           </div>
 
           <span className="text-[11px] font-semibold text-status-success">
-            +32 questions this week
+            {isHindi ? 'इस सप्ताह +32 प्रश्न' : '+32 questions this week'}
           </span>
         </div>
 
-        {/* 3. Mock Tests Completed */}
+        {/* 3. {isHindi ? 'मॉक टेस्ट' : 'Mock Tests'} Completed */}
         <div className="p-4 rounded-xl border border-border bg-surface flex flex-col justify-between gap-3 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-foreground-muted">
-              Mock Tests
+              {isHindi ? 'मॉक टेस्ट' : 'Mock Tests'}
             </span>
             <Award className="w-4 h-4 text-status-warning" aria-hidden="true" />
           </div>
@@ -100,12 +103,12 @@ export const PreparationStatsOverview: React.FC<PreparationStatsOverviewProps> =
               {stats.mockTestsCompletedCount}
             </div>
             <p className="text-xs text-foreground-secondary mt-1">
-              Full-length timed simulated exams
+              {isHindi ? 'पूर्ण समयबद्ध सिमुलेटेड परीक्षाएं' : 'Full-length timed simulated exams'}
             </p>
           </div>
 
           <span className="text-[11px] font-semibold text-primary">
-            Next scheduled test in 4 days
+            {isHindi ? 'अगला टेस्ट 4 दिन में' : 'Next scheduled test in 4 days'}
           </span>
         </div>
 

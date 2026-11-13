@@ -45,7 +45,7 @@ export function getTranslation(language: string, path: string, fallback?: string
  * Separates UI language from Exam content language (Section 18).
  */
 export function useTranslation() {
-  const { preferences, updatePreference, announce } = useAccessibility();
+  const { preferences, setPreferredLanguage, updatePreference, announce } = useAccessibility();
   const currentLang = preferences.language === 'hi' ? 'hi' : 'en';
   const dict = dictionaries[currentLang] || enCommon;
 
@@ -61,9 +61,13 @@ export function useTranslation() {
   }
 
   function setLanguage(lang: 'en' | 'hi') {
-    updatePreference('language', lang);
-    const msg = lang === 'hi' ? dict.accessibility.languageChangedAnnounce : enCommon.accessibility.languageChangedAnnounce;
-    announce(msg);
+    if (setPreferredLanguage) {
+      setPreferredLanguage(lang);
+    } else {
+      updatePreference('language', lang);
+      const msg = lang === 'hi' ? dict.accessibility.languageChangedAnnounce : enCommon.accessibility.languageChangedAnnounce;
+      announce(msg);
+    }
   }
 
   return {

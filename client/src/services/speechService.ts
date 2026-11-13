@@ -5,6 +5,8 @@
  * dynamic voice discovery, and language-aware voice selection.
  */
 
+import { translateToHindi } from './translator';
+
 export interface SpeechQueueItem {
   id: string;
   text: string;
@@ -27,6 +29,7 @@ class SpeechService {
   private cachedVoices: SpeechSynthesisVoice[] = [];
   private voiceListeners: Array<(voices: SpeechSynthesisVoice[]) => void> = [];
   private lastSpokenText = '';
+  private activeUtterance: SpeechSynthesisUtterance | null = null;
 
   constructor() {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -56,6 +59,10 @@ class SpeechService {
     return this.synth !== null;
   }
 
+  public getActiveUtterance(): SpeechSynthesisUtterance | null {
+    return this.activeUtterance;
+  }
+
   public isSpeaking(): boolean {
     return this.synth ? this.synth.speaking : false;
   }
@@ -77,7 +84,7 @@ class SpeechService {
   }
 
   public setLanguage(lang: string): void {
-    this.language = lang === 'hi' || lang.startsWith('hi') ? 'hi-IN' : 'en-US';
+    this.language = lang === 'hi' || lang.startsWith('hi') ? 'hi-IN' : 'en-IN';
   }
 
   public getLanguage(): string {
@@ -102,19 +109,31 @@ class SpeechService {
   /**
    * Returns voices matching a language code ('en', 'hi', etc.)
    */
-  public getVoicesForLanguage(lang: string): SpeechSynthesisVoice[] {
+  public getVoicesForLanguage(lang: string, text?: string): SpeechSynthesisVoice[] {
     const all = this.getVoices();
     const cleanLang = lang.toLowerCase();
-    const isHindi = cleanLang.startsWith('hi');
+    const isHindi = cleanLang.startsWith('hi') || (text && /[ऀ-ॿ]/.test(text));
 
     if (isHindi) {
       const hindiVoices = all.filter(
-        (v) => v.lang.toLowerCase().startsWith('hi') || v.name.toLowerCase().includes('hindi')
+        (v) =>
+          v.lang.toLowerCase().startsWith('hi') ||
+          v.name.toLowerCase().includes('hindi') ||
+          v.name.toLowerCase().includes('kalpana') ||
+          v.name.toLowerCase().includes('hemant')
       );
-      return hindiVoices;
+      if (hindiVoices.length > 0) return hindiVoices;
     }
 
-    // Default to English matching
+    const indianEnglish = all.filter(
+      (v) =>
+        v.lang.toLowerCase().includes('en-in') ||
+        v.name.toLowerCase().includes('india') ||
+        v.name.toLowerCase().includes('heera') ||
+        v.name.toLowerCase().includes('ravi')
+    );
+    if (indianEnglish.length > 0) return indianEnglish;
+
     const englishVoices = all.filter((v) => v.lang.toLowerCase().startsWith('en'));
     return englishVoices.length > 0 ? englishVoices : all;
   }
@@ -182,10 +201,16 @@ class SpeechService {
       return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(nextItem.text);
+    const isHindiTarget = this.language.startsWith('hi');
+    let textToSpeak = nextItem.text;
+    if (isHindiTarget && !/[\u0900-\u097F]/.test(textToSpeak)) {
+      textToSpeak = translateToHindi(textToSpeak);
+    }
+    const isHindiText = isHindiTarget || /[\u0900-\u097F]/.test(textToSpeak);
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
     utterance.rate = this.rate;
     utterance.volume = this.volume;
-    utterance.lang = this.language;
+    utterance.lang = isHindiText ? 'hi-IN' : 'en-IN';
 
     // Resolve matching or user-selected voice
     const allVoices = this.getVoices();
@@ -198,7 +223,7 @@ class SpeechService {
     }
 
     if (!utterance.voice && allVoices.length > 0) {
-      const languageVoices = this.getVoicesForLanguage(this.language);
+      const languageVoices = this.getVoicesForLanguage(this.language, nextItem.text);
       if (languageVoices.length > 0) {
         utterance.voice = languageVoices[0];
       }
@@ -209,20 +234,24 @@ class SpeechService {
     };
 
     utterance.onend = () => {
+      this.activeUtterance = null;
       if (nextItem.onEnd) nextItem.onEnd();
       this.processNextInQueue();
     };
 
     utterance.onerror = (err) => {
+      this.activeUtterance = null;
       if (nextItem.onError) nextItem.onError(err);
       this.processNextInQueue();
     };
 
+    this.activeUtterance = utterance;
     this.synth.speak(utterance);
   }
 
   public stop(): void {
     if (!this.synth) return;
+    this.activeUtterance = null;
     this.queue = [];
     this.synth.cancel();
     this.isProcessing = false;

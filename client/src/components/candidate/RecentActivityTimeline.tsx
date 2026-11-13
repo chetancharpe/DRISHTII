@@ -1,6 +1,7 @@
 import React from 'react';
 import { RecentActivityItem } from '../../types/candidateDashboard';
 import { History, CheckCircle2, Award, BookOpen, BarChart3 } from 'lucide-react';
+import { useAccessibility } from '../../hooks/useAccessibility';
 
 export interface RecentActivityTimelineProps {
   activities: RecentActivityItem[];
@@ -11,6 +12,8 @@ export const RecentActivityTimeline: React.FC<RecentActivityTimelineProps> = ({
   activities,
   className = '',
 }) => {
+  const { preferences } = useAccessibility();
+  const isHindi = preferences?.language === 'hi' || (typeof document !== 'undefined' && document.documentElement.lang === 'hi');
   const getActivityIcon = (type: RecentActivityItem['type']) => {
     switch (type) {
       case 'mock':
@@ -56,7 +59,7 @@ export const RecentActivityTimeline: React.FC<RecentActivityTimelineProps> = ({
                   {item.title}
                 </span>
                 <span className="text-[11px] text-foreground-muted capitalize">
-                  {item.type} session logged
+                  {isHindi ? `${item.type === 'practice' ? 'अभ्यास' : item.type === 'mock' ? 'मॉक टेस्ट' : 'समीक्षा'} सत्र संपन्न` : `${item.type} session logged`}
                 </span>
               </div>
             </div>

@@ -10,6 +10,8 @@ import {
   ReducedMotionOption,
 } from '../types/accessibility';
 import { accessibilityApi } from '../services/api/accessibilityApi';
+import { translateToHindi } from '../services/translator';
+import { speechService } from '../services/speechService';
 
 export interface AnnouncementItem {
   id: number;
@@ -277,13 +279,20 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
 
       window.speechSynthesis.cancel();
 
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = preferences.language === 'hi' ? 'hi-IN' : 'en-US';
+      let textToSpeak = text;
+      const isHindi = preferences.language === 'hi' || /[\u0900-\u097F]/.test(text);
+      if (preferences.language === 'hi' && !/[\u0900-\u097F]/.test(text)) {
+        textToSpeak = translateToHindi(text);
+      }
 
-      // Granular rate mapping (0.5x to 3.0x for screen reader power users)
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utterance.lang = isHindi ? 'hi-IN' : 'en-IN';
+
+      // Clear pitch & granular rate mapping
+      utterance.pitch = 1.0;
       const targetRate = preferences.speechRateMultiplier ?? (
         preferences.speechRate === 'slow' ? 0.8 :
-        preferences.speechRate === 'fast' ? 1.3 : 1.0
+        preferences.speechRate === 'fast' ? 1.25 : 1.0
       );
       utterance.rate = Math.min(3.0, Math.max(0.5, targetRate));
 
@@ -294,14 +303,25 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
         if (matchingVoice) utterance.voice = matchingVoice;
       }
       if (!utterance.voice && voices.length > 0) {
-        const isHindi = preferences.language === 'hi';
-        const languageMatch = voices.find((v) => {
-          if (isHindi) {
-            return v.lang.toLowerCase().startsWith('hi') || v.name.toLowerCase().includes('hindi');
-          }
-          return v.lang.toLowerCase().startsWith('en');
-        });
-        if (languageMatch) utterance.voice = languageMatch;
+        if (isHindi) {
+          const hindiVoice = voices.find((v) =>
+            v.lang.toLowerCase().startsWith('hi') ||
+            v.name.toLowerCase().includes('hindi') ||
+            v.name.toLowerCase().includes('kalpana') ||
+            v.name.toLowerCase().includes('hemant')
+          );
+          if (hindiVoice) utterance.voice = hindiVoice;
+        } else {
+          const indianVoice = voices.find((v) =>
+            v.lang.toLowerCase().includes('en-in') ||
+            v.name.toLowerCase().includes('india') ||
+            v.name.toLowerCase().includes('heera') ||
+            v.name.toLowerCase().includes('ravi') ||
+            v.name.toLowerCase().includes('neerja')
+          );
+          const englishVoice = indianVoice || voices.find((v) => v.lang.toLowerCase().startsWith('en'));
+          if (englishVoice) utterance.voice = englishVoice;
+        }
       }
 
       // Maintain active reference on window to prevent Chromium garbage collection bug
@@ -370,9 +390,11 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
       // Keep legacy in sync for safety
       localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(next));
       // Asynchronously sync with backend if online
+      const textScale = next.fontSize === 'extra-large' ? 'x-large' : (next.fontSize as any);
+      const contrastMode = next.contrast === 'high' ? 'high_contrast' : 'standard';
       accessibilityApi.updateProfile({
-        text_scale: next.fontSize,
-        contrast_mode: next.contrast,
+        text_scale: textScale,
+        contrast_mode: contrastMode,
         theme: next.theme,
         reduced_motion: next.reducedMotion === 'on',
         simplified_interface: next.simplifiedInterface,
@@ -493,9 +515,13 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const setPreferredLanguage = useCallback((language: string) => {
     updatePreference('language', language);
-    const msg = language === 'hi' ? 'भाषा बदलकर हिन्दी कर दी गई है।' : 'Language changed to English.';
+    speechService.setLanguage(language);
+    const msg = language === 'hi'
+      ? 'भाषा बदलकर हिन्दी कर दी गई है। स्क्रीन और आवाज़ अब हिन्दी में हैं।'
+      : 'Language changed to English. Screen and voice are now in English.';
     announce(msg);
-  }, [updatePreference, announce]);
+    speak(msg);
+  }, [updatePreference, announce, speak]);
 
   // 8. Synchronize Document Root Attributes for Global CSS Styling & Accessibility
   // Visually impaired accessibility modes (high contrast, extra-large fonts, simplified interface)
