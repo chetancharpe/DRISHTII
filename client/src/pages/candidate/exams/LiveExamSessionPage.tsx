@@ -596,6 +596,38 @@ export const LiveExamSessionPage: React.FC = () => {
     onSubjectiveAnswerChange: handleSubjectiveAnswerChange,
   });
 
+  // Global event listeners for exam voice commands (bridged from HUD/voice)
+  useEffect(() => {
+    const handleExamSelect = (e: any) => {
+      const optIndex = e.detail?.index;
+      if (typeof optIndex === 'number' && currentQuestion && currentQuestion.options[optIndex]) {
+        const optId = currentQuestion.options[optIndex].id;
+        const currentAns = session?.answers[currentQuestion.id]?.selectedOptions || [];
+        if (currentQuestion.type === 'multiple_choice') {
+          const nextOpts = currentAns.includes(optId)
+            ? currentAns.filter((id) => id !== optId)
+            : [...currentAns, optId];
+          handleAnswerChange(nextOpts);
+        } else {
+          handleAnswerChange([optId]);
+        }
+        announce(`Option ${currentQuestion.options[optIndex].label} selected`, 'polite');
+      }
+    };
+    const handleExamNext = () => handleNext();
+    const handleExamPrev = () => handlePrevious();
+
+    window.addEventListener('drishti:exam-select-option', handleExamSelect);
+    window.addEventListener('drishti:exam-next', handleExamNext);
+    window.addEventListener('drishti:exam-previous', handleExamPrev);
+
+    return () => {
+      window.removeEventListener('drishti:exam-select-option', handleExamSelect);
+      window.removeEventListener('drishti:exam-next', handleExamNext);
+      window.removeEventListener('drishti:exam-previous', handleExamPrev);
+    };
+  }, [currentQuestion, session, handleAnswerChange, handleNext, handlePrevious, announce]);
+
   // Synchronize active dictatedText with question's stored text answer
   useEffect(() => {
     if (currentQuestion && session) {

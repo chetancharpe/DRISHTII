@@ -1,7 +1,6 @@
 import React from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useAccessibility } from '../../hooks/useAccessibility';
-import { ProfileMenu } from './ProfileMenu';
 import { Sliders, Sparkles } from 'lucide-react';
 
 export interface DashboardHeaderProps {
@@ -57,14 +56,12 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = ''
           type="button"
           onClick={openCalibration}
           aria-label={isHindi ? 'सुलभता केंद्र खोलें (शॉर्टकट: Alt+A)' : 'Open Accessibility Calibration Center (Shortcut: Alt+A)'}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-surface hover:bg-surface-elevated text-foreground text-xs font-bold transition-colors min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border bg-surface hover:bg-surface-elevated text-foreground text-xs font-bold transition-colors min-h-[40px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-xs"
         >
           <Sliders className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
-          <span className="hidden sm:inline">{isHindi ? 'सुलभता' : 'Accessibility'}</span>
+          <span className="hidden sm:inline">{isHindi ? 'सुलभता केंद्र' : 'Accessibility'}</span>
           <span className="keyboard-indicator text-[10px]">Alt+A</span>
         </button>
-
-        <ProfileMenu />
       </div>
     </header>
   );

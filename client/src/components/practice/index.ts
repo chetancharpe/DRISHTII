@@ -1,4 +1,7 @@
 export * from './PracticeFilterCard';
+export * from './PracticeKPIStrip';
+export * from './FeaturedPracticeArena';
+export * from './PracticeSubjectMastery';
 export * from './PracticeTimer';
 export * from './PracticeQuestionCard';
 export * from './PracticeNavigatorPalette';

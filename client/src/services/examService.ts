@@ -163,7 +163,12 @@ class ExamService {
       console.warn(`Backend /exams/${examId} call failed, checking local fixtures:`, e);
     }
 
-    const exam = DEMO_EXAMS.find((e) => e.id === examId);
+    const exam = DEMO_EXAMS.find(
+      (e) =>
+        e.id === examId ||
+        (examId === 'cds-mock-1' && e.id === 'upsc-cse-prelims-2026') ||
+        (examId === 'ssc-tier1' && e.id === 'ssc-cgl-tier1-2026')
+    );
     if (!exam) return null;
 
     const sub = this.getStoredSubmission(exam.id);

@@ -46,6 +46,7 @@ export interface AccessibilityContextType {
   stopSpeaking: () => void;
   isSpeaking: boolean;
   isSpeechSupported: boolean;
+  hasHindiVoice: boolean;
 
   // Screen reader announcements
   announce: (message: string, politeness?: 'polite' | 'assertive') => void;
@@ -260,6 +261,35 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // 4. Speech Synthesis Service - Scoped to Candidate Portal
   const speakTimeoutRef = useRef<number | null>(null);
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      return window.speechSynthesis.getVoices();
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    const handleVoicesChanged = () => {
+      const v = window.speechSynthesis.getVoices();
+      if (v.length > 0) {
+        setAvailableVoices(v);
+      }
+    };
+    handleVoicesChanged();
+    window.speechSynthesis.addEventListener('voiceschanged', handleVoicesChanged);
+    return () => {
+      window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
+    };
+  }, []);
+
+  const hasHindiVoice = availableVoices.some(
+    (v) =>
+      v.lang.toLowerCase().startsWith('hi') ||
+      v.name.toLowerCase().includes('hindi') ||
+      v.name.toLowerCase().includes('kalpana') ||
+      v.name.toLowerCase().includes('hemant')
+  );
 
   const stopSpeaking = useCallback(() => {
     if (speakTimeoutRef.current) {
@@ -289,37 +319,37 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
       window.speechSynthesis.cancel();
 
       let textToSpeak = text;
-      const isHindi = preferences.language === 'hi' || /[\u0900-\u097F]/.test(text);
-      if (preferences.language === 'hi' && !/[\u0900-\u097F]/.test(text)) {
+      const isHindiText = /[\u0900-\u097F]/.test(text);
+
+      const voices = availableVoices.length > 0
+        ? availableVoices
+        : (typeof window !== 'undefined' && 'speechSynthesis' in window ? window.speechSynthesis.getVoices() : []);
+
+      const hindiVoice = voices.find((v) =>
+        v.lang.toLowerCase().startsWith('hi') ||
+        v.name.toLowerCase().includes('hindi') ||
+        v.name.toLowerCase().includes('kalpana') ||
+        v.name.toLowerCase().includes('hemant')
+      );
+
+      // Only translate English text to Devanagari Hindi IF the user's OS has an actual Hindi TTS voice!
+      // If the OS only has English voices (e.g. David/Zira), Devanagari will be skipped resulting in silence!
+      if (preferences.language === 'hi' && hindiVoice && !isHindiText) {
         textToSpeak = translateToHindi(text);
       }
 
       const utterance = new SpeechSynthesisUtterance(textToSpeak);
-      utterance.lang = isHindi ? 'hi-IN' : 'en-IN';
 
-      // Clear pitch & granular rate mapping
-      utterance.pitch = 1.0;
-      const targetRate = preferences.speechRateMultiplier ?? (
-        preferences.speechRate === 'slow' ? 0.8 :
-        preferences.speechRate === 'fast' ? 1.25 : 1.0
-      );
-      utterance.rate = Math.min(3.0, Math.max(0.5, targetRate));
-
-      // Dynamic voice selection matching language and user preference
-      const voices = window.speechSynthesis.getVoices();
+      // Voice selection
       if (preferences.voiceURI) {
         const matchingVoice = voices.find((v) => v.voiceURI === preferences.voiceURI);
         if (matchingVoice) utterance.voice = matchingVoice;
       }
+
       if (!utterance.voice && voices.length > 0) {
-        if (isHindi) {
-          const hindiVoice = voices.find((v) =>
-            v.lang.toLowerCase().startsWith('hi') ||
-            v.name.toLowerCase().includes('hindi') ||
-            v.name.toLowerCase().includes('kalpana') ||
-            v.name.toLowerCase().includes('hemant')
-          );
-          if (hindiVoice) utterance.voice = hindiVoice;
+        if (hindiVoice && (preferences.language === 'hi' || isHindiText)) {
+          utterance.voice = hindiVoice;
+          utterance.lang = 'hi-IN';
         } else {
           const indianVoice = voices.find((v) =>
             v.lang.toLowerCase().includes('en-in') ||
@@ -328,10 +358,24 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
             v.name.toLowerCase().includes('ravi') ||
             v.name.toLowerCase().includes('neerja')
           );
-          const englishVoice = indianVoice || voices.find((v) => v.lang.toLowerCase().startsWith('en'));
-          if (englishVoice) utterance.voice = englishVoice;
+          const englishVoice =
+            indianVoice ||
+            voices.find((v) => v.lang.toLowerCase().startsWith('en')) ||
+            voices[0];
+          if (englishVoice) {
+            utterance.voice = englishVoice;
+            utterance.lang = englishVoice.lang || 'en-US';
+          }
         }
       }
+
+      // Pitch & rate
+      utterance.pitch = 1.0;
+      const targetRate = preferences.speechRateMultiplier ?? (
+        preferences.speechRate === 'slow' ? 0.8 :
+        preferences.speechRate === 'fast' ? 1.25 : 1.0
+      );
+      utterance.rate = Math.min(2.0, Math.max(0.7, targetRate));
 
       // Maintain active reference on window to prevent Chromium garbage collection bug
       (window as any).__drishti_active_utterance = utterance;
@@ -345,7 +389,8 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
           window.dispatchEvent(new CustomEvent('drishti:speech-end'));
         }
       };
-      utterance.onerror = () => {
+      utterance.onerror = (e: any) => {
+        console.warn('Speech synthesis notice:', e?.error);
         (window as any).__drishti_active_utterance = null;
         setIsSpeaking(false);
         onEnd?.();
@@ -356,13 +401,17 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // 40ms tick to allow Chromium speech engine cancel IPC to settle before speaking
       speakTimeoutRef.current = window.setTimeout(() => {
-        if (window.speechSynthesis.paused) {
-          window.speechSynthesis.resume();
+        try {
+          if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+          }
+          window.speechSynthesis.speak(utterance);
+        } catch (err) {
+          console.warn('speechSynthesis.speak error:', err);
         }
-        window.speechSynthesis.speak(utterance);
       }, 40);
     },
-    [isExaminerOrAdmin, isSpeechSupported, preferences.language, preferences.speechRate, preferences.speechRateMultiplier, preferences.voiceURI]
+    [isExaminerOrAdmin, isSpeechSupported, availableVoices, preferences.language, preferences.speechRate, preferences.speechRateMultiplier, preferences.voiceURI]
   );
 
   // Sync with backend profile on mount/authentication
@@ -603,6 +652,7 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
         stopSpeaking,
         isSpeaking,
         isSpeechSupported,
+        hasHindiVoice,
         announce,
         currentAnnouncement,
         resolvedTheme,

@@ -295,8 +295,9 @@ def seed_database():
         # 5. Seed Examinations
         now = utc_now()
         exams_specs = [
+            ("UPSC Civil Services (Preliminary) Examination 2026 — General Studies Paper I", 3600, 1200, ExamStatus.READY.value),
+            ("SSC Combined Graduate Level (CGL) Tier-I Examination 2026", 3600, 1200, ExamStatus.READY.value),
             ("All India Civil Services Mock Test — Paper I", 3600, 1200, ExamStatus.READY.value),
-            ("National Banking Aptitude Examination 2026", 5400, 1800, ExamStatus.SCHEDULED.value),
             ("STEM Foundation & Logic Diagnostic", 1800, 600, ExamStatus.READY.value),
         ]
 

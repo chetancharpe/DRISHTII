@@ -36,16 +36,16 @@ export const Card: React.FC<CardProps> = ({
 }) => {
   const isInteractive = variant === 'interactive' || Boolean(onCardClick);
 
-  const baseStyles = 'rounded-lg border text-foreground transition-all duration-fast overflow-hidden';
+  const baseStyles = 'rounded-2xl border text-foreground transition-all duration-200 overflow-hidden relative glass-specular';
 
   const variantStyles: Record<CardVariant, string> = {
-    default: 'bg-surface border-border shadow-sm p-5',
-    elevated: 'bg-surface-elevated border-border-strong shadow-md p-6',
+    default: 'bg-surface backdrop-blur-xl border-border shadow-glass p-5 hover:border-border-strong/70',
+    elevated: 'bg-surface-elevated backdrop-blur-2xl border-border-strong shadow-glass-elevated p-6',
     interactive:
-      'bg-surface border-border hover:border-primary hover:bg-surface-elevated cursor-pointer shadow-sm p-5 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus',
-    exam: 'bg-surface border-border shadow-sm p-5 flex flex-col justify-between hover:border-border-strong',
-    statistics: 'bg-surface border-border shadow-sm p-5 flex flex-col',
-    recommendation: 'bg-surface border-border shadow-sm p-5 border-l-4 border-l-primary',
+      'bg-surface backdrop-blur-xl border-border hover:border-primary/60 hover:bg-surface-elevated hover:shadow-glow-primary hover:-translate-y-0.5 cursor-pointer shadow-glass p-5 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus',
+    exam: 'bg-surface backdrop-blur-xl border-border shadow-glass p-5 flex flex-col justify-between hover:border-primary/50 hover:shadow-glow-cyan hover:-translate-y-0.5',
+    statistics: 'bg-surface backdrop-blur-xl border-border shadow-glass p-5 flex flex-col hover:border-border-strong',
+    recommendation: 'bg-surface backdrop-blur-xl border-border shadow-glass p-5 border-l-4 border-l-primary hover:border-primary/60',
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {

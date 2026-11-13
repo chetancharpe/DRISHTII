@@ -48,7 +48,10 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
   isLastQuestion,
 }) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const { speak, preferences, announce } = useAccessibility();
+  const { speak, preferences, hasHindiVoice, announce } = useAccessibility();
+  const isHindi =
+    preferences?.language === 'hi' ||
+    (typeof document !== 'undefined' && document.documentElement.lang === 'hi');
 
   const effectiveCorrectIds: string[] =
     propCorrectOptionIds && propCorrectOptionIds.length > 0
@@ -58,7 +61,7 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
   const effectiveExplanation: string =
     propExplanation ||
     question.explanation ||
-    'Detailed step-by-step pedagogical explanation is available upon answering.';
+    (isHindi ? 'प्रश्न का उत्तर देने पर विस्तृत चरणबद्ध स्पष्टीकरण उपलब्ध कराया जाता है।' : 'Detailed step-by-step pedagogical explanation is available upon answering.');
 
   // Synchronize state when question changes or when viewing an already answered question
   useEffect(() => {
@@ -89,61 +92,59 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
   const handleCheckAnswer = () => {
     if (selectedIds.length === 0) return;
     onSubmitAnswer(question.id, selectedIds);
-
-    // Check correctness for immediate speech announcement
-    if (effectiveCorrectIds.length > 0) {
-      const correct =
-        selectedIds.length === effectiveCorrectIds.length &&
-        selectedIds.every((id) => effectiveCorrectIds.includes(id));
-
-      if (correct) {
-        announce('Correct. Your answer is correct.', 'assertive');
-      } else {
-        const correctLabels = question.options
-          .filter((o) => effectiveCorrectIds.includes(o.id))
-          .map((o) => `Option ${o.label}: ${o.text}`)
-          .join(', ');
-        announce(`Not quite. The correct answer is ${correctLabels || 'indicated below'}.`, 'assertive');
-      }
-    } else {
-      announce('Answer submitted.', 'polite');
-    }
   };
 
   const handleReadQuestion = () => {
-    speak(`Question ${currentIndex} of ${totalQuestions}. ${question.questionText}`);
+    const textHi = `प्रश्न संख्या ${currentIndex}, कुल ${totalQuestions} में से। ${question.questionText}`;
+    const textEn = `Question ${currentIndex} of ${totalQuestions}. ${question.questionText}`;
+    const toSpeak = isHindi && hasHindiVoice ? textHi : textEn;
+    speak(toSpeak);
+    announce(isHindi ? textHi : textEn, 'assertive');
   };
 
   const handleReadOptions = () => {
-    const optionsText = question.options
+    const optsHi = question.options
+      .map((opt) => `ऑप्शन ${opt.label}: ${opt.text}`)
+      .join('। ');
+    const optsEn = question.options
       .map((opt) => `Option ${opt.label}: ${opt.text}`)
       .join('. ');
-    speak(`Options for Question ${currentIndex}: ${optionsText}`);
+    const textHi = `प्रश्न संख्या ${currentIndex} के विकल्प: ${optsHi}`;
+    const textEn = `Options for Question ${currentIndex}: ${optsEn}`;
+    const toSpeak = isHindi && hasHindiVoice ? textHi : textEn;
+    speak(toSpeak);
+    announce(isHindi ? textHi : textEn, 'assertive');
   };
 
   return (
     <article
       aria-labelledby={`practice-question-${question.id}`}
-      className="p-5 sm:p-7 rounded-2xl border border-border bg-surface shadow-sm flex flex-col gap-6"
+      className="p-5 sm:p-7 rounded-2xl border-2 border-border bg-surface shadow-sm flex flex-col gap-6"
     >
       {/* Question Header & Meta */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="px-2.5 py-1 rounded-md bg-surface-elevated border border-border text-xs font-bold text-foreground">
-            Question {currentIndex} of {totalQuestions}
+          <span className="px-3 py-1 rounded-lg bg-surface-elevated border-2 border-border text-xs font-bold text-foreground">
+            {isHindi
+              ? `प्रश्न ${currentIndex} कुल ${totalQuestions} में से`
+              : `Question ${currentIndex} of ${totalQuestions}`}
           </span>
 
-          <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20">
+          <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-primary/10 text-primary border border-primary/20">
             {question.topicName}
           </span>
 
-          <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-surface-elevated text-foreground-secondary border border-border capitalize">
-            {question.difficulty}
+          <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-surface-elevated text-foreground-secondary border border-border capitalize">
+            {question.difficulty === 'easy'
+              ? isHindi ? 'सरल' : 'Easy'
+              : question.difficulty === 'hard'
+              ? isHindi ? 'कठिन' : 'Hard'
+              : isHindi ? 'मध्यम' : 'Medium'}
           </span>
 
           {isSubmitted && (
             <span
-              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-bold ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-black ${
                 isCorrect
                   ? 'bg-success/10 text-success-contrast border border-success/30'
                   : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30'
@@ -151,21 +152,21 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
             >
               {isCorrect ? (
                 <>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-success" aria-hidden="true" />
-                  <span>Correct</span>
+                  <CheckCircle2 className="w-4 h-4 text-success" aria-hidden="true" />
+                  <span>{isHindi ? 'सही उत्तर' : 'Correct'}</span>
                 </>
               ) : (
                 <>
-                  <XCircle className="w-3.5 h-3.5 text-amber-600" aria-hidden="true" />
-                  <span>Needs Review</span>
+                  <XCircle className="w-4 h-4 text-amber-600" aria-hidden="true" />
+                  <span>{isHindi ? 'गलत उत्तर' : 'Needs Review'}</span>
                 </>
               )}
             </span>
           )}
 
           {isSkipped && (
-            <span className="px-2 py-0.5 rounded text-xs font-semibold bg-surface-elevated text-foreground-muted border border-border">
-              Skipped for now
+            <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-surface-elevated text-foreground-muted border border-border">
+              {isHindi ? 'छोड़ा गया सवाल' : 'Skipped for now'}
             </span>
           )}
         </div>
@@ -176,21 +177,21 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
             <button
               type="button"
               onClick={handleReadQuestion}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface hover:bg-surface-elevated border border-border text-foreground text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[32px] transition-colors"
-              aria-label={`Listen to Question ${currentIndex}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface hover:bg-surface-elevated border-2 border-border text-foreground text-xs font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[38px] transition-colors"
+              aria-label={isHindi ? `प्रश्न ${currentIndex} सुनें` : `Listen to Question ${currentIndex}`}
             >
-              <Volume2 className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
-              <span>Read Question</span>
+              <Volume2 className="w-4 h-4 text-primary" aria-hidden="true" />
+              <span>{isHindi ? 'प्रश्न सुनें' : 'Read Question'}</span>
             </button>
 
             <button
               type="button"
               onClick={handleReadOptions}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface hover:bg-surface-elevated border border-border text-foreground text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[32px] transition-colors"
-              aria-label={`Listen to options for Question ${currentIndex}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface hover:bg-surface-elevated border-2 border-border text-foreground text-xs font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[38px] transition-colors"
+              aria-label={isHindi ? `प्रश्न ${currentIndex} के विकल्प सुनें` : `Listen to options for Question ${currentIndex}`}
             >
-              <Volume2 className="w-3.5 h-3.5 text-foreground-secondary" aria-hidden="true" />
-              <span>Read Options</span>
+              <Volume2 className="w-4 h-4 text-primary" aria-hidden="true" />
+              <span>{isHindi ? 'विकल्प सुनें' : 'Read Options'}</span>
             </button>
           </div>
         )}
@@ -305,19 +306,19 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
             type="button"
             onClick={handleCheckAnswer}
             disabled={selectedIds.length === 0}
-            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-primary hover:bg-primary-hover active:bg-primary-hover disabled:opacity-50 text-primary-contrast font-bold text-xs min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-hover disabled:opacity-50 text-primary-contrast font-bold text-xs min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors shadow-sm"
           >
-            <span>Check Answer</span>
+            <span>{isHindi ? 'उत्तर जांचें' : 'Check Answer'}</span>
             <ArrowRight className="w-4 h-4" aria-hidden="true" />
           </button>
 
           <button
             type="button"
             onClick={() => onSkipQuestion(question.id)}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-surface hover:bg-surface-elevated border border-border text-foreground-secondary hover:text-foreground text-xs font-semibold min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-surface hover:bg-surface-elevated border border-border text-foreground-secondary hover:text-foreground text-xs font-semibold min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors"
           >
             <SkipForward className="w-3.5 h-3.5" aria-hidden="true" />
-            <span>Skip for now</span>
+            <span>{isHindi ? 'अभी छोड़ें' : 'Skip for now'}</span>
           </button>
         </div>
       )}
@@ -326,15 +327,15 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
       <div className="sr-only" aria-live="polite">
         {isSubmitted &&
           (isCorrect
-            ? 'Correct. Your answer is correct.'
-            : `Not quite. Let's review the concept. Correct answer is ${effectiveCorrectIds.join(', ') || 'indicated in options'}.`)}
+            ? isHindi ? 'सही उत्तर। आपका विकल्प सही है।' : 'Correct. Your answer is correct.'
+            : isHindi ? `गलत उत्तर। सही उत्तर विकल्प ${effectiveCorrectIds.join(', ')} है।` : `Not quite. Correct answer is Option ${effectiveCorrectIds.join(', ')}.`)}
       </div>
 
       {/* Explanatory Feedback Card */}
       {isSubmitted && (
         <section
           aria-labelledby={`feedback-heading-${question.id}`}
-          className={`p-5 rounded-xl border flex flex-col gap-3 ${
+          className={`p-5 rounded-2xl border-2 flex flex-col gap-3 ${
             isCorrect
               ? 'bg-success/5 border-success/30'
               : 'bg-amber-500/5 border-amber-500/30'
@@ -350,37 +351,37 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
               {isCorrect ? (
                 <>
                   <CheckCircle2 className="w-4 h-4 text-success" aria-hidden="true" />
-                  <span>Correct. Your answer is correct.</span>
+                  <span>{isHindi ? 'बिल्कुल सही! आपका उत्तर सही है।' : 'Correct. Your answer is correct.'}</span>
                 </>
               ) : (
                 <>
                   <HelpCircle className="w-4 h-4 text-amber-600" aria-hidden="true" />
-                  <span>Not quite. Let&rsquo;s review the concept.</span>
+                  <span>{isHindi ? 'गलत उत्तर। आइए चरणबद्ध स्पष्टीकरण देखें।' : 'Not quite. Let’s review the concept.'}</span>
                 </>
               )}
             </h3>
 
             <span className="text-[11px] font-bold uppercase tracking-wider text-foreground-secondary">
-              Explanatory Feedback
+              {isHindi ? 'चरणबद्ध स्पष्टीकरण' : 'Explanatory Feedback'}
             </span>
           </div>
 
           <div className="text-xs text-foreground leading-relaxed pl-6 border-l-2 border-border">
-            <p className="font-semibold text-foreground mb-1">Explanation:</p>
+            <p className="font-semibold text-foreground mb-1">{isHindi ? 'स्पष्टीकरण:' : 'Explanation:'}</p>
             <RichMathText text={effectiveExplanation} />
           </div>
 
           {!isCorrect && (
             <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-border">
               <span className="text-xs text-foreground-secondary">
-                Need more practice on this topic?
+                {isHindi ? 'क्या आप इस विषय को और पढ़ना चाहते हैं?' : 'Need more practice on this topic?'}
               </span>
               <Link
                 to={`/candidate/learn/${question.subjectId}/${question.topicId}`}
                 className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline p-1 min-h-[36px] rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
-                <span>Review {question.topicName} Notes</span>
+                <span>{isHindi ? `${question.topicName} के नोट्स पढ़ें` : `Review ${question.topicName} Notes`}</span>
               </Link>
             </div>
           )}
@@ -393,11 +394,11 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
           type="button"
           onClick={onGoPrevious}
           disabled={currentIndex <= 1}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-surface hover:bg-surface-elevated disabled:opacity-40 border border-border text-foreground text-xs font-semibold min-h-[40px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors"
-          aria-label="Previous question"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-surface hover:bg-surface-elevated disabled:opacity-40 border border-border text-foreground text-xs font-semibold min-h-[40px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors"
+          aria-label={isHindi ? 'पिछला सवाल' : 'Previous question'}
         >
           <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
-          <span>Previous</span>
+          <span>{isHindi ? 'पिछला सवाल' : 'Previous'}</span>
         </button>
 
         <div className="flex items-center gap-2">
@@ -405,19 +406,19 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
             <button
               type="button"
               onClick={onFinishSession}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-success hover:bg-success-hover active:bg-success-hover text-success-contrast text-xs font-bold min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-success shadow-sm transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-success hover:bg-success-hover active:bg-success-hover text-success-contrast text-xs font-bold min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-success shadow-sm transition-colors"
             >
-              <span>Finish Practice</span>
+              <span>{isHindi ? 'अभ्यास पूरा करें' : 'Finish Practice'}</span>
               <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
             </button>
           ) : (
             <button
               type="button"
               onClick={onGoNext}
-              className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg bg-primary hover:bg-primary-hover active:bg-primary-hover text-primary-contrast text-xs font-bold min-h-[40px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors"
-              aria-label="Next question"
+              className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-hover text-primary-contrast text-xs font-bold min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors shadow-sm"
+              aria-label={isHindi ? 'अगला सवाल' : 'Next question'}
             >
-              <span>Next</span>
+              <span>{isHindi ? 'अगला सवाल' : 'Next'}</span>
               <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
           )}

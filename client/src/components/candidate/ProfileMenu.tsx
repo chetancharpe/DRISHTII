@@ -68,9 +68,9 @@ export const ProfileMenu: React.FC = () => {
         aria-expanded={isOpen}
         aria-label={`Profile menu for ${user?.name || 'Candidate'}`}
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-2 rounded-lg border border-border bg-surface hover:bg-surface-elevated text-foreground min-h-[44px] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        className="flex items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl border border-border bg-surface/70 hover:bg-surface-elevated text-foreground min-h-[40px] backdrop-blur-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-xs"
       >
-        <div className="w-8 h-8 rounded-full bg-primary/20 text-primary border border-primary/40 flex items-center justify-center font-bold text-xs shrink-0 select-none">
+        <div className="w-7 h-7 rounded-full bg-primary/20 text-primary border border-primary/40 flex items-center justify-center font-bold text-xs shrink-0 select-none">
           {user?.name ? user.name.charAt(0).toUpperCase() : 'C'}
         </div>
         <div className="hidden md:flex flex-col text-left">
@@ -94,7 +94,7 @@ export const ProfileMenu: React.FC = () => {
         <div
           role="menu"
           aria-labelledby="candidate-profile-menu-button"
-          className="absolute right-0 mt-2 w-64 rounded-xl border border-border bg-surface p-2 shadow-xl z-dropdown flex flex-col gap-1 focus:outline-none"
+          className="absolute right-0 mt-2 w-64 rounded-xl border border-border bg-surface-elevated p-2 shadow-2xl z-50 flex flex-col gap-1 focus:outline-none backdrop-blur-xl"
         >
           {/* User Profile Header in Menu */}
           <div className="p-3 border-b border-border bg-surface-elevated/50 rounded-lg mb-1">

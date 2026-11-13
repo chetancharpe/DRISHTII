@@ -54,7 +54,7 @@ export const AccessibilityStatusCard: React.FC<AccessibilityStatusCardProps> = (
       </div>
 
       <p className="text-xs text-foreground-secondary leading-relaxed">
-        DRISHTI dynamically tailors typography scaling, high contrast borders, and keyboard shortcuts to match your personal requirements.
+        The platform dynamically tailors typography scaling, high contrast borders, and keyboard shortcuts to match your personal requirements.
       </p>
 
       {/* 4 Specifications */}

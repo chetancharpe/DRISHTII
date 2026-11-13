@@ -141,9 +141,9 @@ export const ExamCard: React.FC<ExamCardProps> = ({ exam }) => {
         ) : (
           <Link
             to={`/candidate/exams/${exam.id}`}
-            className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-hover text-primary-contrast min-h-[40px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-primary hover:from-indigo-600 hover:to-primary-hover text-white min-h-[40px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-glow-primary transition-all"
           >
-            <span>{isAvailable ? 'View Examination' : 'View Details'}</span>
+            <span>{isAvailable ? 'Start Examination' : 'View Details'}</span>
             <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
           </Link>
         )}

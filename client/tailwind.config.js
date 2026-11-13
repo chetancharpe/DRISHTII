@@ -55,7 +55,16 @@ export default {
         sm: 'var(--shadow-sm)',
         md: 'var(--shadow-md)',
         lg: 'var(--shadow-lg)',
+        glass: 'var(--shadow-glass)',
+        'glass-elevated': 'var(--shadow-glass-elevated)',
+        'glow-primary': 'var(--shadow-glow-primary)',
+        'glow-cyan': 'var(--shadow-glow-cyan)',
         focus: '0 0 0 3px var(--color-focus)',
+      },
+      backdropBlur: {
+        xs: '2px',
+        glass: '16px',
+        'glass-elevated': '24px',
       },
       zIndex: {
         dropdown: '1000',

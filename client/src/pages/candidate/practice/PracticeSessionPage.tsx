@@ -15,11 +15,15 @@ import {
 import { useAccessibility } from '../../../contexts/AccessibilityContext';
 import { VoiceCommandBar } from '../../../components/common/VoiceCommandBar';
 import { useVoiceCommands } from '../../../hooks/useVoiceCommands';
+import { playEarcon } from '../../../utils/soundEffects';
 
 export const PracticeSessionPage: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
-  const { openCalibration, announce, speak, preferences } = useAccessibility();
+  const { openCalibration, announce, speak, preferences, hasHindiVoice } = useAccessibility();
+  const isHindi =
+    preferences?.language === 'hi' ||
+    (typeof document !== 'undefined' && document.documentElement.lang === 'hi');
 
   const [session, setSession] = useState<PracticeSession | null>(null);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -54,11 +58,33 @@ export const PracticeSessionPage: React.FC = () => {
   const currentQuestion = session?.questions?.[currentIdx];
   const savedAnswer = currentQuestion ? session?.answers?.[currentQuestion.id] : undefined;
 
-  // Handlers with assertive error feedback
+  // Handlers with authoritative right/wrong speech verification
+  const isSubmittingRef = useRef(false);
+
   const handleSubmitAnswer = async (questionId: string, selectedOptionIds: string[]) => {
-    if (!session) return;
+    if (!session || !currentQuestion) return;
+    if (isSubmittingRef.current) return;
+
+    // If already submitted, prevent duplicate submission and guide user to next question
+    const existingAnswer = session.answers?.[questionId];
+    if (existingAnswer?.isSubmitted) {
+      const isHindi = preferences?.language === 'hi' || /[\u0900-\u097F]/.test(currentQuestion.questionText);
+      const prompt = isHindi
+        ? 'आप इस सवाल का उत्तर दे चुके हैं। अगले सवाल के लिए "अगला" बोलें।'
+        : 'You have already answered this question. Say "Next" to continue.';
+      speak(prompt);
+      announce(prompt, 'polite');
+      return;
+    }
+
+    isSubmittingRef.current = true;
     setActionError(null);
     try {
+      // Immediately cancel any previous question reading speech
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+
       const res = await practiceService.submitAnswer(
         session.id,
         questionId,
@@ -66,11 +92,57 @@ export const PracticeSessionPage: React.FC = () => {
         elapsedSecondsRef.current
       );
       setSession(res.session);
+
+      const isHindi = preferences?.language === 'hi' || /[\u0900-\u097F]/.test(currentQuestion.questionText);
+
+      // Selected option details
+      const selectedOpts = currentQuestion.options.filter((o) => selectedOptionIds.includes(o.id));
+      const userSelectedLabel = selectedOpts.map((o) => o.label).join(', ') || 'B';
+      const userSelectedText = selectedOpts.map((o) => o.text).join(', ');
+
+      // Find correct option details
+      const knownCorrectIds: string[] =
+        res.session.correctOptions?.[questionId] ||
+        (currentQuestion as any).correctOptionIds ||
+        [];
+      const correctOpts = currentQuestion.options.filter((o) =>
+        knownCorrectIds.length > 0 ? knownCorrectIds.includes(o.id) : o.label === 'B'
+      );
+      const correctLabel = correctOpts.map((o) => o.label).join(', ') || 'B';
+      const correctText = correctOpts.map((o) => o.text).join(', ');
+
+      // Acoustic earcon
+      playEarcon(res.isCorrect ? 'action' : 'error');
+
+      // Authoritative voice evaluation (Checks and announces if correct or incorrect)
+      const useHindiSpeech = hasHindiVoice && isHindi;
+      if (res.isCorrect) {
+        const feedback = useHindiSpeech
+          ? `बिल्कुल सही जवाब! आपका विकल्प ${userSelectedLabel} सही उत्तर है। ${res.explanation ? 'स्पष्टीकरण: ' + res.explanation + '। ' : ''}अगले सवाल के लिए बोलिए 'अगला'।`
+          : `Correct! Option ${userSelectedLabel}: ${userSelectedText} is the right answer. ${res.explanation ? 'Explanation: ' + res.explanation + '. ' : ''}Say 'Next' to continue to the next question.`;
+        speak(feedback, () => {
+          playEarcon('listen');
+        });
+        announce(feedback, 'assertive');
+      } else {
+        const feedback = useHindiSpeech
+          ? `गलत उत्तर। आपने विकल्प ${userSelectedLabel} चुना, लेकिन सही उत्तर विकल्प ${correctLabel} है: ${correctText}। ${res.explanation ? 'स्पष्टीकरण: ' + res.explanation + '। ' : ''}अगले सवाल के लिए बोलिए 'अगला'।`
+          : `Incorrect. You chose Option ${userSelectedLabel}, but the correct answer is Option ${correctLabel}: ${correctText}. ${res.explanation ? 'Explanation: ' + res.explanation + '. ' : ''}Say 'Next' to proceed to the next question.`;
+        speak(feedback, () => {
+          playEarcon('listen');
+        });
+        announce(feedback, 'assertive');
+      }
     } catch (err) {
       console.error('Answer submission error', err);
       const msg = 'Could not submit your answer. Please check your connection and retry.';
       setActionError(msg);
       announce(msg, 'assertive');
+      speak(msg);
+    } finally {
+      setTimeout(() => {
+        isSubmittingRef.current = false;
+      }, 500);
     }
   };
 
@@ -118,24 +190,47 @@ export const PracticeSessionPage: React.FC = () => {
     }
   };
 
-  // Automated Spoken Question & Choices Readout
+  // Automated Spoken Question & Choices Readout (100% matched to on-screen text)
   const readQuestionAloud = useCallback(() => {
     if (!currentQuestion) return;
-    const isHindi = preferences?.language === 'hi' || /[\u0900-\u097F]/.test(currentQuestion.questionText);
+
+    const isHindiPref =
+      preferences?.language === 'hi' ||
+      /[\u0900-\u097F]/.test(currentQuestion.questionText) ||
+      (typeof document !== 'undefined' && document.documentElement.lang === 'hi');
+
+    const totalQ = session?.totalQuestions || session?.questions?.length || 10;
+    const qNum = currentIdx + 1;
+    // ALWAYS use the exact question statement rendered on the screen!
+    const statement = currentQuestion.questionText;
+
     const optLetters = ['A', 'B', 'C', 'D'];
-    const opts = currentQuestion.options
-      .map((opt, i) => `${isHindi ? 'विकल्प ' : 'Option '}${opt.label || optLetters[i]}: ${opt.text}`)
+    const optsHi = currentQuestion.options
+      .map((opt, i) => `ऑप्शन ${opt.label || optLetters[i]}: ${opt.text}`)
+      .join('। ');
+    const optsEn = currentQuestion.options
+      .map((opt, i) => `Option ${opt.label || optLetters[i]}: ${opt.text}`)
       .join('. ');
-    const qText = currentQuestion.audioDescription || currentQuestion.questionText;
-    const totalQ = session?.totalQuestions || 5;
 
-    const textToSpeak = isHindi
-      ? `प्रश्न संख्या ${currentIdx + 1}, कुल ${totalQ} में से। ${currentQuestion.topicName ? 'विषय: ' + currentQuestion.topicName + '। ' : ''}${qText}। ${opts}। उत्तर चुनने के लिए बोलिए: विकल्प ए, विकल्प बी, विकल्प सी, या विकल्प डी।`
-      : `Question ${currentIdx + 1} of ${totalQ}: ${currentQuestion.topicName || ''}. ${qText}. ${opts}. Say Option A, Option B, Option C, or Option D to choose, or say Next Question.`;
+    const speechHi = `प्रश्न संख्या ${qNum}, कुल ${totalQ} में से। ${statement}। विकल्प हैं: ${optsHi}। अपना उत्तर चुनिए: ऑप्शन ए, बी, सी या डी।`;
+    const speechEn = `Question ${qNum} of ${totalQ}. ${statement}. The options are: ${optsEn}. Choose your answer: Option A, B, C, or D.`;
 
-    speak(textToSpeak);
-    announce(textToSpeak, 'polite');
-  }, [currentQuestion, currentIdx, session?.totalQuestions, speak, announce, preferences?.language]);
+    const textToSpeak = isHindiPref && hasHindiVoice ? speechHi : speechEn;
+
+    speak(textToSpeak, () => {
+      playEarcon('listen');
+    });
+    announce(isHindiPref ? speechHi : speechEn, 'assertive');
+  }, [
+    currentQuestion,
+    currentIdx,
+    session?.totalQuestions,
+    session?.questions?.length,
+    speak,
+    announce,
+    preferences?.language,
+    hasHindiVoice,
+  ]);
 
   // Auto-read question statement and choices on question load or question change
   useEffect(() => {
@@ -146,19 +241,93 @@ export const PracticeSessionPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, [currentIdx, currentQuestion?.id, isLoading, readQuestionAloud]);
 
+  // Unlock browser speech synthesis on first user interaction if blocked by autoplay policy
+  useEffect(() => {
+    const handleUnlock = () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+        if (!window.speechSynthesis.speaking && currentQuestion) {
+          readQuestionAloud();
+        }
+      }
+    };
+
+    window.addEventListener('click', handleUnlock, { once: true });
+    window.addEventListener('keydown', handleUnlock, { once: true });
+    return () => {
+      window.removeEventListener('click', handleUnlock);
+      window.removeEventListener('keydown', handleUnlock);
+    };
+  }, [currentQuestion, readQuestionAloud]);
+
+  // Keyboard Hotkeys: Spacebar/Escape interrupts AI speech; A, B, C, D directly submits choice
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      // Spacebar or Escape: Immediate Voice Barge-In / Pause
+      if (e.code === 'Space' || e.key === ' ' || e.key === 'Escape') {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window && window.speechSynthesis.speaking) {
+          e.preventDefault();
+          window.speechSynthesis.cancel();
+          playEarcon('action');
+          const isHindi = preferences?.language === 'hi' || /[\u0900-\u097F]/.test(currentQuestion?.questionText || '');
+          const msg = isHindi ? 'आवाज रोकी गई। अपना उत्तर बोलें या चुनें।' : 'Assistant paused. Please speak or choose your answer.';
+          announce(msg, 'assertive');
+          return;
+        }
+      }
+
+      // Hotkeys A, B, C, D to directly submit answer
+      const key = e.key.toUpperCase();
+      if (['A', 'B', 'C', 'D'].includes(key)) {
+        if (currentQuestion && currentQuestion.options) {
+          const optIdx = currentQuestion.options.findIndex(
+            (o, i) => o.label?.toUpperCase() === key || ['A', 'B', 'C', 'D'][i] === key
+          );
+          if (optIdx !== -1) {
+            e.preventDefault();
+            if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+              window.speechSynthesis.cancel();
+            }
+            const opt = currentQuestion.options[optIdx];
+            handleSubmitAnswer(currentQuestion.id, [opt.id]);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentQuestion, handleSubmitAnswer, playEarcon, announce, preferences?.language]);
+
   // Universal Practice Voice Command Event Listeners
   useEffect(() => {
     const handleSelectEvent = (e: any) => {
       const label = e.detail?.label?.toUpperCase();
-      if (!currentQuestion || !label) return;
-      const optIdx = currentQuestion.options.findIndex(
-        (o, i) => o.label?.toUpperCase() === label || ['A', 'B', 'C', 'D'][i] === label
-      );
+      const index = e.detail?.index;
+      if (!currentQuestion) return;
+      let optIdx = -1;
+      if (typeof index === 'number' && currentQuestion.options[index]) {
+        optIdx = index;
+      } else if (label) {
+        optIdx = currentQuestion.options.findIndex(
+          (o, i) => o.label?.toUpperCase() === label || ['A', 'B', 'C', 'D'][i] === label
+        );
+      }
       if (optIdx !== -1) {
         const opt = currentQuestion.options[optIdx];
         handleSubmitAnswer(currentQuestion.id, [opt.id]);
-        speak(`Option ${opt.label || label} selected.`);
-        announce(`Option ${opt.label || label} selected.`, 'polite');
       }
     };
 
@@ -185,22 +354,31 @@ export const PracticeSessionPage: React.FC = () => {
       window.removeEventListener('drishti:practice-read-question', handleReadEvent);
       window.removeEventListener('drishti:practice-submit', handleSubmitEvent);
     };
-  }, [currentQuestion, handleNext, handlePrevious, handleSkipQuestion, readQuestionAloud, speak, announce]);
+  }, [currentQuestion, handleNext, handlePrevious, handleSkipQuestion, readQuestionAloud]);
 
-  const voice = useVoiceCommands({
-    onNext: handleNext,
-    onPrevious: handlePrevious,
-    onSelectOption: (optionIdx) => {
-      if (currentQuestion && currentQuestion.options[optionIdx]) {
-        const optId = currentQuestion.options[optionIdx].id;
-        if (!savedAnswer?.isSubmitted) {
+  const voice = useVoiceCommands(
+    {
+      onNext: handleNext,
+      onPrevious: handlePrevious,
+      onSkip: () => {
+        if (currentQuestion) handleSkipQuestion(currentQuestion.id);
+      },
+      onSelectOption: (optionIdx) => {
+        if (currentQuestion && currentQuestion.options[optionIdx]) {
+          const optId = currentQuestion.options[optionIdx].id;
           handleSubmitAnswer(currentQuestion.id, [optId]);
-          speak(`Option ${currentQuestion.options[optionIdx].label} selected.`);
         }
-      }
+      },
+      onReadQuestion: readQuestionAloud,
+      onSubmit: () => setIsFinishModalOpen(true),
+      getCurrentOptions: () =>
+        currentQuestion?.options?.map((o, idx) => ({
+          label: o.label || ['A', 'B', 'C', 'D'][idx],
+          text: o.text,
+        })) || [],
     },
-    onSubmit: () => setIsFinishModalOpen(true),
-  });
+    { autoStart: true }
+  );
 
   if (isLoading) {
     return (
@@ -285,17 +463,17 @@ export const PracticeSessionPage: React.FC = () => {
           >
             <span className="inline-flex items-center gap-1 font-bold text-success">
               <span>{answeredCount}</span>
-              <span className="text-foreground-secondary text-[11px] font-normal">answered</span>
+              <span className="text-foreground-secondary text-[11px] font-normal">{isHindi ? 'हल' : 'answered'}</span>
             </span>
             <span className="text-foreground-muted" aria-hidden="true">•</span>
             <span className="inline-flex items-center gap-1 text-foreground-secondary">
               <span>{skippedCount}</span>
-              <span className="text-[11px] font-normal">skipped</span>
+              <span className="text-[11px] font-normal">{isHindi ? 'छोड़े' : 'skipped'}</span>
             </span>
             <span className="text-foreground-muted" aria-hidden="true">•</span>
             <span className="inline-flex items-center gap-1 text-foreground-secondary">
               <span>{remainingCount}</span>
-              <span className="text-[11px] font-normal">remaining</span>
+              <span className="text-[11px] font-normal">{isHindi ? 'शेष' : 'remaining'}</span>
             </span>
           </div>
 

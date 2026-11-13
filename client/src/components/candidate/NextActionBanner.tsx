@@ -18,7 +18,7 @@ export const NextActionBanner: React.FC<NextActionBannerProps> = ({ action, clas
     <section
       id="next-action-section"
       aria-labelledby="next-action-heading"
-      className={`rounded-2xl border-2 border-primary/50 bg-gradient-to-r from-primary/10 via-surface to-surface p-5 sm:p-7 shadow-md flex flex-col gap-5 text-foreground relative overflow-hidden ${className}`}
+      className={`rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/15 via-surface/80 to-surface/85 backdrop-blur-xl p-5 sm:p-7 shadow-glass flex flex-col gap-5 text-foreground relative overflow-hidden glass-specular ${className}`}
     >
       {/* Decorative background badge */}
       <div className="flex items-center justify-between gap-2 border-b border-border/80 pb-3">
@@ -29,7 +29,7 @@ export const NextActionBanner: React.FC<NextActionBannerProps> = ({ action, clas
           </span>
         </div>
         <div
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-elevated border border-border text-xs font-mono font-semibold text-foreground-secondary"
+          className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-surface-elevated/80 backdrop-blur-md border border-border text-xs font-mono font-semibold text-foreground-secondary shadow-xs"
           aria-label={`Estimated duration: ${action.estimatedMinutesRemaining} minutes remaining`}
         >
           <Clock className="w-3.5 h-3.5 text-primary shrink-0" aria-hidden="true" />
@@ -44,7 +44,7 @@ export const NextActionBanner: React.FC<NextActionBannerProps> = ({ action, clas
           </h2>
 
           <div className="flex items-center gap-2 text-sm text-foreground">
-            <span className="font-bold text-primary px-2 py-0.5 rounded bg-primary/15 border border-primary/30 text-xs">
+            <span className="font-bold text-primary px-2.5 py-0.5 rounded-lg bg-primary/15 border border-primary/30 text-xs backdrop-blur-xs">
               {action.subject}
             </span>
             <span className="font-bold text-foreground">
@@ -63,7 +63,7 @@ export const NextActionBanner: React.FC<NextActionBannerProps> = ({ action, clas
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
           <Link
             to={action.ctaRoute}
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-primary hover:bg-primary-hover text-primary-contrast font-extrabold text-sm shadow transition-colors min-h-[48px] focus:outline-none focus-visible:ring-3 focus-visible:ring-primary focus-visible:ring-offset-2 select-none"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-primary hover:from-indigo-600 hover:to-primary-hover text-white font-extrabold text-sm shadow-glow-primary hover:shadow-lg transition-all min-h-[48px] focus:outline-none focus-visible:ring-3 focus-visible:ring-primary focus-visible:ring-offset-2 select-none"
             aria-label={`${action.ctaLabel}: ${action.subject} - ${action.topic}. ${action.completedQuestions} of ${action.totalQuestions} questions completed.`}
           >
             <PlayCircle className="w-5 h-5 shrink-0" aria-hidden="true" />
@@ -72,7 +72,7 @@ export const NextActionBanner: React.FC<NextActionBannerProps> = ({ action, clas
 
           <Link
             to="/candidate/practice"
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg border border-border bg-surface hover:bg-surface-elevated text-foreground text-xs font-bold transition-colors min-h-[48px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-border bg-surface/70 hover:bg-surface-elevated text-foreground text-xs font-bold transition-all min-h-[48px] backdrop-blur-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             aria-label="View all available practice subjects and question banks"
           >
             <span>{isHindi ? 'सभी अभ्यास देखें' : 'View All Practice'}</span>

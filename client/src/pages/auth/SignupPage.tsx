@@ -114,8 +114,12 @@ export const SignupPage: React.FC = () => {
     }
   };
 
-  const handleProceedToAccessibility = () => {
-    navigate('/auth/accessibility-setup');
+  const handleProceed = () => {
+    if (role === 'examiner') {
+      navigate('/examiner/dashboard');
+    } else {
+      navigate('/candidate/dashboard');
+    }
   };
 
   // Hands-free Voice Registration for Blind & Visually Impaired Candidates
@@ -211,24 +215,47 @@ export const SignupPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="p-4 rounded-lg border border-border bg-surface-elevated/70 text-xs text-foreground-muted max-w-md text-left">
-            <span className="font-bold text-foreground block mb-1">
-              Next Step: Accessibility Calibration
-            </span>
-            <span>
-              You will configure text scaling, visual contrast, theme preferences, and auditory feedback. You can adjust these settings at any time.
-            </span>
-          </div>
+          {role === 'candidate' ? (
+            <div className="p-4 rounded-lg border border-border bg-surface-elevated/70 text-xs text-foreground-muted max-w-md text-left">
+              <span className="font-bold text-foreground block mb-1">
+                Optional: Accessibility Calibration
+              </span>
+              <span>
+                You can configure text scaling, visual contrast, theme preferences, and auditory feedback now or anytime in Settings.
+              </span>
+            </div>
+          ) : (
+            <div className="p-4 rounded-lg border border-border bg-surface-elevated/70 text-xs text-foreground-muted max-w-md text-left">
+              <span className="font-bold text-foreground block mb-1">
+                Examiner Assessment Hub
+              </span>
+              <span>
+                Your examiner credentials are active. Enter your dashboard to create and manage accessible assessments.
+              </span>
+            </div>
+          )}
 
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={handleProceedToAccessibility}
-            iconRight={<ArrowRight className="w-5 h-5" />}
-            className="w-full sm:w-auto mt-2"
-          >
-            Proceed to Accessibility Setup
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3 w-full justify-center mt-2">
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={handleProceed}
+              iconRight={<ArrowRight className="w-5 h-5" />}
+              className="w-full sm:w-auto"
+            >
+              {role === 'examiner' ? 'Proceed to Examiner Dashboard' : 'Proceed to Candidate Dashboard'}
+            </Button>
+            {role === 'candidate' && (
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => navigate('/auth/accessibility-setup')}
+                className="w-full sm:w-auto"
+              >
+                Configure Accessibility Setup
+              </Button>
+            )}
+          </div>
         </div>
       </AuthLayout>
     );

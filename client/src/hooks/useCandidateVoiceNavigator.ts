@@ -41,7 +41,7 @@ export function hasPhrase(text: string, phrases: string[]): boolean {
     const phraseLower = p.trim().toLowerCase();
     if (!phraseLower) continue;
     if (clean === phraseLower) return true;
-    const escaped = phraseLower.replace(/[.*+?^${}()|[\]\\]/g, '\\export function useCandidateVoiceNavigator(): CandidateVoiceState {');
+    const escaped = phraseLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const rx = new RegExp(`(?:^|[^a-zA-Z0-9\\u0900-\\u097F])${escaped}(?:[^a-zA-Z0-9\\u0900-\\u097F]|$)`, 'iu');
     if (rx.test(clean)) return true;
   }

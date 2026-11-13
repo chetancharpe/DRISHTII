@@ -75,7 +75,7 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside
-      className="w-64 bg-surface border-r border-border p-4 flex flex-col justify-between shrink-0 hidden md:flex"
+      className="w-64 bg-surface/70 backdrop-blur-xl border-r border-border shadow-glass p-4 flex flex-col justify-between shrink-0 hidden md:flex transition-all"
       aria-label={`${roleDisplayName} Navigation`}
     >
       <div className="flex flex-col gap-4">
@@ -96,10 +96,10 @@ export const Sidebar: React.FC = () => {
               key={link.to}
               to={link.to}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all min-h-[42px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all min-h-[42px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                   isActive
-                    ? 'bg-primary text-primary-contrast font-bold shadow-sm'
-                    : 'text-foreground hover:bg-surface-elevated hover:text-primary'
+                    ? 'bg-gradient-to-r from-primary to-indigo-600 text-white font-bold shadow-glow-primary shadow-sm'
+                    : 'text-foreground hover:bg-surface-elevated/80 hover:text-primary'
                 }`
               }
             >
@@ -121,7 +121,7 @@ export const Sidebar: React.FC = () => {
               type="button"
               onClick={openCalibration}
               aria-label="Open Accessibility Calibration Center (Alt+A)"
-              className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold text-foreground hover:bg-surface-elevated hover:text-primary transition-colors text-left min-h-[40px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+              className="flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-foreground hover:bg-surface-elevated/80 hover:text-primary transition-all text-left min-h-[40px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
             >
               <div className="flex items-center gap-3">
                 <Sliders className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
@@ -137,10 +137,10 @@ export const Sidebar: React.FC = () => {
                 key={link.to}
                 to={link.to}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors min-h-[40px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                  `flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-all min-h-[40px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                     isActive
-                      ? 'bg-primary text-primary-contrast font-bold'
-                      : 'text-foreground hover:bg-surface-elevated hover:text-primary'
+                      ? 'bg-gradient-to-r from-primary to-indigo-600 text-white font-bold shadow-glow-primary'
+                      : 'text-foreground hover:bg-surface-elevated/80 hover:text-primary'
                   }`
                 }
               >
@@ -154,7 +154,7 @@ export const Sidebar: React.FC = () => {
 
       {/* Bottom Profile and Sign Out */}
       <div className="pt-4 border-t border-border flex flex-col gap-2">
-        <div className="p-2.5 rounded-lg bg-surface-elevated/60 border border-border flex items-center gap-2.5">
+        <div className="p-2.5 rounded-xl bg-surface-elevated/70 backdrop-blur-md border border-border flex items-center gap-2.5 shadow-sm">
           <div className="w-7 h-7 rounded-full bg-primary/20 text-primary border border-primary/40 flex items-center justify-center text-xs font-bold shrink-0">
             {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
           </div>
@@ -172,7 +172,7 @@ export const Sidebar: React.FC = () => {
           type="button"
           onClick={logout}
           aria-label="Sign out from your account"
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold text-status-error hover:bg-status-error/10 transition-colors w-full text-left min-h-[38px] focus:outline-none focus-visible:ring-2 focus-visible:ring-status-error"
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-status-error hover:bg-status-error/15 transition-all w-full text-left min-h-[38px] focus:outline-none focus-visible:ring-2 focus-visible:ring-status-error"
         >
           <LogOut className="w-4 h-4 shrink-0" aria-hidden="true" />
           <span>Sign Out</span>

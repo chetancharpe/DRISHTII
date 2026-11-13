@@ -48,23 +48,23 @@ export const Button: React.FC<ButtonProps> = ({
 
   // Base styles: predictable transitions, semantic borders, visible focus
   const baseStyles =
-    'inline-flex items-center justify-center font-semibold rounded-md border select-none transition-colors duration-fast disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
+    'inline-flex items-center justify-center font-bold rounded-xl border select-none transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
 
   const variantStyles: Record<ButtonVariant, string> = {
     primary:
-      'bg-primary text-primary-contrast border-transparent hover:bg-primary-hover active:bg-primary-active shadow-sm',
+      'bg-gradient-to-r from-indigo-500 to-primary text-white border-transparent hover:from-indigo-600 hover:to-primary-hover active:from-indigo-700 active:to-primary-active shadow-sm hover:shadow-glow-primary',
     secondary:
-      'bg-secondary text-secondary-text border-border hover:bg-secondary-hover hover:border-border-strong shadow-sm',
+      'bg-surface backdrop-blur-md text-secondary-text border-border hover:bg-surface-elevated hover:border-primary/40 shadow-sm',
     outline:
-      'bg-transparent text-foreground border-border-strong hover:bg-surface-elevated active:bg-surface',
+      'bg-surface/40 backdrop-blur-md text-foreground border-border-strong hover:bg-surface-elevated hover:border-primary/60 active:bg-surface',
     ghost:
-      'bg-transparent text-foreground border-transparent hover:bg-surface-elevated active:bg-surface',
+      'bg-transparent text-foreground border-transparent hover:bg-surface-elevated hover:text-primary active:bg-surface',
     danger:
       'bg-status-error text-white border-transparent hover:opacity-90 active:opacity-100 shadow-sm',
     success:
       'bg-status-success text-white border-transparent hover:opacity-90 active:opacity-100 shadow-sm',
     icon:
-      'p-2.5 min-w-[44px] min-h-[44px] rounded-md bg-surface text-foreground border-border hover:bg-surface-elevated active:bg-surface',
+      'p-2.5 min-w-[44px] min-h-[44px] rounded-xl bg-surface backdrop-blur-md text-foreground border-border hover:bg-surface-elevated hover:border-primary/40 active:bg-surface',
     link:
       'bg-transparent text-primary hover:underline underline-offset-4 border-transparent p-0 min-h-0 h-auto font-medium',
   };

@@ -115,3 +115,137 @@
     color: var(--color-text-muted);
   }
 }
+
+/* Glassmorphism System Components & Utilities */
+@layer components {
+  /* Dynamic backdrop glass for semantic surfaces */
+  .bg-surface {
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+  }
+
+  .bg-surface-elevated {
+    backdrop-filter: blur(20px) saturate(190%);
+    -webkit-backdrop-filter: blur(20px) saturate(190%);
+  }
+
+  .glass-panel {
+    background-color: var(--color-surface);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-glass);
+  }
+
+  .glass-card {
+    background-color: var(--color-surface);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-glass);
+    border-radius: var(--radius-xl);
+    position: relative;
+    transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+  }
+
+  .glass-card:hover {
+    border-color: var(--color-border-strong);
+    box-shadow: var(--shadow-glass-elevated);
+  }
+
+  .glass-card-elevated {
+    background-color: var(--color-surface-elevated);
+    backdrop-filter: blur(24px) saturate(190%);
+    -webkit-backdrop-filter: blur(24px) saturate(190%);
+    border: 1px solid var(--color-border-strong);
+    box-shadow: var(--shadow-glass-elevated);
+    border-radius: var(--radius-xl);
+  }
+
+  .glass-pill {
+    background-color: var(--color-surface);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+  }
+
+  /* Specular top rim highlight for glass cards */
+  .glass-specular {
+    position: relative;
+  }
+  .glass-specular::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 5%, rgba(255, 255, 255, 0.22) 50%, transparent 95%);
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 1;
+  }
+}
+
+/* Ambient Background Orb animations */
+@keyframes ambientFloat1 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(25px, -30px) scale(1.08);
+  }
+}
+
+@keyframes ambientFloat2 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-30px, 25px) scale(1.06);
+  }
+}
+
+.ambient-orb-1 {
+  animation: ambientFloat1 18s ease-in-out infinite;
+}
+
+.ambient-orb-2 {
+  animation: ambientFloat2 22s ease-in-out infinite;
+}
+
+/* WCAG AAA Strict High-Contrast & Reduced-Motion Protection */
+@media (prefers-reduced-motion: reduce) {
+  .ambient-orb-1,
+  .ambient-orb-2 {
+    animation: none !important;
+  }
+}
+
+[data-theme="high_contrast"] .ambient-orb,
+[data-theme="high_contrast"] [class*="ambient-orb"],
+html.high-contrast .ambient-orb,
+html.high-contrast [class*="ambient-orb"] {
+  display: none !important;
+}
+
+[data-theme="high_contrast"] .bg-surface,
+[data-theme="high_contrast"] .bg-surface-elevated,
+[data-theme="high_contrast"] .glass-panel,
+[data-theme="high_contrast"] .glass-card,
+[data-theme="high_contrast"] .glass-card-elevated,
+[data-theme="high_contrast"] .glass-pill,
+[data-theme="high_contrast"] .glass-specular::before,
+html.high-contrast .bg-surface,
+html.high-contrast .bg-surface-elevated,
+html.high-contrast .glass-panel,
+html.high-contrast .glass-card,
+html.high-contrast .glass-card-elevated,
+html.high-contrast .glass-pill,
+html.high-contrast .glass-specular::before {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+

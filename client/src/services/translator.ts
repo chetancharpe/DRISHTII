@@ -222,11 +222,6 @@ export function translateToHindi(text: string): string {
   }
 
   // 2. Dynamic regex pattern matching
-  // Pattern: "Welcome to Candidate Dashboard..."
-  if (/^Welcome to Candidate Dashboard/i.test(clean)) {
-    return 'कैंडिडेट डैशबोर्ड का पूरा विवरण। आपकी समग्र तैयारी 78 प्रतिशत पूर्ण है और 7 दिन का दैनिक अध्ययन सिलसिला सक्रिय है। आज का लक्ष्य: 45 में से 30 मिनट पूर्ण। अभ्यास जारी रखने के लिए विकल्प 1 बोलें, या पाठ्यक्रम के लिए विकल्प 2 बोलें।';
-  }
-
   // Pattern: "Good morning/afternoon/evening, Name"
   if (/^Good (morning|afternoon|evening)/i.test(clean)) {
     const timeMatch = clean.match(/^Good (morning|afternoon|evening)[,]?\s*(.*)$/i);

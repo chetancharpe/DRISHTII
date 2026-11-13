@@ -142,7 +142,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenAccessibility, onOpenHelp 
         <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-foreground-muted">
           <p>© {new Date().getFullYear()} DRISHTI Platform. All rights reserved.</p>
           <p className="text-[11px]">
-            DRISHTI is designed and tested against WCAG 2.1 AA requirements.
+            Designed and tested against WCAG 2.1 AA requirements.
           </p>
         </div>
       </div>

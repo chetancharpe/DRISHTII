@@ -220,6 +220,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             client_ip = forwarded_for.split(",")[0].strip()
         else:
             client_ip = request.client.host if request.client else "unknown"
+
+        # In development, don't throttle local loopback traffic
+        if settings.ENVIRONMENT.lower() == "development" and client_ip in ["127.0.0.1", "::1", "localhost", "testclient"]:
+            return await call_next(request)
+
         user_id = extract_user_id_from_token(request)
 
         path = request.url.path

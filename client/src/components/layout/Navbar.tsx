@@ -6,14 +6,20 @@ import { useAccessibility } from '../../hooks/useAccessibility';
 import { useTranslation } from '../../i18n';
 import { Sliders, Sun, Moon, Sparkles, Menu, X, HelpCircle, Languages } from 'lucide-react';
 import { BrandLogo } from '../common/BrandLogo';
+import { ProfileMenu } from '../candidate/ProfileMenu';
 
 export interface NavbarProps {
   onOpenAccessibility?: () => void;
   onOpenHelp?: () => void;
+  hasSidebar?: boolean;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp }) => {
-  const { user, isAuthenticated, logout } = useAuth();
+export const Navbar: React.FC<NavbarProps> = ({
+  onOpenAccessibility,
+  onOpenHelp,
+  hasSidebar = false,
+}) => {
+  const { user, isAuthenticated } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { preferences, setHighContrast, setPreferredLanguage } = useAccessibility();
   const { t, language, setLanguage } = useTranslation();
@@ -42,18 +48,32 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
   };
 
   return (
-    <header className="sticky top-0 w-full bg-surface/95 backdrop-blur-md border-b border-border py-3 px-4 sm:px-6 z-sticky" role="banner">
+    <header className="sticky top-0 w-full bg-surface/85 backdrop-blur-xl border-b border-border shadow-glass py-2.5 px-4 sm:px-6 z-sticky transition-all" role="banner">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-        {/* Brand / Logo */}
-        <div className="flex items-center gap-6">
-          <Link
-            to="/"
-            onClick={handleLinkClick}
-            className="flex items-center gap-2.5 text-foreground hover:opacity-90 transition-opacity focus-visible:outline-offset-4"
-            aria-label="DRISHTI Home Page"
-          >
-            <BrandLogo variant="full" size="md" />
-          </Link>
+        {/* Left Side: Brand Logo (Only rendered when there is NO sidebar; on desktop with sidebar, ONE logo remains in sidebar) */}
+        <div className="flex items-center gap-4">
+          {!hasSidebar ? (
+            <Link
+              to="/"
+              onClick={handleLinkClick}
+              className="flex items-center gap-2.5 text-foreground hover:opacity-90 transition-opacity focus-visible:outline-offset-4"
+              aria-label="DRISHTI Home Page"
+            >
+              <BrandLogo variant="full" size="md" />
+            </Link>
+          ) : (
+            /* On mobile where the sidebar is collapsed, provide compact brand link */
+            <div className="flex items-center gap-2 md:hidden">
+              <Link
+                to="/"
+                onClick={handleLinkClick}
+                className="flex items-center gap-2 text-foreground hover:opacity-90 transition-opacity focus-visible:outline-offset-4"
+                aria-label="DRISHTI Home Page"
+              >
+                <BrandLogo variant="icon" size="sm" />
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Desktop Navigation Links (Landing Page Center Nav) */}
@@ -67,7 +87,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
                   <a
                     key={link.label}
                     href={link.href}
-                    className="text-sm font-medium text-slate-600 hover:text-slate-950 transition-colors"
+                    className="text-sm font-medium text-foreground-secondary hover:text-foreground transition-colors"
                   >
                     {link.label}
                   </a>
@@ -79,8 +99,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
                   to={link.href}
                   className={`text-sm transition-colors relative py-1 ${
                     isActive
-                      ? 'font-bold text-slate-950 after:absolute after:bottom-[-4px] after:left-0 after:right-0 after:h-[2.5px] after:bg-blue-600 after:rounded-full'
-                      : 'font-medium text-slate-600 hover:text-slate-950'
+                      ? 'font-bold text-foreground after:absolute after:bottom-[-4px] after:left-0 after:right-0 after:h-[2.5px] after:bg-primary after:rounded-full'
+                      : 'font-medium text-foreground-secondary hover:text-foreground'
                   }`}
                 >
                   {link.label}
@@ -90,37 +110,37 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
           </nav>
         )}
 
-        {/* Right Side Controls & Actions */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* Right Side Controls & Actions - Clean, Single Horizontal Bar */}
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           {/* Help & Keyboard Shortcuts Action (Landing Page Only) */}
           {isLandingPage && onOpenHelp && (
             <button
               type="button"
               onClick={onOpenHelp}
               aria-label="Open Accessibility Help and Keyboard Shortcuts (Shortcut: Alt+H)"
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-md border border-border bg-surface hover:bg-surface-elevated text-foreground cursor-pointer min-h-[44px]"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border border-border bg-surface/60 hover:bg-surface-elevated text-foreground cursor-pointer min-h-[40px] backdrop-blur-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <HelpCircle className="w-4 h-4 text-primary" aria-hidden="true" />
+              <HelpCircle className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
               <span className="hidden md:inline">Help</span>
               <span className="keyboard-indicator text-[10px]">Alt+H</span>
             </button>
           )}
 
-          {/* Accessibility Quick Action - Candidate & Public Portal Only */}
+          {/* 1. Accessibility Preferences Quick Action - Candidate & Public Portal */}
           {!isExaminerOrAdmin && onOpenAccessibility && (
             <button
               type="button"
               onClick={onOpenAccessibility}
               aria-label={t('nav.accessibilitySettings')}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-md border border-border-strong bg-surface-elevated hover:bg-surface text-foreground cursor-pointer min-h-[44px]"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer min-h-[40px] backdrop-blur-md shadow-xs transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <Sliders className="w-4 h-4 text-primary" aria-hidden="true" />
+              <Sliders className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
               <span className="hidden sm:inline">{t('accessibility.title')}</span>
-              <span className="keyboard-indicator text-[10px]">Alt+A</span>
+              <span className="keyboard-indicator text-[10px] hidden md:inline">Alt+A</span>
             </button>
           )}
 
-          {/* Quick Language Toggle */}
+          {/* 2. Quick Language Toggle */}
           <button
             type="button"
             onClick={() => {
@@ -129,30 +149,30 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
               setPreferredLanguage(next);
             }}
             aria-label={language === 'hi' ? 'Switch interface language to English' : 'इंटरफ़ेस भाषा हिन्दी में बदलें'}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-md border border-border bg-surface hover:bg-surface-elevated text-foreground cursor-pointer min-h-[44px]"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border border-border bg-surface/60 hover:bg-surface-elevated text-foreground cursor-pointer min-h-[40px] backdrop-blur-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <Languages className="w-4 h-4 text-primary" aria-hidden="true" />
+            <Languages className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
             <span className="font-bold">{language === 'hi' ? 'हिन्दी' : 'EN'}</span>
           </button>
 
-          {/* Quick Theme Cycle */}
+          {/* 3. Quick Light/Dark Theme Cycle */}
           <button
             type="button"
             onClick={toggleTheme}
-            aria-label={`Current theme: ${theme}. Click to cycle theme presets.`}
-            className="p-2 sm:px-2.5 sm:py-2 text-xs font-semibold rounded-md border border-border bg-surface hover:bg-surface-elevated text-foreground cursor-pointer min-h-[44px] min-w-[44px] hidden md:inline-flex items-center justify-center gap-1.5"
+            aria-label={`Current theme: ${theme}. Click to switch theme.`}
+            className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs font-semibold rounded-xl border border-border bg-surface/60 hover:bg-surface-elevated text-foreground cursor-pointer min-h-[40px] backdrop-blur-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             {theme === 'light' ? (
-              <Sun className="w-4 h-4 text-amber-500" aria-hidden="true" />
+              <Sun className="w-4 h-4 text-amber-500 shrink-0" aria-hidden="true" />
             ) : theme === 'high_contrast' ? (
-              <Sparkles className="w-4 h-4 text-primary" aria-hidden="true" />
+              <Sparkles className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
             ) : (
-              <Moon className="w-4 h-4 text-primary" aria-hidden="true" />
+              <Moon className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
             )}
             <span className="hidden xl:inline capitalize">{theme.replace('_', ' ')}</span>
           </button>
 
-          {/* High Contrast Mode Quick Toggle - Candidate & Public Portal Only */}
+          {/* 4. High Contrast AAA Mode Toggle */}
           {!isExaminerOrAdmin && (
             <button
               type="button"
@@ -163,44 +183,35 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
                   ? 'Disable high contrast mode'
                   : 'Enable high contrast AAA mode'
               }
-              className={`px-3 py-2 text-xs font-semibold rounded-md border cursor-pointer min-h-[44px] hidden sm:inline-flex items-center gap-1.5 ${
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border cursor-pointer min-h-[40px] backdrop-blur-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 preferences.highContrast
                   ? 'bg-primary text-primary-contrast border-primary font-bold'
-                  : 'border-border bg-surface hover:bg-surface-elevated text-foreground'
+                  : 'border-border bg-surface/60 hover:bg-surface-elevated text-foreground'
               }`}
             >
               <span>Contrast</span>
-              <span className="text-[10px] font-mono px-1 rounded bg-black/20">
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/25 font-bold">
                 {preferences.highContrast ? 'AAA' : 'AA'}
               </span>
             </button>
           )}
 
-          {/* User Sign In / Get Started */}
+          {/* 5. Candidate Profile (Authenticated) / Sign In Buttons (Unauthenticated) */}
           {isAuthenticated ? (
-            <div className="flex items-center gap-2 border-l border-border pl-2 sm:pl-3">
-              <span className="text-xs text-foreground-muted hidden xl:inline font-mono">
-                {user?.name}
-              </span>
-              <button
-                type="button"
-                onClick={logout}
-                className="px-3.5 py-2 text-xs font-semibold rounded-full bg-surface hover:bg-surface-elevated text-status-error border border-border cursor-pointer min-h-[40px]"
-              >
-                {t('nav.logout')}
-              </button>
+            <div className="flex items-center pl-1 sm:pl-2 border-l border-border">
+              <ProfileMenu />
             </div>
           ) : isLandingPage ? (
             <div className="flex items-center gap-2.5">
               <Link
                 to="/auth/login"
-                className="inline-flex items-center justify-center px-5 py-2 text-sm font-semibold rounded-full border border-slate-700/80 bg-white/80 hover:bg-slate-100 text-slate-800 transition-colors shadow-xs"
+                className="inline-flex items-center justify-center px-4 sm:px-5 py-2 text-sm font-semibold rounded-full border border-border bg-surface/80 hover:bg-surface-elevated text-foreground transition-all backdrop-blur-md shadow-sm min-h-[40px]"
               >
                 {t('nav.login')}
               </Link>
               <Link
                 to="/auth/role-selection"
-                className="inline-flex items-center justify-center gap-1.5 px-5 py-2 text-sm font-bold rounded-full bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 hover:from-amber-700 hover:to-amber-900 text-white shadow-sm shadow-amber-700/20 active:scale-[0.98] transition-all"
+                className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2 text-sm font-bold rounded-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-primary hover:from-indigo-600 hover:to-primary-hover text-white shadow-glow-primary hover:shadow-lg active:scale-[0.98] transition-all min-h-[40px]"
               >
                 <span>Get Started</span>
                 <span aria-hidden="true">→</span>
@@ -210,34 +221,36 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
             <div className="flex items-center gap-2">
               <Link
                 to="/auth/login"
-                className="hidden sm:inline-flex items-center justify-center px-3.5 py-2 text-xs font-semibold rounded-md border border-border bg-surface hover:bg-surface-elevated text-foreground min-h-[44px]"
+                className="hidden sm:inline-flex items-center justify-center px-4 py-2 text-xs font-semibold rounded-xl border border-border bg-surface/80 hover:bg-surface-elevated text-foreground min-h-[40px] backdrop-blur-md transition-all"
               >
                 {t('nav.login')}
               </Link>
               <Link
                 to="/auth/role-selection"
-                className="inline-flex items-center justify-center px-4 py-2 text-xs font-bold rounded-md bg-primary text-primary-contrast hover:bg-primary-hover min-h-[44px]"
+                className="inline-flex items-center justify-center px-4 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-indigo-500 to-primary text-white hover:from-indigo-600 hover:to-primary-hover shadow-glow-primary min-h-[40px] transition-all"
               >
                 <span>Get Started</span>
               </Link>
             </div>
           )}
 
-          {/* Mobile Menu Hamburger Toggle */}
-          <button
-            type="button"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-expanded={isMobileMenuOpen}
-            aria-controls="mobile-navigation-menu"
-            aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-            className="p-2 rounded-md border border-border bg-surface text-foreground lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
-          >
-            {isMobileMenuOpen ? (
-              <X className="w-5 h-5" aria-hidden="true" />
-            ) : (
-              <Menu className="w-5 h-5" aria-hidden="true" />
-            )}
-          </button>
+          {/* Mobile Menu Hamburger Toggle (Landing Page Only) */}
+          {isLandingPage && (
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-navigation-menu"
+              aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              className="p-2 rounded-xl border border-border bg-surface/60 text-foreground lg:hidden min-h-[40px] min-w-[40px] flex items-center justify-center cursor-pointer backdrop-blur-md"
+            >
+              {isMobileMenuOpen ? (
+                <X className="w-5 h-5" aria-hidden="true" />
+              ) : (
+                <Menu className="w-5 h-5" aria-hidden="true" />
+              )}
+            </button>
+          )}
         </div>
       </div>
 

@@ -52,20 +52,28 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
   });
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-fast">
-      {/* Skip Navigation Link - Top of DOM hierarchy */}
-      <a href="#main-content" className="skip-link">
-        Skip to main content
-      </a>
+    <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-fast relative overflow-x-hidden">
+      {/* Ambient Cosmic Background Lighting - Soft, non-intrusive glow at edges to preserve 100% text contrast */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
+        {/* Cyber Cyan Ambient Orb */}
+        <div className="ambient-orb ambient-orb-2 absolute top-1/3 -right-40 w-80 sm:w-[480px] h-80 sm:h-[480px] rounded-full bg-cyan-600/8 dark:bg-cyan-500/8 blur-[150px] pointer-events-none" />
+        {/* Cyber Violet Ambient Orb */}
+        <div className="ambient-orb ambient-orb-1 absolute -bottom-40 left-1/4 w-80 sm:w-[480px] h-80 sm:h-[480px] rounded-full bg-purple-700/8 dark:bg-violet-600/8 blur-[160px] pointer-events-none" />
+        {/* Subtle grid pattern overlay for high-tech holographic depth */}
+        <div className="ambient-orb absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.025)_1px,transparent_1px)] [background-size:28px_28px] opacity-30 dark:opacity-40 pointer-events-none" />
+      </div>
 
       {/* Global Application Navbar */}
-      <Navbar
-        onOpenAccessibility={isExaminerOrAdmin ? undefined : openCalibration}
-        onOpenHelp={isExaminerOrAdmin ? undefined : () => setIsHelpOpen(true)}
-      />
+      <div className="sticky top-0 z-30 w-full">
+        <Navbar
+          hasSidebar={showSidebar}
+          onOpenAccessibility={isExaminerOrAdmin ? undefined : openCalibration}
+          onOpenHelp={isExaminerOrAdmin ? undefined : () => setIsHelpOpen(true)}
+        />
+      </div>
 
       {/* Layout Content Body */}
-      <div className={`flex-1 flex w-full mx-auto ${fullWidth ? '' : 'max-w-7xl'}`}>
+      <div className={`relative z-10 flex-1 flex w-full mx-auto ${fullWidth ? '' : 'max-w-7xl'}`}>
         {showSidebar && <Sidebar />}
         <main
           id="main-content"
@@ -83,10 +91,12 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
       </div>
 
       {/* Global Application Footer */}
-      <Footer
-        onOpenAccessibility={isExaminerOrAdmin ? undefined : openCalibration}
-        onOpenHelp={isExaminerOrAdmin ? undefined : () => setIsHelpOpen(true)}
-      />
+      <div className="relative z-10">
+        <Footer
+          onOpenAccessibility={isExaminerOrAdmin ? undefined : openCalibration}
+          onOpenHelp={isExaminerOrAdmin ? undefined : () => setIsHelpOpen(true)}
+        />
+      </div>
 
       {/* Global Accessible Calibration Center Modal - Candidate Only */}
       {!isExaminerOrAdmin && (

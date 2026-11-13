@@ -24,7 +24,11 @@ export interface SectionDescriptor {
   id: string;
   name: string;
   introSpeech: string;
+  introSpeechEn?: string;
+  introSpeechHi?: string;
   elementsSummary: string;
+  elementsSummaryEn?: string;
+  elementsSummaryHi?: string;
   elements: SectionElement[];
 }
 
@@ -37,6 +41,7 @@ export interface SectionContext {
   toggleListening?: () => void;
   speakAvailableCommands?: () => void;
   userName?: string;
+  dashboardData?: any;
 }
 
 export function resolveSectionDescriptor(path: string, ctx: SectionContext): SectionDescriptor {
@@ -44,67 +49,108 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
 
   // 1. DASHBOARD
   if (path.startsWith('/candidate/dashboard')) {
+    let dData = ctx.dashboardData;
+    if (!dData && typeof sessionStorage !== 'undefined') {
+      try {
+        const raw = sessionStorage.getItem('drishti_candidate_dashboard_data');
+        if (raw) dData = JSON.parse(raw);
+      } catch {}
+    }
+
+    const readinessPct = dData?.overviewStats?.overallProgressPercent ?? 78;
+    const questionsCount = dData?.overviewStats?.questionsPracticedCount ?? 184;
+    const mockTestsCount = dData?.overviewStats?.mockTestsCompletedCount ?? 4;
+    const avgScorePct = dData?.overviewStats?.averageScorePercent ?? 82;
+
+    const streakDays = dData?.dailyGoal?.streakDays ?? 7;
+    const minsPracticed = dData?.dailyGoal?.timeMinutesPracticed ?? 30;
+    const targetMins = dData?.dailyGoal?.targetMinutes ?? 45;
+
+    const nextAction = dData?.nextAction;
+    const actionTitle = nextAction?.title || 'Continue your preparation';
+    const actionSubject = nextAction?.subject || 'Mathematics';
+    const actionTopic = nextAction?.topic || 'Percentages & Fractions';
+    const actionCtaLabel = nextAction?.ctaLabel || 'Continue Practice';
+    const actionRoute = nextAction?.ctaRoute || '/candidate/practice/session/demo-percentages';
+
     const elements: SectionElement[] = [
       {
-        id: 'continue-practice',
+        id: 'next-action-card',
         number: 1,
-        label: 'Continue Percentages Practice',
-        description: 'Resumes your practice session on Percentages in Mathematics',
-        aliases: ['continue', 'percentages practice', 'resume', 'continue practice', 'abhyas chalu', 'प्रतिशत', 'प्रतिशत अभ्यास', 'अभ्यास जारी', 'प्रैक्टिस चालू', 'जारी रखो'],
-        action: (c) => c.navigate('/candidate/practice/session/demo-percentages'),
-        confirmSpeech: 'Launching Percentages Practice session.',
-      },
-      {
-        id: 'learn-curriculum',
-        number: 2,
-        label: 'Learn Curriculum',
-        description: 'Open curriculum subjects: Mathematics, English, General Knowledge, and Reasoning',
-        aliases: ['learn', 'curriculum', 'syllabus', 'padho', 'sikho', 'learning', 'पढ़ाई', 'पाठ्यक्रम', 'विषय', 'सीखो'],
-        action: (c) => c.navigate('/candidate/learn'),
-        confirmSpeech: 'Opening Learning Curriculum.',
+        label: `${actionCtaLabel}: ${actionSubject} - ${actionTopic}`,
+        description: `${actionTitle}: ${actionSubject} ${actionTopic}`,
+        aliases: [
+          'option 1', 'one', 'pehla', '1',
+          'continue', 'continue practice', 'start practice', 'resume', 'next action',
+          actionSubject.toLowerCase(),
+          actionTopic.toLowerCase(),
+          'abhyas chalu', 'अभ्यास जारी', 'प्रैक्टिस चालू', 'जारी रखो', 'पहला विकल्प', 'पहला',
+        ],
+        action: (c) => c.navigate(actionRoute),
+        confirmSpeech: `Opening ${actionTopic} practice session.`,
       },
       {
         id: 'practice-hub',
-        number: 3,
-        label: 'Interactive Practice Hub',
-        description: 'Practice questions by exam, subject, and topic with instant feedback',
-        aliases: ['practice', 'abhyas', 'practice hub', 'अभ्यास', 'अभ्यास केंद्र', 'सवाल'],
+        number: 2,
+        label: 'Practice Questions Hub',
+        description: 'Practice questions across all subjects and topics with audio guidance',
+        aliases: [
+          'option 2', 'two', 'doosra', '2',
+          'practice', 'practice hub', 'practice questions', 'abhyas',
+          'अभ्यास', 'अभ्यास केंद्र', 'सवाल', 'दूसरा विकल्प', 'दूसरा',
+        ],
         action: (c) => c.navigate('/candidate/practice'),
-        confirmSpeech: 'Opening Practice Hub.',
+        confirmSpeech: 'Opening Practice Questions Hub.',
       },
       {
         id: 'mock-tests',
-        number: 4,
+        number: 3,
         label: 'Official Mock Tests',
-        description: 'Full-length simulated timed examinations',
-        aliases: ['mock tests', 'mock test', 'mocks', 'test series', 'मॉक टेस्ट', 'मॉक', 'टेस्ट सीरीज'],
+        description: 'Simulated full-length timed examinations',
+        aliases: [
+          'option 3', 'three', 'teesra', '3',
+          'mock test', 'mock tests', 'mocks', 'test series',
+          'मॉक टेस्ट', 'मॉक', 'टेस्ट सीरीज', 'तीसरा विकल्प', 'तीसरा',
+        ],
         action: (c) => c.navigate('/candidate/mock-tests'),
         confirmSpeech: 'Opening Mock Tests Portal.',
       },
       {
         id: 'scheduled-exams',
-        number: 5,
+        number: 4,
         label: 'Scheduled Examinations',
-        description: 'Official exam schedule and proctored examination hall',
-        aliases: ['exams', 'exam', 'pariksha', 'examination', 'examinations', 'परीक्षा', 'परीक्षाएं', 'परीक्षा सूची'],
+        description: 'View registered examinations and hall tickets',
+        aliases: [
+          'option 4', 'four', 'chautha', '4',
+          'exams', 'exam', 'scheduled exams', 'pariksha', 'examination',
+          'परीक्षा', 'परीक्षाएं', 'परीक्षा सूची', 'चौथा विकल्प', 'चौथा',
+        ],
         action: (c) => c.navigate('/candidate/exams'),
-        confirmSpeech: 'Opening Official Examinations Portal.',
+        confirmSpeech: 'Opening Scheduled Examinations Portal.',
       },
       {
         id: 'results-analytics',
-        number: 6,
-        label: 'Results and Analytics',
-        description: 'Review scorecards, accuracy breakdown, and study insights',
-        aliases: ['results', 'scores', 'result', 'parinam', 'scorecard', 'परिणाम', 'स्कोरकार्ड', 'नतीजे'],
+        number: 5,
+        label: 'Performance and Results',
+        description: 'Review scorecards, test trends, and subject mastery breakdown',
+        aliases: [
+          'option 5', 'five', 'panchwa', '5',
+          'results', 'result', 'scores', 'performance', 'parinam', 'scorecard',
+          'परिणाम', 'स्कोरकार्ड', 'नतीजे', 'पांचवा विकल्प', 'पांचवा',
+        ],
         action: (c) => c.navigate('/candidate/results'),
-        confirmSpeech: 'Opening Results and Analytics.',
+        confirmSpeech: 'Opening Performance and Results.',
       },
       {
         id: 'accessibility-settings',
-        number: 7,
+        number: 6,
         label: 'Sensory Accessibility Settings',
-        description: 'Adjust high contrast, font size scale, audio narration, and themes',
-        aliases: ['settings', 'accessibility', 'preferences', 'contrast', 'font size', 'सेटिंग्स', 'सुलभता', 'कंट्रास्ट'],
+        description: 'Adjust high contrast, font size, audio narration, and themes',
+        aliases: [
+          'option 6', 'six', 'chhatha', '6',
+          'settings', 'accessibility', 'preferences', 'contrast', 'font size',
+          'सेटिंग्स', 'सुलभता', 'कंट्रास्ट', 'छठा विकल्प', 'छठा',
+        ],
         action: (c) => c.navigate('/candidate/settings'),
         confirmSpeech: 'Opening Accessibility Settings.',
       },
@@ -119,35 +165,56 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
       (typeof document !== 'undefined' && document.documentElement.getAttribute('lang') === 'hi');
 
     const displayName = (name && name !== 'Candidate') ? `, ${name}` : '';
-    const introSpeech = isHindi
-      ? `कैंडिडेट डैशबोर्ड का पूरा विवरण${displayName}। ` +
-        `आपकी समग्र तैयारी 78 प्रतिशत पूर्ण है और 7 दिन का दैनिक अध्ययन सिलसिला सक्रिय है। ` +
-        `आज का अध्ययन लक्ष्य: 45 में से 30 मिनट पूर्ण। ` +
-        `अनुशंसित अगला कदम: प्रतिशत अभ्यास जारी रखें। ` +
-        `डैशबोर्ड पर 7 मुख्य विकल्प उपलब्ध हैं: ` +
-        `विकल्प 1: प्रतिशत अभ्यास जारी रखें। ` +
-        `विकल्प 2: पाठ्यक्रम और विषय पढ़ें - गणित, अंग्रेजी, सामान्य ज्ञान और रीजनिंग। ` +
-        `विकल्प 3: इंटरैक्टिव अभ्यास केंद्र। ` +
-        `विकल्प 4: आधिकारिक मॉक टेस्ट पोर्टल। ` +
-        `विकल्प 5: आधिकारिक निर्धारित परीक्षाएं। ` +
-        `विकल्प 6: परिणाम, स्कोरकार्ड और विश्लेषण। ` +
-        `विकल्प 7: सुलभता और आवाज सेटिंग्स। ` +
-        `किसी भी विकल्प को खोलने के लिए उसका नाम या विकल्प संख्या बोलें।`
-      : `Welcome to Candidate Dashboard, ${name}. Here are your 7 options: ` +
-        `Option 1: Continue Percentages Practice. ` +
-        `Option 2: Learn Curriculum. ` +
-        `Option 3: Interactive Practice Hub. ` +
-        `Option 4: Official Mock Tests. ` +
-        `Option 5: Scheduled Examinations. ` +
-        `Option 6: Results and Analytics. ` +
-        `Option 7: Sensory Accessibility Settings. ` +
-        `Say Option 1 to resume practice, or say any option number or name to select.`;
+    const introSpeechHi =
+      `कैंडिडेट डैशबोर्ड का पूरा विवरण${displayName}। ` +
+      `आपकी समग्र तैयारी ${readinessPct} प्रतिशत पूर्ण है, कुल ${questionsCount} प्रश्न हल किए गए हैं, ` +
+      `मॉक टेस्ट सटीकता ${avgScorePct} प्रतिशत है, और ${streakDays} दिन का दैनिक अध्ययन सिलसिला सक्रिय है। ` +
+      `आज का अध्ययन लक्ष्य: ${targetMins} में से ${minsPracticed} मिनट पूर्ण। ` +
+      `अनुशंसित अगला कदम: ${actionSubject} में ${actionTopic}। ` +
+      `डैशबोर्ड पर 6 मुख्य विकल्प उपलब्ध हैं: ` +
+      `विकल्प 1: ${actionSubject} - ${actionTopic} का अभ्यास शुरू करें। ` +
+      `विकल्प 2: अभ्यास केंद्र। ` +
+      `विकल्प 3: मॉक टेस्ट पोर्टल। ` +
+      `विकल्प 4: निर्धारित आधिकारिक परीक्षाएं। ` +
+      `विकल्प 5: परिणाम और स्कोरकार्ड। ` +
+      `विकल्प 6: सुलभता और आवाज सेटिंग्स। ` +
+      `किसी भी विकल्प को खोलने के लिए उसका नंबर या नाम बोलें।`;
 
-    const elementsSummary = isHindi
-      ? `उपलब्ध विकल्प: 1. प्रतिशत अभ्यास, 2. पाठ्यक्रम, 3. अभ्यास केंद्र, 4. मॉक टेस्ट, 5. परीक्षाएं, 6. परिणाम, 7. सुलभता सेटिंग्स। विकल्प 1 से 7 बोलें।`
-      : `Options available: 1. Continue Practice, 2. Learn Curriculum, 3. Practice Hub, 4. Mock Tests, 5. Scheduled Exams, 6. Results, 7. Settings. Say Option 1 through 7 to select.`;
+    const introSpeechEn =
+      `Candidate Dashboard summary${displayName}. ` +
+      `Your overall readiness is ${readinessPct} percent, with ${questionsCount} questions practiced, ` +
+      `${avgScorePct} percent mock accuracy across ${mockTestsCount} mocks, and a ${streakDays}-day active study streak. ` +
+      `Today's study goal: ${minsPracticed} of ${targetMins} minutes completed. ` +
+      `Recommended next step: ${actionSubject} - ${actionTopic}. ` +
+      `Here are your 6 main options: ` +
+      `Option 1: ${actionCtaLabel} for ${actionTopic}. ` +
+      `Option 2: Practice Questions Hub. ` +
+      `Option 3: Official Mock Tests. ` +
+      `Option 4: Scheduled Examinations. ` +
+      `Option 5: Performance and Results. ` +
+      `Option 6: Sensory Accessibility Settings. ` +
+      `Say Option 1 to start your next practice, or say any option number or portal name to open.`;
 
-    return { id: 'dashboard', name: 'Candidate Dashboard', introSpeech, elementsSummary, elements };
+    const elementsSummaryHi =
+      `उपलब्ध विकल्प: 1. ${actionTopic} अभ्यास, 2. अभ्यास केंद्र, 3. मॉक टेस्ट, 4. परीक्षाएं, 5. परिणाम, 6. सुलभता सेटिंग्स। विकल्प 1 से 6 बोलें।`;
+
+    const elementsSummaryEn =
+      `Options available: 1. ${actionTopic} Practice, 2. Practice Hub, 3. Mock Tests, 4. Scheduled Exams, 5. Results, 6. Settings. Say Option 1 through 6 to select.`;
+
+    const introSpeech = isHindi ? introSpeechHi : introSpeechEn;
+    const elementsSummary = isHindi ? elementsSummaryHi : elementsSummaryEn;
+
+    return {
+      id: 'dashboard',
+      name: 'Candidate Dashboard',
+      introSpeech,
+      introSpeechEn,
+      introSpeechHi,
+      elementsSummary,
+      elementsSummaryEn,
+      elementsSummaryHi,
+      elements,
+    };
   }
 
   // 2. ACTIVE PRACTICE QUESTION SESSION
@@ -218,15 +285,40 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
       },
     ];
 
-    const isHindi = ctx.preferences?.language === 'hi';
-    const introSpeech = isHindi
-      ? 'इंटरैक्टिव अभ्यास सत्र। वर्तमान प्रश्न और विकल्पों को सुनने के लिए प्रश्न पढ़ो बोलें, या उत्तर देने के लिए विकल्प ए, विकल्प बी, विकल्प सी, या विकल्प डी बोलें, या अगला प्रश्न बोलें।'
-      : 'Interactive Practice Session. Say Read Question to hear the current question and options, or say Option A, Option B, Option C, or Option D to submit your answer, or say Next Question.';
-    const elementsSummary = isHindi
-      ? 'अभ्यास सत्र विकल्प: विकल्प ए, विकल्प बी, विकल्प सी, विकल्प डी, अगला प्रश्न, या प्रश्न पढ़ो बोलें।'
-      : 'Practice Session options: Say Option A, Option B, Option C, Option D, Next Question, or Read Question.';
+    const isHindi =
+      ctx.preferences?.language === 'hi' ||
+      (typeof localStorage !== 'undefined' && (
+        localStorage.getItem('gowow_preferred_lang') === 'hi' ||
+        localStorage.getItem('gowow_accessibility_preferences')?.includes('"language":"hi"')
+      )) ||
+      (typeof document !== 'undefined' && document.documentElement.getAttribute('lang') === 'hi');
 
-    return { id: 'practice-session', name: 'Practice Session', introSpeech, elementsSummary, elements };
+    const introSpeechHi =
+      'इंटरैक्टिव अभ्यास सत्र। वर्तमान प्रश्न और विकल्पों को सुनने के लिए "प्रश्न पढ़ो" बोलें। उत्तर देने के लिए "ऑप्शन ए", "ऑप्शन बी", "ऑप्शन सी", या "ऑप्शन डी" बोलें। अगले सवाल के लिए "अगला" बोलें, या सत्र समाप्त करने के लिए "अभ्यास पूरा करें" बोलें।';
+
+    const introSpeechEn =
+      'Interactive Practice Session. Say "Read Question" to hear the question and all choices. Say "Option A", "Option B", "Option C", or "Option D" to submit your answer. Say "Next" for the next question, or "Finish" to complete the session.';
+
+    const elementsSummaryHi =
+      'सत्र विकल्प: विकल्प ए, बी, सी, डी बोलकर उत्तर दें, या अगला सवाल, या प्रश्न पढ़ो बोलें।';
+
+    const elementsSummaryEn =
+      'Session options: Say Option A, B, C, or D to answer, or say Next Question, or Read Question.';
+
+    const introSpeech = isHindi ? introSpeechHi : introSpeechEn;
+    const elementsSummary = isHindi ? elementsSummaryHi : elementsSummaryEn;
+
+    return {
+      id: 'practice-session',
+      name: 'Practice Session',
+      introSpeech,
+      introSpeechEn,
+      introSpeechHi,
+      elementsSummary,
+      elementsSummaryEn,
+      elementsSummaryHi,
+      elements,
+    };
   }
 
   // 3. SPECIFIC SUBTOPIC DETAIL PAGES (/candidate/learn/:subjectId/:topicId)
@@ -928,95 +1020,198 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
   }
 
   if (path.startsWith('/candidate/practice')) {
+    let dData = ctx.dashboardData;
+    if (!dData && typeof sessionStorage !== 'undefined') {
+      try {
+        const raw = sessionStorage.getItem('drishti_candidate_dashboard_data');
+        if (raw) dData = JSON.parse(raw);
+      } catch {}
+    }
+
+    const questionsCount = dData?.overviewStats?.questionsPracticedCount ?? 184;
+    const avgAccuracy = dData?.overviewStats?.averageScorePercent ?? 82;
+    const streakDays = dData?.dailyGoal?.streakDays ?? 7;
+    const minsPracticed = dData?.dailyGoal?.timeMinutesPracticed ?? 30;
+    const targetMins = dData?.dailyGoal?.targetMinutes ?? 45;
+
     const elements: SectionElement[] = [
       {
         id: 'percentages-practice',
         number: 1,
-        label: 'Percentages and Fractions Practice Set',
-        description: 'Quick 5 questions on conversion, percentage changes, and ratio problems',
-        aliases: ['percentages', 'percentages practice', 'fractions', 'math practice'],
+        label: 'Mathematics: Percentages and Fractions Practice',
+        description: 'Practice 10 high-yield questions on percentage changes, ratios, and fractions with voice guidance',
+        aliases: [
+          'percentages', 'percentages practice', 'fractions', 'math practice', 'mathematics',
+          'गणित', 'प्रतिशत', 'ऑप्शन 1', 'पहला', 'option 1', 'maths', 'एक', 'पहला विकल्प',
+        ],
         action: (c) => c.navigate('/candidate/practice/session/demo-percentages'),
-        confirmSpeech: 'Starting 5 questions on Percentages.',
+        confirmSpeech: 'Starting Mathematics practice session on Percentages and Fractions.',
       },
       {
         id: 'coding-practice',
         number: 2,
-        label: 'Coding and Decoding Practice Set',
-        description: 'Quick 5 questions on letter shifting patterns and numerical substitution',
-        aliases: ['coding', 'coding practice', 'coding decoding', 'reasoning practice'],
+        label: 'Reasoning Ability: Coding and Decoding Practice',
+        description: 'Practice 10 standard exam questions on letter shifting patterns and numerical substitution',
+        aliases: [
+          'coding', 'coding practice', 'coding decoding', 'reasoning practice', 'reasoning',
+          'कोडिंग', 'रीजनिंग', 'तर्कशक्ति', 'ऑप्शन 2', 'दूसरा', 'option 2', 'दो', 'दूसरा विकल्प',
+        ],
         action: (c) => c.navigate('/candidate/practice/session/demo-coding-decoding'),
-        confirmSpeech: 'Starting 5 questions on Coding and Decoding.',
+        confirmSpeech: 'Starting Reasoning practice session on Coding and Decoding.',
+      },
+      {
+        id: 'english-practice',
+        number: 3,
+        label: 'English Language: Reading Comprehension and Synonyms',
+        description: 'Practice 10 questions on contextual inference, vocabulary, and sentence completion',
+        aliases: [
+          'english', 'english practice', 'comprehension', 'reading comprehension', 'vocabulary',
+          'अंग्रेजी', 'गद्यांश', 'शब्दावली', 'ऑप्शन 3', 'तीसरा', 'option 3', 'तीन', 'तीसरा विकल्प',
+        ],
+        action: (c) => c.navigate('/candidate/practice?subject=english'),
+        confirmSpeech: 'Opening English Comprehension practice session.',
       },
       {
         id: 'current-affairs-practice',
-        number: 3,
-        label: 'Current Affairs and Defence Practice Set',
-        description: 'Quick 5 questions on national awards, joint military exercises, and summits',
-        aliases: ['current affairs', 'gk practice', 'affairs', 'defence'],
+        number: 4,
+        label: 'General Knowledge: Current Affairs and Defence',
+        description: 'Practice 10 questions on joint military exercises, national awards, summits, and polity',
+        aliases: [
+          'current affairs', 'gk practice', 'gk', 'general knowledge', 'affairs', 'defence',
+          'करंट अफेयर्स', 'सामान्य ज्ञान', 'जीके', 'रक्षा', 'ऑप्शन 4', 'चौथा', 'option 4', 'चार', 'चौथा विकल्प',
+        ],
         action: (c) => c.navigate('/candidate/practice/session/demo-current-affairs'),
-        confirmSpeech: 'Starting 5 questions on Current Affairs.',
+        confirmSpeech: 'Starting General Knowledge practice session on Current Affairs.',
+      },
+      {
+        id: 'custom-filter',
+        number: 5,
+        label: 'Customize Practice Session',
+        description: 'Filter practice by specific examination, subject, topic, difficulty, and question count',
+        aliases: [
+          'customize', 'custom practice', 'filter', 'filter practice', 'select topic',
+          'कस्टमाइज़', 'फ़िल्टर', 'विषय चुनो', 'ऑप्शन 5', 'पांचवां', 'option 5', 'पांच', 'पांचवा विकल्प',
+        ],
+        action: (c) => {
+          const el = document.getElementById('custom-filter-section');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          c.speak('Custom practice filter is active. Select your subject and topic.');
+        },
+        confirmSpeech: 'Navigating to Custom Practice Filter.',
       },
       {
         id: 'practice-history',
-        number: 4,
+        number: 6,
         label: 'Practice Session History',
-        description: 'Review your previously attempted practice sessions and solutions',
-        aliases: ['practice history', 'history', 'purana abhyas'],
+        description: 'Review your previously attempted practice sessions, scorecards, and explanations',
+        aliases: [
+          'practice history', 'history', 'purana abhyas', 'previous practice',
+          'अभ्यास इतिहास', 'इतिहास', 'ऑप्शन 6', 'छठा', 'option 6', 'छह', 'छठा विकल्प',
+        ],
         action: (c) => c.navigate('/candidate/practice/history'),
         confirmSpeech: 'Opening Practice History.',
       },
       {
         id: 'dashboard',
-        number: 5,
-        label: 'Return to Dashboard',
-        description: 'Go back to Candidate Workspace',
-        aliases: ['dashboard', 'home', 'main menu'],
+        number: 7,
+        label: 'Return to Candidate Dashboard',
+        description: 'Go back to Candidate Main Workspace',
+        aliases: [
+          'dashboard', 'home', 'main menu', 'back', 'wapas',
+          'डैशबोर्ड', 'होम', 'मुख्य पृष्ठ', 'वापस', 'ऑप्शन 7', 'सातवां', 'option 7', 'सात', 'सातवा विकल्प',
+        ],
         action: (c) => c.navigate('/candidate/dashboard'),
         confirmSpeech: 'Returning to Candidate Dashboard.',
       },
     ];
 
-    const introSpeech =
-      `Practice Hub. Here are the 4 featured sets available right now: ` +
-      `Option 1: Quick 5 Questions on Percentages and Fractions in Mathematics. ` +
-      `Option 2: Quick 5 Questions on Coding and Decoding in Reasoning. ` +
-      `Option 3: Quick 5 Questions on Current Affairs in General Knowledge. ` +
-      `Option 4: View your Practice Session History. ` +
-      `Say Option 1 for Percentages, Option 2 for Coding, Option 3 for Current Affairs, or Option 4 for History.`;
+    const isHindi =
+      ctx.preferences?.language === 'hi' ||
+      (typeof localStorage !== 'undefined' && (
+        localStorage.getItem('gowow_preferred_lang') === 'hi' ||
+        localStorage.getItem('gowow_accessibility_preferences')?.includes('"language":"hi"')
+      )) ||
+      (typeof document !== 'undefined' && document.documentElement.getAttribute('lang') === 'hi');
 
-    const elementsSummary =
-      `Practice options: 1. Percentages Practice, 2. Coding Practice, 3. Current Affairs Practice, 4. Practice History, 5. Dashboard. Say Option 1 through 5.`;
+    const displayName = (name && name !== 'Candidate') ? `, ${name}` : '';
 
-    return { id: 'practice-hub', name: 'Practice Hub', introSpeech, elementsSummary, elements };
+    const introSpeechHi =
+      `अभ्यास केंद्र का पूरा विवरण${displayName}। ` +
+      `आपने कुल ${questionsCount} प्रश्न हल किए हैं, औसत सटीकता ${avgAccuracy} प्रतिशत है, और ${streakDays} दिन का दैनिक अभ्यास सिलसिला सक्रिय है। ` +
+      `आज का अभ्यास लक्ष्य: ${targetMins} में से ${minsPracticed} मिनट पूर्ण। ` +
+      `यहाँ आपके लिए 7 मुख्य विकल्प उपलब्ध हैं: ` +
+      `विकल्प 1: गणित में प्रतिशत और भिन्न का अभ्यास। ` +
+      `विकल्प 2: रीजनिंग में कोडिंग और डिकोडिंग का अभ्यास। ` +
+      `विकल्प 3: अंग्रेजी में गद्यांश और शब्दावली का अभ्यास। ` +
+      `विकल्प 4: सामान्य ज्ञान में करंट अफेयर्स और रक्षा का अभ्यास। ` +
+      `विकल्प 5: अपनी पसंद का कस्टमाइज़्ड अभ्यास सत्र बनाएं। ` +
+      `विकल्प 6: पिछला अभ्यास इतिहास देखें। ` +
+      `विकल्प 7: डैशबोर्ड पर वापस जाएं। ` +
+      `किसी भी विषय को शुरू करने के लिए उसका नंबर या नाम बोलें।`;
+
+    const introSpeechEn =
+      `Welcome to the Practice Arena${displayName}. ` +
+      `You have completed ${questionsCount} practice questions with ${avgAccuracy} percent average accuracy and a ${streakDays}-day active study streak. ` +
+      `Today's practice: ${minsPracticed} of ${targetMins} minutes. ` +
+      `Here are your 7 options: ` +
+      `Option 1: Mathematics - Percentages and Fractions Practice. ` +
+      `Option 2: Reasoning - Coding and Decoding Practice. ` +
+      `Option 3: English - Reading Comprehension and Vocabulary. ` +
+      `Option 4: General Knowledge - Current Affairs and Defence. ` +
+      `Option 5: Customize Practice Session. ` +
+      `Option 6: View Practice Session History. ` +
+      `Option 7: Return to Candidate Dashboard. ` +
+      `Say any option number or subject name to start.`;
+
+    const elementsSummaryHi =
+      `अभ्यास विकल्प: 1. गणित अभ्यास, 2. रीजनिंग अभ्यास, 3. अंग्रेजी अभ्यास, 4. सामान्य ज्ञान, 5. कस्टमाइज़्ड सत्र, 6. अभ्यास इतिहास, 7. डैशबोर्ड। विकल्प 1 से 7 बोलें।`;
+
+    const elementsSummaryEn =
+      `Practice options: 1. Mathematics, 2. Reasoning, 3. English, 4. General Knowledge, 5. Custom Session, 6. Practice History, 7. Dashboard. Say Option 1 through 7 to select.`;
+
+    const introSpeech = isHindi ? introSpeechHi : introSpeechEn;
+    const elementsSummary = isHindi ? elementsSummaryHi : elementsSummaryEn;
+
+    return {
+      id: 'practice-hub',
+      name: 'Practice Hub',
+      introSpeech,
+      introSpeechEn,
+      introSpeechHi,
+      elementsSummary,
+      elementsSummaryEn,
+      elementsSummaryHi,
+      elements,
+    };
   }
 
   // 9. EXAMS PORTAL
   if (path.startsWith('/candidate/exams')) {
     const elements: SectionElement[] = [
       {
-        id: 'cds-mock',
+        id: 'upsc-exam',
         number: 1,
-        label: 'CDS Official Mock Exam',
-        description: 'UPSC Combined Defence Services simulated examination - 100 Marks',
-        aliases: ['cds', 'cds exam', 'defence exam', 'mock exam'],
-        action: (c) => c.navigate('/candidate/exams/cds-mock-1/instructions'),
-        confirmSpeech: 'Opening CDS Official Mock Exam instructions.',
+        label: 'UPSC Civil Services Prelims 2026',
+        description: 'Union Public Service Commission Civil Services GS Paper 1 - 200 Marks (16 Questions)',
+        aliases: ['upsc', 'upsc exam', 'civil services', 'ias exam', 'cds', 'cds exam', 'vikalp 1', 'option 1', 'पहला विकल्प', 'ऑप्शन 1'],
+        action: (c) => c.navigate('/candidate/exams/upsc-cse-prelims-2026'),
+        confirmSpeech: 'Opening UPSC Civil Services Preliminary Examination.',
       },
       {
         id: 'ssc-exam',
         number: 2,
-        label: 'SSC CGL Tier 1 Practice Exam',
-        description: 'Staff Selection Commission Tier 1 comprehensive test - 200 Marks',
-        aliases: ['ssc', 'ssc exam', 'cgl exam', 'ssc cgl'],
-        action: (c) => c.navigate('/candidate/exams/ssc-tier1/instructions'),
-        confirmSpeech: 'Opening SSC Tier 1 Practice Exam instructions.',
+        label: 'SSC CGL Tier 1 Examination 2026',
+        description: 'Staff Selection Commission Combined Graduate Level Tier 1 - 200 Marks (16 Questions)',
+        aliases: ['ssc', 'ssc exam', 'cgl exam', 'ssc cgl', 'vikalp 2', 'option 2', 'दूसरा विकल्प', 'ऑप्शन 2'],
+        action: (c) => c.navigate('/candidate/exams/ssc-cgl-tier1-2026'),
+        confirmSpeech: 'Opening SSC Combined Graduate Level Tier 1 Examination.',
       },
       {
         id: 'dashboard',
         number: 3,
         label: 'Return to Dashboard',
         description: 'Go back to Candidate Workspace',
-        aliases: ['dashboard', 'home', 'main menu'],
+        aliases: ['dashboard', 'home', 'main menu', 'vikalp 3', 'option 3', 'तीसरा विकल्प', 'ऑप्शन 3'],
         action: (c) => c.navigate('/candidate/dashboard'),
         confirmSpeech: 'Returning to Candidate Dashboard.',
       },
@@ -1024,18 +1219,18 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
 
     const isHindi = ctx.preferences?.language === 'hi';
     const introSpeech = isHindi
-      ? `आधिकारिक परीक्षा पोर्टल। आपकी निर्धारित परीक्षाएं: ` +
-        `विकल्प 1: कंबाइंड डिफेंस सर्विसेज (CDS) आधिकारिक मॉक परीक्षा - 100 अंक। ` +
-        `विकल्प 2: एसएससी सीजीएल टियर 1 अभ्यास परीक्षा - 200 अंक। ` +
-        `विकल्प 1 या सीडीएस परीक्षा बोलें, या विकल्प 2 या एसएससी परीक्षा बोलें।`
-      : `Official Examinations Portal. Here are your scheduled examinations: ` +
-        `Option 1: Combined Defence Services (CDS) Official Mock Exam - 100 Marks. ` +
-        `Option 2: SSC Combined Graduate Level Tier 1 Practice Exam - 200 Marks. ` +
-        `Say Option 1 or CDS Exam, Option 2 or SSC Exam, or say Dashboard to return.`;
+      ? `आधिकारिक परीक्षा पोर्टल में आपका स्वागत है। यहाँ आपके लिए दो मुख्य राष्ट्रीय परीक्षाएं उपलब्ध हैं: ` +
+        `विकल्प 1: संघ लोक सेवा आयोग (UPSC) सिविल सेवा प्रारंभिक परीक्षा 2026 - सामान्य अध्ययन। ` +
+        `विकल्प 2: कर्मचारी चयन आयोग (SSC) कंबाइंड ग्रेजुएट लेवल टियर 1 परीक्षा 2026। ` +
+        `परीक्षा शुरू करने के लिए बोलिए 'विकल्प 1' या 'यूपीएससी परीक्षा', अथवा 'विकल्प 2' या 'एसएससी परीक्षा'। वापस जाने के लिए 'डैशबोर्ड' बोलें।`
+      : `Welcome to the Official Examinations Portal. You have two main national examinations available: ` +
+        `Option 1: UPSC Civil Services Preliminary Examination 2026, General Studies Paper 1. ` +
+        `Option 2: SSC Combined Graduate Level Tier 1 Examination 2026. ` +
+        `Say 'Option 1' or 'UPSC Exam' to begin, say 'Option 2' or 'SSC Exam', or say 'Dashboard' to return.`;
 
     const elementsSummary = isHindi
-      ? `परीक्षा विकल्प: 1. सीडीएस मॉक परीक्षा, 2. एसएससी अभ्यास परीक्षा, 3. डैशबोर्ड। विकल्प 1, 2, या 3 बोलें।`
-      : `Exams options: 1. CDS Mock Exam, 2. SSC Practice Exam, 3. Dashboard. Say Option 1, 2, or 3.`;
+      ? `परीक्षा विकल्प: 1. यूपीएससी सिविल सेवा प्रारंभिक परीक्षा, 2. एसएससी सीजीएल टियर 1 परीक्षा, 3. डैशबोर्ड। विकल्प 1, 2, या 3 बोलें।`
+      : `Exams options: 1. UPSC Civil Services Prelims, 2. SSC CGL Tier 1 Exam, 3. Dashboard. Say Option 1, 2, or 3.`;
 
     return { id: 'exams-portal', name: 'Official Examinations Portal', introSpeech, elementsSummary, elements };
   }
@@ -1267,18 +1462,30 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
       },
     ];
 
-    const introSpeech =
-      `Mock Tests Portal. Here are your 5 examinations ready to take: ` +
-      `Option 1: CDS Full Practice Examination 1. ` +
-      `Option 2: Elementary Mathematics Mock Test. ` +
-      `Option 3: English Language Mock Test. ` +
-      `Option 4: General Knowledge and Defense Mock Test. ` +
-      `Option 5: Reasoning Ability Mock Test. ` +
-      `Option 6: Attempt History. ` +
-      `Say Option 1 through 5, or say Math Mock, English Mock, GK Mock, or Reasoning Mock to start the test immediately.`;
+    const isHindi = ctx.preferences?.language === 'hi';
+    const introSpeech = isHindi
+      ? `आधिकारिक मॉक टेस्ट पोर्टल। आपके लिए 5 मॉक परीक्षाएं तैयार हैं: ` +
+        `विकल्प 1: सीडीएस संपूर्ण अभ्यास परीक्षा 1। ` +
+        `विकल्प 2: प्रारंभिक गणित विषय मॉक टेस्ट। ` +
+        `विकल्प 3: अंग्रेजी भाषा और समझ मॉक टेस्ट। ` +
+        `विकल्प 4: सामान्य ज्ञान और रक्षा मॉक टेस्ट। ` +
+        `विकल्प 5: रीजनिंग और मानसिक योग्यता मॉक टेस्ट। ` +
+        `विकल्प 6: मॉक टेस्ट प्रयास इतिहास। ` +
+        `विकल्प 7: डैशबोर्ड पर वापस जाएं। ` +
+        `टेस्ट शुरू करने के लिए 'विकल्प 1' से 'विकल्प 5' बोलें, या टेस्ट का नाम जैसे 'गणित मॉक' बोलें।`
+      : `Mock Tests Portal. Here are your 5 examinations ready to take: ` +
+        `Option 1: CDS Full Practice Examination 1. ` +
+        `Option 2: Elementary Mathematics Mock Test. ` +
+        `Option 3: English Language Mock Test. ` +
+        `Option 4: General Knowledge and Defense Mock Test. ` +
+        `Option 5: Reasoning Ability Mock Test. ` +
+        `Option 6: Attempt History. ` +
+        `Option 7: Return to Dashboard. ` +
+        `Say Option 1 through 5, or say Math Mock, English Mock, GK Mock, or Reasoning Mock to start the test immediately, or say Dashboard.`;
 
-    const elementsSummary =
-      `Mock Tests: 1. Full CDS Mock, 2. Mathematics Mock, 3. English Mock, 4. GK Mock, 5. Reasoning Mock, 6. History, 7. Dashboard. Say Option 1 through 7.`;
+    const elementsSummary = isHindi
+      ? `मॉक टेस्ट विकल्प: 1. संपूर्ण मॉक, 2. गणित मॉक, 3. अंग्रेजी मॉक, 4. सामान्य ज्ञान मॉक, 5. रीजनिंग मॉक, 6. इतिहास, 7. डैशबोर्ड। विकल्प 1 से 7 बोलें।`
+      : `Mock Tests: 1. Full CDS Mock, 2. Mathematics Mock, 3. English Mock, 4. GK Mock, 5. Reasoning Mock, 6. History, 7. Dashboard. Say Option 1 through 7.`;
 
     return { id: 'mock-tests', name: 'Mock Tests Portal', introSpeech, elementsSummary, elements };
   }
@@ -1484,17 +1691,26 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
       },
     ];
 
-    const introSpeech =
-      `Sensory Accessibility Settings. Here are your 5 available actions: ` +
-      `Option 1: Toggle High Contrast AAA Visual Mode. ` +
-      `Option 2: Increase Text Size to Extra Large. ` +
-      `Option 3: Reset Text Size to Normal. ` +
-      `Option 4: Toggle Voice Assistant Listening. ` +
-      `Option 5: Return to Dashboard. ` +
-      `Say Option 1 or High Contrast, Option 2 or Increase Text, or say Dashboard.`;
+    const isHindi = ctx.preferences?.language === 'hi';
+    const introSpeech = isHindi
+      ? `सुलभता और संवेदी सेटिंग्स। यहाँ आपके पास 5 विकल्प हैं: ` +
+        `विकल्प 1: हाई कंट्रास्ट मोड चालू या बंद करें। ` +
+        `विकल्प 2: टेक्स्ट साइज बड़ा करें। ` +
+        `विकल्प 3: टेक्स्ट साइज सामान्य करें। ` +
+        `विकल्प 4: वॉयस असिस्टेंट चालू या बंद करें। ` +
+        `विकल्प 5: डैशबोर्ड पर वापस जाएं। ` +
+        `कंट्रास्ट के लिए बोलें 'विकल्प 1', बड़ा फॉन्ट के लिए 'विकल्प 2', या 'डैशबोर्ड' बोलें।`
+      : `Sensory Accessibility Settings. Here are your 5 available actions: ` +
+        `Option 1: Toggle High Contrast AAA Visual Mode. ` +
+        `Option 2: Increase Text Size to Extra Large. ` +
+        `Option 3: Reset Text Size to Normal. ` +
+        `Option 4: Toggle Voice Assistant Listening. ` +
+        `Option 5: Return to Dashboard. ` +
+        `Say Option 1 or High Contrast, Option 2 or Increase Text, or say Dashboard.`;
 
-    const elementsSummary =
-      `Settings options: 1. Toggle High Contrast, 2. Increase Text, 3. Reset Text, 4. Toggle Voice, 5. Dashboard.`;
+    const elementsSummary = isHindi
+      ? `सेटिंग्स विकल्प: 1. हाई कंट्रास्ट, 2. बड़ा टेक्स्ट, 3. सामान्य टेक्स्ट, 4. वॉयस असिस्टेंट, 5. डैशबोर्ड। विकल्प 1 से 5 बोलें।`
+      : `Settings options: 1. Toggle High Contrast, 2. Increase Text, 3. Reset Text, 4. Toggle Voice, 5. Dashboard. Say Option 1 through 5.`;
 
     return { id: 'settings', name: 'Accessibility Settings', introSpeech, elementsSummary, elements };
   }

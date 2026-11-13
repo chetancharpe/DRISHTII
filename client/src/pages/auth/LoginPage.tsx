@@ -71,21 +71,17 @@ export const LoginPage: React.FC = () => {
 
   const navigateAfterLogin = useCallback(
     (loggedInUser: any, forceAccessibilitySetup: boolean = false) => {
-      const isCompleted =
-        !forceAccessibilitySetup &&
-        (localStorage.getItem(`drishti_onboarding_completed_${loggedInUser.id}`) === 'true' ||
-          localStorage.getItem('drishti_onboarding_completed') === 'true');
-
-      if (!isCompleted || forceAccessibilitySetup || loggedInUser.role === 'candidate') {
+      if (forceAccessibilitySetup) {
         navigate('/auth/accessibility-setup');
+        return;
+      }
+
+      if (loggedInUser.role === 'examiner') {
+        navigate('/examiner/dashboard');
+      } else if (loggedInUser.role === 'admin') {
+        navigate('/admin/dashboard');
       } else {
-        if (loggedInUser.role === 'examiner') {
-          navigate('/examiner/dashboard');
-        } else if (loggedInUser.role === 'admin') {
-          navigate('/admin/dashboard');
-        } else {
-          navigate('/candidate/dashboard');
-        }
+        navigate('/candidate/dashboard');
       }
     },
     [navigate]
@@ -462,7 +458,7 @@ export const LoginPage: React.FC = () => {
           if (loginWithUser) {
             loginWithUser(user);
           }
-          navigateAfterLogin(user, true);
+          navigateAfterLogin(user, false);
         }}
         onFallbackToPassword={() => {
           setIsFaceAccessOpen(false);

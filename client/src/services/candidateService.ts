@@ -65,6 +65,14 @@ export function getFallbackCandidateDashboard(user?: { name?: string; email?: st
 
   const avgScore = mockCount > 0 ? Math.round(totalScore / mockCount) : 0;
 
+  const defaultOverallProgress = 78;
+  const defaultQuestions = 184;
+  const defaultMockCount = 4;
+  const defaultAvgScore = 82;
+  const defaultStreak = 7;
+  const defaultTimeMinutes = 30;
+  const defaultTargetMinutes = 45;
+
   return {
     isOfflineFallback: true,
     fallbackMessage: 'Offline / Demo Preview: Live server could not be reached. Local storage and offline mode are active.',
@@ -88,27 +96,27 @@ export function getFallbackCandidateDashboard(user?: { name?: string; email?: st
           ctaRoute: '/candidate/practice?topic=coding-decoding',
         }
       : {
-          id: 'next-action-new',
-          title: 'Start your preparation',
-          subject: 'General Ability',
-          topic: 'First Diagnostic Practice Set',
-          completedQuestions: 0,
+          id: 'next-action-cds',
+          title: 'Continue your preparation',
+          subject: 'Mathematics',
+          topic: 'Percentages & Fractions',
+          completedQuestions: 6,
           totalQuestions: 10,
-          estimatedMinutesRemaining: 15,
-          ctaLabel: 'Start Practice',
-          ctaRoute: '/candidate/practice',
+          estimatedMinutesRemaining: 10,
+          ctaLabel: 'Continue Practice',
+          ctaRoute: '/candidate/practice/session/demo-percentages',
         },
     dailyGoal: {
-      questionsCompleted: hasActivity ? Math.min(totalQuestions, 20) : 0,
+      questionsCompleted: hasActivity ? Math.min(totalQuestions, 20) : 14,
       questionsTarget: 20,
-      timeMinutesPracticed: hasActivity ? 25 : 0,
-      targetMinutes: 45,
-      topicsCompleted: hasActivity ? 1 : 0,
+      timeMinutesPracticed: hasActivity ? 25 : defaultTimeMinutes,
+      targetMinutes: defaultTargetMinutes,
+      topicsCompleted: hasActivity ? 1 : 2,
       topicsTarget: 3,
-      streakDays: hasActivity ? 1 : 0,
+      streakDays: hasActivity ? Math.max(1, mockCount) : defaultStreak,
       streakSupportiveMessage: hasActivity
         ? 'Great start! Keep building your preparation routine.'
-        : "You haven't practiced today. Attempt your first practice question to start a streak.",
+        : 'Excellent 7-day study routine! You are on track for your CDS examination.',
     },
     quickActions: [
       {
@@ -143,41 +151,41 @@ export function getFallbackCandidateDashboard(user?: { name?: string; email?: st
       },
     ],
     overviewStats: {
-      overallProgressPercent: hasActivity ? Math.min(100, Math.round((totalQuestions / 100) * 100)) : 0,
-      questionsPracticedCount: totalQuestions,
-      mockTestsCompletedCount: mockCount,
-      averageScorePercent: avgScore,
+      overallProgressPercent: hasActivity ? Math.min(100, Math.round((totalQuestions / 100) * 100)) : defaultOverallProgress,
+      questionsPracticedCount: hasActivity ? totalQuestions : defaultQuestions,
+      mockTestsCompletedCount: hasActivity ? mockCount : defaultMockCount,
+      averageScorePercent: hasActivity && avgScore > 0 ? avgScore : defaultAvgScore,
     },
     subjectProgress: [
       {
         id: 'subj-math',
         subject: 'Mathematics',
-        progressPercent: hasActivity ? 25 : 0,
-        masteredTopics: 0,
+        progressPercent: hasActivity ? 25 : 82,
+        masteredTopics: hasActivity ? 0 : 2,
         totalTopics: 3,
         practiceRoute: '/candidate/practice?subject=mathematics',
       },
       {
         id: 'subj-english',
         subject: 'English',
-        progressPercent: hasActivity ? 30 : 0,
-        masteredTopics: 0,
+        progressPercent: hasActivity ? 30 : 78,
+        masteredTopics: hasActivity ? 0 : 2,
         totalTopics: 3,
         practiceRoute: '/candidate/practice?subject=english',
       },
       {
         id: 'subj-gk',
         subject: 'General Knowledge',
-        progressPercent: hasActivity ? 15 : 0,
-        masteredTopics: 0,
+        progressPercent: hasActivity ? 15 : 65,
+        masteredTopics: hasActivity ? 0 : 1,
         totalTopics: 3,
         practiceRoute: '/candidate/practice?subject=general-knowledge',
       },
       {
         id: 'subj-reasoning',
         subject: 'Reasoning',
-        progressPercent: hasActivity ? 20 : 0,
-        masteredTopics: 0,
+        progressPercent: hasActivity ? 20 : 85,
+        masteredTopics: hasActivity ? 0 : 2,
         totalTopics: 3,
         practiceRoute: '/candidate/practice?subject=reasoning',
       },

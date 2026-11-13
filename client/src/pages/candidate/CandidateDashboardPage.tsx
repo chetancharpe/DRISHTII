@@ -4,26 +4,16 @@ import { candidateService } from '../../services/candidateService';
 import {
   DashboardHeader,
   NextActionBanner,
-  DailyGoalCard,
   QuickActionsGrid,
-  PreparationStatsOverview,
-  SubjectProgressSection,
-  ContinueLearningCard,
-  PracticeRecommendationsSection,
-  MockTestsSection,
-  UpcomingExamsSection,
-  RecentPerformanceSection,
-  PerformanceTrendCard,
-  WeakAreasSection,
-  RecentActivityTimeline,
-  AccessibilityStatusCard,
   DashboardSkeleton,
   DashboardErrorState,
+  VisualDashboardCharts,
+  DashboardKPIStrip,
+  CompactUpcomingAndRecent,
 } from '../../components/candidate';
 
 import { useAccessibility } from '../../contexts/AccessibilityContext';
 import { AccessibilityQuickBar } from '../../components/accessibility/AccessibilityQuickBar';
-import { PersonalizedPractice } from '../../components/recommendations/PersonalizedPractice';
 import { useNavigate } from 'react-router-dom';
 
 export const CandidateDashboardPage: React.FC = () => {
@@ -41,6 +31,14 @@ export const CandidateDashboardPage: React.FC = () => {
     try {
       const data = await candidateService.getDashboardData({ simulateDelayMs: 200 });
       setDashboardData(data);
+      if (typeof sessionStorage !== 'undefined') {
+        try {
+          sessionStorage.setItem('drishti_candidate_dashboard_data', JSON.stringify(data));
+          window.dispatchEvent(new CustomEvent('drishti_dashboard_loaded', { detail: data }));
+        } catch {
+          // ignore session storage quota issues
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while loading dashboard telemetry.');
     } finally {
@@ -54,11 +52,6 @@ export const CandidateDashboardPage: React.FC = () => {
 
   return (
     <div className="w-full flex flex-col gap-8 pb-12">
-      {/* Skip links specifically for dashboard layout */}
-      <a href="#next-action-section" className="skip-link">
-        Skip directly to next practice activity
-      </a>
-
       {/* 1. Header & Candidate Greeting */}
       <DashboardHeader />
 
@@ -209,54 +202,34 @@ export const CandidateDashboardPage: React.FC = () => {
             </div>
           ) : (
             /* Standard Multi-Column Accessible Dashboard */
-            <div id="candidate-main-content" className="flex flex-col gap-8 focus:outline-none" tabIndex={-1}>
-              {/* Recommended Next Step */}
-              <NextActionBanner action={dashboardData.nextAction} />
-
-              {/* Personalized Practice Set Banner with Dynamic Topics */}
-              <PersonalizedPractice
-                topics={
-                  dashboardData.weakAreas && dashboardData.weakAreas.length > 0
-                    ? dashboardData.weakAreas.map((w) => w.topic)
-                    : dashboardData.recommendations && dashboardData.recommendations.length > 0
-                    ? dashboardData.recommendations.map((r) => r.topic)
-                    : ['Quantitative Aptitude', 'Reasoning Ability', 'General Awareness']
-                }
+            <div id="candidate-main-content" className="flex flex-col gap-6 focus:outline-none" tabIndex={-1}>
+              {/* 1. Preparation KPI & Goals Strip */}
+              <DashboardKPIStrip
+                stats={dashboardData.overviewStats}
+                goal={dashboardData.dailyGoal}
               />
 
-              {/* Today's Goal & Routine Streak */}
-              <DailyGoalCard goal={dashboardData.dailyGoal} />
+              {/* 2. Recommended Next Action */}
+              <NextActionBanner action={dashboardData.nextAction} />
 
-            {/* Accessible Quick Actions */}
-            <QuickActionsGrid actions={dashboardData.quickActions} />
+              {/* 3. Visual Charts Section: Score Growth Bar Chart + Subject Mastery Visualizer */}
+              <VisualDashboardCharts
+                trend={dashboardData.performanceTrend}
+                subjects={dashboardData.subjectProgress}
+              />
 
-            {/* Preparation Overview & Telemetry */}
-            <PreparationStatsOverview stats={dashboardData.overviewStats} />
+              {/* 4. Core Portals Grid (Practice, Mock Tests, Scheduled Exams, Results) */}
+              <QuickActionsGrid actions={dashboardData.quickActions} />
 
-            {/* 6. Multi-Column Content Area */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              {/* Primary Study & Testing Track (Left Column) */}
-              <div className="lg:col-span-7 flex flex-col gap-8">
-                <SubjectProgressSection subjects={dashboardData.subjectProgress} />
-                <ContinueLearningCard learning={dashboardData.continueLearning} />
-                <PracticeRecommendationsSection recommendations={dashboardData.recommendations} />
-                <MockTestsSection tests={dashboardData.mockTests} />
-                <UpcomingExamsSection exams={dashboardData.upcomingExams} />
-              </div>
-
-              {/* Performance & Calibration Track (Right Column) */}
-              <div className="lg:col-span-5 flex flex-col gap-8">
-                <RecentPerformanceSection records={dashboardData.recentPerformance} />
-                <PerformanceTrendCard trend={dashboardData.performanceTrend} />
-                <WeakAreasSection topics={dashboardData.weakAreas} />
-                <RecentActivityTimeline activities={dashboardData.recentActivity} />
-                <AccessibilityStatusCard />
-              </div>
+              {/* 5. Compact Upcoming Exam & Recent Scorecards */}
+              <CompactUpcomingAndRecent
+                exams={dashboardData.upcomingExams}
+                records={dashboardData.recentPerformance}
+              />
             </div>
-          </div>
-        )}
-      </div>
-    )}
+          )}
+        </div>
+      )}
 
       {/* Floating Compact Quick Accessibility Bar (Section 8) */}
       <AccessibilityQuickBar />

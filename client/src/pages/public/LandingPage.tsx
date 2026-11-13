@@ -45,8 +45,8 @@ export const LandingPage: React.FC = () => {
       } else if (e.key.toLowerCase() === 'h') {
         if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
           e.preventDefault();
-          speak('Welcome to Drishti. Press Enter to sign in or get started, or press Alt plus O for audio setup.');
-          announce('Welcome to Drishti. Press Enter to sign in, or press Alt+O for audio setup.');
+          speak('Welcome to the examination portal. Press Enter to sign in or get started, or press Alt plus O for audio setup.');
+          announce('Welcome to the examination portal. Press Enter to sign in, or press Alt+O for audio setup.');
         }
       } else if (e.altKey && e.key.toLowerCase() === 'o') {
         e.preventDefault();
@@ -64,7 +64,7 @@ export const LandingPage: React.FC = () => {
       <div
         role="region"
         aria-label="Direct sign in and audio setup banner"
-        className="w-full bg-gradient-to-r from-primary/20 via-blue-500/15 to-indigo-500/20 border-b border-primary/30 px-4 py-2.5 shadow-xs"
+        className="w-full bg-gradient-to-r from-primary/15 via-surface/90 to-primary/15 border-b border-border px-4 py-2.5 shadow-xs backdrop-blur-md"
       >
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2.5">
@@ -72,7 +72,7 @@ export const LandingPage: React.FC = () => {
               <Radio className="w-3.5 h-3.5" aria-hidden="true" />
             </span>
             <span className="font-bold text-foreground">
-              Welcome to DRISHTI. Press <kbd className="px-1.5 py-0.5 rounded bg-surface border font-mono font-bold text-primary">Enter ↵</kbd> to Sign In / Get Started, or press <kbd className="px-1.5 py-0.5 rounded bg-surface border font-mono font-bold text-foreground">H</kbd> for spoken help.
+              Welcome to the accessible exam portal. Press <kbd className="px-1.5 py-0.5 rounded bg-surface border font-mono font-bold text-primary">Enter ↵</kbd> to Sign In / Get Started, or press <kbd className="px-1.5 py-0.5 rounded bg-surface border font-mono font-bold text-foreground">H</kbd> for spoken help.
             </span>
           </div>
 

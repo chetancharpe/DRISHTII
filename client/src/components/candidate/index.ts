@@ -17,3 +17,6 @@ export * from './AccessibilityStatusCard';
 export * from './DashboardSkeleton';
 export * from './DashboardErrorState';
 export * from './HandsFreeScribeHUD';
+export * from './VisualDashboardCharts';
+export * from './DashboardKPIStrip';
+export * from './CompactUpcomingAndRecent';

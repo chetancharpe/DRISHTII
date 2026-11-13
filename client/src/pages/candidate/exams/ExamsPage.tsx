@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Exam } from '../../../types/exam';
 import { examService } from '../../../services/examService';
 import { ExamCard } from '../../../components/exam/ExamCard';
+import { useAccessibility } from '../../../contexts/AccessibilityContext';
 import {
   Search,
   Play,
@@ -11,9 +12,13 @@ import {
   Calendar,
   CheckCircle2,
   AlertCircle,
+  Award,
 } from 'lucide-react';
 
 export const ExamsPage: React.FC = () => {
+  const { preferences } = useAccessibility();
+  const isHindi = preferences?.language === 'hi';
+
   const [exams, setExams] = useState<Exam[]>([]);
   const [activeTab, setActiveTab] = useState<'all' | 'available' | 'scheduled' | 'in_progress' | 'completed'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,18 +62,21 @@ export const ExamsPage: React.FC = () => {
       {/* Header */}
       <header className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded border border-primary/20">
-            Candidate Assessment Portal
+          <span className="text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded border border-primary/20 flex items-center gap-1.5">
+            <Award className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>{isHindi ? 'राष्ट्रीय प्रतियोगी परीक्षा पोर्टल' : 'National Competitive Examination Portal'}</span>
           </span>
           <span className="text-xs text-foreground-secondary">
-            Demo Authority Integration
+            {isHindi ? 'UPSC एवं SSC आधिकारिक सीबीटी केंद्र' : 'UPSC & SSC Official CBT Center'}
           </span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-          Examinations
+          {isHindi ? 'आधिकारिक परीक्षाएं (Examinations)' : 'Examinations'}
         </h1>
-        <p className="text-sm text-foreground-secondary max-w-2xl leading-relaxed">
-          View examinations assigned or available to you. Prepare your accessibility preferences before launching any scheduled assessment.
+        <p className="text-sm text-foreground-secondary max-w-3xl leading-relaxed">
+          {isHindi
+            ? 'दृष्टि एक्सेसिबल सीबीटी परीक्षा केंद्र में आपका स्वागत है। यहाँ आपके लिए दो प्रमुख राष्ट्रीय परीक्षाएं (UPSC सिविल सेवा एवं SSC CGL टियर-1) वास्तविक परीक्षा प्रणाली के अनुसार लाइव उपलब्ध हैं। किसी भी परीक्षा को चुनकर निर्देश पढ़ें और सीधे परीक्षा देना शुरू करें।'
+            : 'Welcome to DRISHTI Accessible CBT Examination Portal. You have two main national examinations (UPSC Civil Services Prelims & SSC CGL Tier-I) available live in full examination hall conditions. Select any assessment below to review instructions, verify credentials, and commence.'}
         </p>
       </header>
 
@@ -86,7 +94,7 @@ export const ExamsPage: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider bg-warning/20 text-warning px-2 py-0.5 rounded border border-warning/40">
-                  In Progress
+                  {isHindi ? 'सक्रिय सत्र' : 'In Progress'}
                 </span>
                 <span className="text-xs text-foreground-secondary font-mono">
                   {inProgressExam.examCode}
@@ -96,7 +104,9 @@ export const ExamsPage: React.FC = () => {
                 {inProgressExam.title}
               </h2>
               <p className="text-xs text-foreground-secondary mt-0.5">
-                Your examination session is currently active. Click below to return to your questions.
+                {isHindi
+                  ? 'आपका परीक्षा सत्र वर्तमान में चालू है। अपने प्रश्नों पर लौटने के लिए नीचे क्लिक करें।'
+                  : 'Your examination session is currently active. Click below to return to your questions.'}
               </p>
             </div>
           </div>
@@ -106,7 +116,7 @@ export const ExamsPage: React.FC = () => {
             className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-warning hover:bg-warning-hover active:bg-warning-hover text-warning-contrast font-bold text-xs min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-warning shadow-xs transition-colors self-start sm:self-center"
           >
             <Play className="w-4 h-4" aria-hidden="true" />
-            <span>Resume Examination</span>
+            <span>{isHindi ? 'परीक्षा जारी रखें' : 'Resume Examination'}</span>
           </Link>
         </div>
       )}
@@ -116,15 +126,15 @@ export const ExamsPage: React.FC = () => {
         {/* Status Category Tabs */}
         <div
           role="tablist"
-          aria-label="Filter examinations by status"
+          aria-label={isHindi ? 'परीक्षाएं फ़िल्टर करें' : 'Filter examinations by status'}
           className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none"
         >
           {[
-            { id: 'all', label: 'All Exams', count: exams.length },
-            { id: 'available', label: 'Available', count: exams.filter((e) => e.status === 'available').length },
-            { id: 'scheduled', label: 'Upcoming', count: exams.filter((e) => e.status === 'scheduled').length },
-            { id: 'in_progress', label: 'In Progress', count: exams.filter((e) => e.status === 'in_progress').length },
-            { id: 'completed', label: 'Completed', count: exams.filter((e) => e.status === 'completed' || e.status === 'submitted').length },
+            { id: 'all', label: isHindi ? 'सभी परीक्षाएं' : 'All Exams', count: exams.length },
+            { id: 'available', label: isHindi ? 'उपलब्ध (Live)' : 'Available Now', count: exams.filter((e) => e.status === 'available').length },
+            { id: 'scheduled', label: isHindi ? 'आगामी' : 'Upcoming', count: exams.filter((e) => e.status === 'scheduled').length },
+            { id: 'in_progress', label: isHindi ? 'चालू' : 'In Progress', count: exams.filter((e) => e.status === 'in_progress').length },
+            { id: 'completed', label: isHindi ? 'पूर्ण' : 'Completed', count: exams.filter((e) => e.status === 'completed' || e.status === 'submitted').length },
           ].map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -133,16 +143,16 @@ export const ExamsPage: React.FC = () => {
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[38px] flex items-center gap-1.5 whitespace-nowrap ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[38px] flex items-center gap-1.5 whitespace-nowrap ${
                   isActive
-                    ? 'bg-primary text-primary-contrast shadow-xs'
-                    : 'bg-surface hover:bg-surface-elevated text-foreground-secondary border border-border'
+                    ? 'bg-gradient-to-r from-indigo-500 to-primary text-white shadow-glow-primary'
+                    : 'bg-surface/70 hover:bg-surface-elevated text-foreground-secondary border border-border backdrop-blur-md'
                 }`}
               >
                 <span>{tab.label}</span>
                 <span
                   className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                    isActive ? 'bg-black/20 text-white' : 'bg-surface-elevated text-foreground-secondary'
+                    isActive ? 'bg-black/25 text-white' : 'bg-surface-elevated text-foreground-secondary'
                   }`}
                 >
                   {tab.count}
@@ -167,7 +177,7 @@ export const ExamsPage: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search exams..."
-            className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface border border-border text-foreground placeholder:text-foreground-secondary text-xs focus:outline-none focus:ring-2 focus:ring-primary min-h-[38px]"
+            className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface/70 backdrop-blur-md border border-border text-foreground placeholder:text-foreground-secondary text-xs focus:outline-none focus:ring-2 focus:ring-primary min-h-[38px] transition-all"
           />
         </div>
       </div>

@@ -100,6 +100,7 @@ def register_user(db: Session, register_data: RegisterRequest) -> TokenResponse:
         raise ValidationConflictException("An account with this email address already exists.")
 
     new_user = User(
+        id=str(uuid.uuid4()),
         email=register_data.email.lower().strip(),
         password_hash=get_password_hash(register_data.password),
         first_name=register_data.first_name.strip(),
@@ -117,15 +118,17 @@ def register_user(db: Session, register_data: RegisterRequest) -> TokenResponse:
         target_role_name = RoleEnum.CANDIDATE.value
     role_obj = db.query(Role).filter(Role.name == target_role_name).first()
     if not role_obj:
-        role_obj = Role(name=target_role_name, description=f"{target_role_name} platform role")
+        role_obj = Role(id=str(uuid.uuid4()), name=target_role_name, description=f"{target_role_name} platform role")
         db.add(role_obj)
         db.flush()
 
-    user_role = UserRole(user_id=new_user.id, role_id=role_obj.id)
+    user_role = UserRole(id=str(uuid.uuid4()), user_id=new_user.id, role_id=role_obj.id)
     db.add(user_role)
+    db.flush()
 
     # 4. Generate access and tracked refresh token
-    role_name, permissions = get_user_role_and_permissions(db, new_user.id)
+    role_name = target_role_name
+    permissions = get_permissions_for_role(role_name)
     access_token = create_access_token(subject=new_user.id, role=role_name, permissions=permissions)
 
     jti = str(uuid.uuid4())

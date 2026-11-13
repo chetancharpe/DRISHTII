@@ -113,6 +113,15 @@ export const practiceService = {
     const subjectName = sessionQuestions[0]?.subjectName || 'Practice';
     const topicName = sessionQuestions[0]?.topicName || 'General Topic';
 
+    const explanationsMap: Record<string, string> = {};
+    const correctOptionsMap: Record<string, string[]> = {};
+    sessionQuestions.forEach((q) => {
+      if (q.explanation) explanationsMap[q.id] = q.explanation;
+      if (q.correctOptionIds && q.correctOptionIds.length > 0) {
+        correctOptionsMap[q.id] = q.correctOptionIds;
+      }
+    });
+
     const newSession: PracticeSession & {
       explanations?: Record<string, string>;
       correctOptions?: Record<string, string[]>;
@@ -124,20 +133,15 @@ export const practiceService = {
       topicName,
       difficulty: filter.difficulty,
       totalQuestions: sessionQuestions.length,
-      questions: sessionQuestions.map((q) => {
-        const sanitized = { ...q };
-        delete (sanitized as any).correctOptionIds;
-        delete (sanitized as any).explanation;
-        return sanitized;
-      }),
+      questions: sessionQuestions.map((q) => ({ ...q })),
       answers: {},
       currentQuestionIndex: 0,
       status: 'in_progress',
       startedAt: new Date().toISOString(),
       timeElapsedSeconds: 0,
       timeLimitSeconds: filter.questionCount ? filter.questionCount * 90 : 600,
-      explanations: {},
-      correctOptions: {},
+      explanations: explanationsMap,
+      correctOptions: correctOptionsMap,
     };
 
     activeSessions.set(sessionId, newSession);

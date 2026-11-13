@@ -76,9 +76,9 @@ textarea:focus-visible,
 
 /* 2. Skip Navigation Link */
 .skip-link {
-  position: absolute;
-  top: -100px;
-  left: 1rem;
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
   z-index: var(--z-skip-link, 9999);
   padding: 0.75rem 1.25rem;
   background-color: var(--color-primary);
@@ -87,11 +87,14 @@ textarea:focus-visible,
   text-decoration: none;
   border-radius: var(--radius-md);
   border: 2px solid var(--color-focus);
-  transition: top var(--transition-fast);
 }
 
-.skip-link:focus {
+.skip-link:focus,
+.skip-link:focus-visible {
   top: 1rem;
+  left: 1rem;
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 /* 3. Screen Reader Only Utility */
