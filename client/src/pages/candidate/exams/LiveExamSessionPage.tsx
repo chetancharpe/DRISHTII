@@ -563,6 +563,29 @@ export const LiveExamSessionPage: React.FC = () => {
       }
     },
     onAnnounceTime: handleAnnounceRemainingTime,
+    onReadQuestion: handleListenQuestionOnly,
+    onReadOptions: handleListenOptions,
+    onStatus: () => {
+      if (!currentQuestion || !exam) return;
+      const selected = session?.answers[currentQuestion.id]?.selectedOptions || [];
+      const optLabels = currentQuestion.options
+        .filter((o) => selected.includes(o.id))
+        .map((o) => o.label)
+        .join(', ');
+      const ansStatus = optLabels ? `Selected option ${optLabels}` : 'Unanswered';
+      const isMarked = session?.answers[currentQuestion.id]?.isMarkedForReview ? 'Marked for review' : 'Not marked';
+      const mins = remainingSeconds !== null ? Math.floor(remainingSeconds / 60) : 0;
+      const summary = `Question ${currentQuestionIndex + 1} of ${exam.config.totalQuestions}. ${ansStatus}. ${isMarked}. Time left: ${mins} minutes.`;
+      speak(summary);
+      announce(summary, 'polite');
+    },
+    onConfirmSubmit: () => {
+      setIsSubmitModalOpen(false);
+      handleConfirmSubmit();
+    },
+    onCancelSubmit: () => {
+      setIsSubmitModalOpen(false);
+    },
     getCurrentOptions: () => {
       if (!currentQuestion) return [];
       return currentQuestion.options.map((opt) => ({

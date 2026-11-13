@@ -69,6 +69,12 @@ export const LoginPage: React.FC = () => {
     async (loginEmail: string, loginPass: string) => {
       setFormError(null);
       try {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+          try {
+            window.speechSynthesis.resume();
+          } catch { }
+        }
+
         const loggedInUser = await login(loginEmail, loginPass);
 
         // Route candidate, examiner, or admin to their respective dashboard
@@ -153,8 +159,8 @@ export const LoginPage: React.FC = () => {
         selectedRole === 'candidate'
           ? 'Candidate Portal (Voice Guided)'
           : selectedRole === 'examiner'
-          ? 'Examiner Studio (Direct Login)'
-          : 'Admin Console (Direct Login)'
+            ? 'Examiner Studio (Direct Login)'
+            : 'Admin Console (Direct Login)'
       }
     >
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
@@ -176,11 +182,10 @@ export const LoginPage: React.FC = () => {
             role="tab"
             aria-selected={selectedRole === 'candidate'}
             onClick={() => handleRoleChange('candidate')}
-            className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              selectedRole === 'candidate'
+            className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${selectedRole === 'candidate'
                 ? 'bg-primary text-primary-contrast shadow-xs'
                 : 'text-foreground-secondary hover:text-foreground hover:bg-surface'
-            }`}
+              }`}
           >
             <div className="flex items-center gap-1.5">
               <GraduationCap className="w-4 h-4 shrink-0" aria-hidden="true" />
@@ -194,11 +199,10 @@ export const LoginPage: React.FC = () => {
             role="tab"
             aria-selected={selectedRole === 'examiner'}
             onClick={() => handleRoleChange('examiner')}
-            className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              selectedRole === 'examiner'
+            className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${selectedRole === 'examiner'
                 ? 'bg-primary text-primary-contrast shadow-xs'
                 : 'text-foreground-secondary hover:text-foreground hover:bg-surface'
-            }`}
+              }`}
           >
             <div className="flex items-center gap-1.5">
               <Shield className="w-4 h-4 shrink-0" aria-hidden="true" />
@@ -212,11 +216,10 @@ export const LoginPage: React.FC = () => {
             role="tab"
             aria-selected={selectedRole === 'admin'}
             onClick={() => handleRoleChange('admin')}
-            className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              selectedRole === 'admin'
+            className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${selectedRole === 'admin'
                 ? 'bg-primary text-primary-contrast shadow-xs'
                 : 'text-foreground-secondary hover:text-foreground hover:bg-surface'
-            }`}
+              }`}
           >
             <div className="flex items-center gap-1.5">
               <Lock className="w-4 h-4 shrink-0" aria-hidden="true" />
@@ -351,33 +354,30 @@ export const LoginPage: React.FC = () => {
             <button
               type="button"
               onClick={() => fillDemoAccount('candidate', 'candidate1@gowow.org', 'CandidateSecure123!')}
-              className={`px-2 py-1.5 rounded border text-xs font-semibold text-center cursor-pointer transition-colors ${
-                selectedRole === 'candidate'
+              className={`px-2 py-1.5 rounded border text-xs font-semibold text-center cursor-pointer transition-colors ${selectedRole === 'candidate'
                   ? 'border-primary bg-primary/10 text-primary font-bold'
                   : 'border-border bg-surface hover:bg-surface-elevated text-foreground'
-              }`}
+                }`}
             >
               Candidate
             </button>
             <button
               type="button"
               onClick={() => fillDemoAccount('examiner', 'examiner@gowow.org', 'ExaminerSecure123!')}
-              className={`px-2 py-1.5 rounded border text-xs font-semibold text-center cursor-pointer transition-colors ${
-                selectedRole === 'examiner'
+              className={`px-2 py-1.5 rounded border text-xs font-semibold text-center cursor-pointer transition-colors ${selectedRole === 'examiner'
                   ? 'border-primary bg-primary/10 text-primary font-bold'
                   : 'border-border bg-surface hover:bg-surface-elevated text-foreground'
-              }`}
+                }`}
             >
               Examiner
             </button>
             <button
               type="button"
               onClick={() => fillDemoAccount('admin', 'admin@gowow.org', 'AdminSecurePass123!')}
-              className={`px-2 py-1.5 rounded border text-xs font-semibold text-center cursor-pointer transition-colors ${
-                selectedRole === 'admin'
+              className={`px-2 py-1.5 rounded border text-xs font-semibold text-center cursor-pointer transition-colors ${selectedRole === 'admin'
                   ? 'border-primary bg-primary/10 text-primary font-bold'
                   : 'border-border bg-surface hover:bg-surface-elevated text-foreground'
-              }`}
+                }`}
             >
               Admin
             </button>

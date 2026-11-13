@@ -6,7 +6,7 @@ import { Footer } from './Footer';
 import { Modal } from '../common/Modal';
 import { AccessibilityPanel } from '../accessibility/AccessibilityPanel';
 import { AccessibilityHelpModal } from '../accessibility/AccessibilityHelpModal';
-import { CandidateVoiceAssistant } from '../candidate/CandidateVoiceAssistant';
+import { HandsFreeScribeHUD } from '../candidate/HandsFreeScribeHUD';
 import { ErrorBoundary } from '../common/ErrorBoundary';
 import { useKeyboardNavigation } from '../../hooks/useKeyboardNavigation';
 import { useAccessibility } from '../../hooks/useAccessibility';
@@ -24,8 +24,13 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
 }) => {
   const location = useLocation();
   const isCandidateRoute = location.pathname.startsWith('/candidate');
+  const storedUser = typeof window !== 'undefined' ? localStorage.getItem('drishti_current_user') : null;
+  const userRole = storedUser ? (() => { try { return JSON.parse(storedUser)?.role; } catch { return null; } })() : null;
   const isExaminerOrAdmin =
-    location.pathname.startsWith('/examiner') || location.pathname.startsWith('/admin');
+    location.pathname.startsWith('/examiner') ||
+    location.pathname.startsWith('/admin') ||
+    userRole === 'examiner' ||
+    userRole === 'admin';
   const { isCalibrationOpen, openCalibration, closeCalibration } = useAccessibility();
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
@@ -71,7 +76,7 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
           }`}
         >
           <ErrorBoundary>
-            {isCandidateRoute && <CandidateVoiceAssistant />}
+            {isCandidateRoute && <HandsFreeScribeHUD />}
             {children}
           </ErrorBoundary>
         </main>

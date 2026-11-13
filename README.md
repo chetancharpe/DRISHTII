@@ -4,240 +4,354 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](backend/)
 [![Node: 20+](https://img.shields.io/badge/Node-20%2B-brightgreen.svg)](client/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-teal.svg)](https://fastapi.tiangolo.com)
+[![React 18](https://img.shields.io/badge/React-18.3-61dafb.svg)](https://react.dev)
 
-> **"Enable visually impaired and low-vision candidates to independently learn, practice, and participate in digital examinations."**  
-> *DRISHTI is designed and tested against WCAG 2.1 AA requirements.*
+> **"Empowering visually impaired, low-vision, and keyboard-reliant candidates to independently learn, practice, and take digital examinations with complete autonomy and dignity."**  
+> *DRISHTI is rigorously engineered and audited against WCAG 2.1 AA requirements and the POUR accessibility framework.*
 
 ---
 
 ## 1. Project Overview
 
-**DRISHTI** is an accessibility-first digital examination, preparation, and pedagogical evaluation platform engineered specifically for blind, low-vision, and keyboard-reliant test-takers. It provides complete candidate autonomy—from onboarding and personalized accessibility calibration to timed mock examinations, offline connection recovery, live competitive exam completion, and detailed diagnostic scorecards.
+**DRISHTI** is an accessibility-first digital examination, preparation, and pedagogical evaluation platform engineered specifically for blind, visually impaired (PwD), and keyboard-only test-takers. It provides complete candidate independence:
+- **Autonomous Onboarding:** Personalized sensory calibration (high contrast, typography, speech rates, audio earcons).
+- **दृष्टि सारथी (Drishti Sarthi) AI Tutor:** Empathetic voice-guided conversational companion operating in natural Hindi & English.
+- **Examiner Studio:** Silent, desktop-first portal for teachers to create questions, upload mock tests, and issue unique candidate access passes.
+- **Official Live Exam Mode:** Server-authoritative timer, offline network recovery queue, and strict anti-cheat AI Scribe mode.
 
 ---
 
-## 2. Production Architecture
+## 2. Production Architecture & Panel Separation
 
-DRISHTI enforces a reliable, maintainable 3-tier architecture with zero unnecessary microservices:
+DRISHTI follows a clear architectural separation across roles to maximize efficiency and preserve exam integrity:
 
 ```
-┌────────────────────────────────────────────────────────┐
-│             Candidate / Examiner / Admin               │
-│         (Screen Reader, Keyboard, Zoom, Braille)       │
-└───────────────────────────┬────────────────────────────┘
-                            │ HTTPS / TLS 1.3
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│             Frontend Presentation Layer                │
-│             React 18 + TypeScript + Vite               │
-│        (WCAG 2.1 AA, POUR Framework, WAI-ARIA)         │
-└───────────────────────────┬────────────────────────────┘
-                            │ REST / JSON (HTTPS)
-                            │ X-Request-ID Correlation
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│               Backend Application Layer                │
-│                 FastAPI (Python 3.11)                  │
-│       - Security Middleware (HSTS, CSP, nosniff)       │
-│       - Accessibility-Aware Rate Limiting              │
-│       - Server-Authoritative Timer Engine              │
-│       - Idempotent Submission Processor                │
-└───────────────────────────┬────────────────────────────┘
-                            │ SQLAlchemy 2.0 (ORM)
-                            │ Parameterized Queries / SSL
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│               Persistent Storage Layer                 │
-│               PostgreSQL 15 (Relational)               │
-│       - Least Privilege User Separation                │
-│       - Strict Foreign Keys & Indexes                  │
-│       - Automated Backup & Checksum Verification       │
-└────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                          DRISHTI PLATFORM                              │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+         ┌──────────────────────────┼──────────────────────────┐
+         ▼                          ▼                          ▼
+┌──────────────────┐       ┌──────────────────┐       ┌──────────────────┐
+│  Candidate Panel │       │ Examiner Studio  │       │  Admin Console   │
+│  (/candidate/*)  │       │  (/examiner/*)   │       │   (/admin/*)     │
+├──────────────────┤       ├──────────────────┤       ├──────────────────┤
+│ • Voice In / Out │       │ • Silent Desktop │       │ • System Health  │
+│ • Drishti Sarthi │       │ • Exam Authoring │       │ • User Mgmt      │
+│ • Hands-free Mic │       │ • Mock Uploads   │       │ • Audit Logs     │
+│ • Screen-Reader  │       │ • Candidate Pass │       │ • Access Control │
+│ • High-Contrast  │       │ • Psychometrics  │       │ • Telemetry      │
+└──────────────────┘       └──────────────────┘       └──────────────────┘
 ```
+
+### Role Invariants
+1. **Candidate Panel (`/candidate/*`):** Dedicated AI Tutor ("दृष्टि सारथी") active with natural voice interaction, earcons, audio briefings, and keyboard shortcuts.
+2. **Examiner & Admin Panels (`/examiner/*`, `/admin/*`):** Strictly silent, desktop-optimized interfaces without voice commands or AI tutor popups to ensure high teacher productivity.
 
 ---
 
 ## 3. Technology Stack
 
-- **Frontend:** React 18, TypeScript, Tailwind CSS, Vite, Lucide Icons
-- **Backend:** FastAPI (Python 3.11), Uvicorn, Pydantic v2, Python-Jose (JWT), Passlib (Bcrypt)
-- **Database:** PostgreSQL 15 (Relational persistence), SQLAlchemy 2.0 ORM, Alembic (Migrations)
-- **Quality & Accessibility:** Axe-Core, Playwright (`@axe-core/playwright`), Vitest, Pytest
-- **Containers & Orchestration:** Docker, Multi-Stage Dockerfiles, Docker Compose
+- **Frontend:** React 18, TypeScript, Tailwind CSS, Vite, Lucide Icons, KaTeX (Math), Web Speech API.
+- **Backend:** FastAPI (Python 3.11+), Uvicorn, Pydantic v2, SQLAlchemy 2.0 ORM, Alembic (Migrations), Passlib (Bcrypt), Python-Jose (JWT).
+- **Database:** SQLite (default for zero-dependency local development) / PostgreSQL 15 (production-ready).
+- **Quality & Accessibility:** Axe-Core, Playwright (`@axe-core/playwright`), Vitest, Pytest.
+- **Containers:** Docker, Docker Compose, Multi-Stage Dockerfiles.
 
 ---
 
-## 4. Key Platform Features
+## 4. Key Platform Capabilities
 
-### Accessible Landing Page & Role Portals
-- **Public Showcase & Discovery:** Comprehensive landing page detailing platform capabilities, POUR accessibility pillars, live feature demos, and role-specific journeys.
-- **Dedicated Portals:** Direct entry points for Candidates, Examiners, and Administrators with role selection modals and single-click access.
+### 🎓 दृष्टि सारथी (Drishti Sarthi) — AI Companion & Digital Scribe
+- **Login Audio Briefing:** Automatically welcomes the candidate by name in their preferred language (Hindi/English), announces the teacher's newly uploaded exams and mock tests, and asks about their study plan.
+- **Hands-Free Conversational Voice Loop:** Web Speech recognition starts immediately after Sarthi finishes speaking, allowing continuous hands-free dialogue.
+- **Mode-Aware Intelligence:**
+  - *Learning & Practice Mode (`/candidate/learn`, `/candidate/practice`, `/candidate/mock-tests`):* Explains concepts, breaks down questions, provides hints, and suggests study plans as a loyal friend.
+  - *Live Exam Mode (`/candidate/exams/:id/session`):* Switches automatically to **Digital Scribe / Reader** mode—reads questions and options aloud upon command, but strictly refuses to leak answers.
 
-### Candidate Experience
-- **Multilingual Support (English & हिन्दी):** Complete bilingual support across 184 translation keys and 9 namespaces with dynamic `<html lang="...">` and `<html dir="...">` switching.
-- **Language-Aware Speech Synthesis:** Native voice discovery matching Hindi (`hi-IN`) and English (`en-US`/`en-IN`) with pitch/rate controls and interactive sample testing (`Alt+A`).
-- **Blind-First Learning & Practice:** Pedagogical audio player with playback speed controls, KaTeX mathematical equations with spoken text representations, accessible data tables with cell coordinates, and voice command navigation.
-- **Live Server-Authoritative Exam Engine:** Centralized countdown timer with audible alerts, auto-saving answer synchronization, resilient offline recovery queue, and confirmation modals protecting against accidental submission (`Alt+S`).
-- **Accessible Design System:** Strict 44×44px minimum touch targets across all controls (WCAG 2.5.5 / 2.5.8), global 3px focus ring with high-contrast cyan `#00ffff` indicators, and AAA OLED high-contrast mode (21:1 contrast).
-
-### Examiner Studio
-- **Accessible Question Authoring & AI Alt-Text Gate:** Interactive question creator with automated quality engine validating image alternative text, table headers, and spoken mathematical transcripts before publishing.
-- **Candidate Roster CSV Bulk Import:** Fast bulk provisioning of candidate accounts with automated password hashing and accommodation multipliers (1.0x, 1.5x, 2.0x extra time).
-- **Psychometric Item Analytics:** Real-time item difficulty index ($p$), discrimination index ($D$), test reliability (Cronbach's $\alpha$), item-total correlation ($r_{pbis}$), distractor choice distribution, and accommodation equity analytics.
-- **Streaming Report Export:** Immediate, accessible CSV candidate performance downloads.
-
-### Administrator Console
-- **Strict Role-Based Access Control:** Secure account provisioning guarded against role escalation.
-- **System Health & Audit Logs:** Live telemetry, readiness health probes (`/health/ready`), and chronological audit logs.
+### 👩‍🏫 Examiner Studio (Teacher Portal)
+- **Exam & Mock Test Authoring:** Create structured multi-section tests with WCAG-compliant image alternative text and mathematical formulas.
+- **Candidate Access Pass Generator:** Issue unique 1-click access passes (e.g., `DRISHTI-PASS-8842`) allowing visually impaired students to enter their tailored dashboard without password friction.
+- **Item Analytics & Psychometrics:** Discrimination index ($D$), difficulty level ($p$), and distractor distributions.
 
 ---
 
-## 5. Accessibility Invariants & POUR Conformance
+## 5. Localhost Quick Start (Step-by-Step Guide)
 
-- **Perceivable:**
-  - All visual diagrams require alternative text; complex charts require long descriptions.
-  - Standard contrast ratio $\ge 4.5:1$; High-contrast mode $\ge 21:1$ (pure OLED black `#000000`, white `#ffffff`, neon yellow `#ffff00`).
-  - Text scales seamlessly up to 200% zoom without truncation or horizontal scrolling.
-- **Operable:**
-  - 100% of candidate journeys operable without a mouse.
-  - Interactive targets satisfy 44×44px minimum sizing per WCAG 2.5.5 and 2.5.8.
-  - Skip link (`.skip-link`) jumps directly to `#main-content`.
-  - Accessible modals trap focus with `aria-modal="true"` and restore focus on `Escape`.
-- **Understandable:**
-  - Consistent semantic landmarks (`header`, `nav`, `main`, `footer`).
-  - Dual-modality status indicators pairing dedicated icons with text (never color alone).
-- **Robust:**
-  - Complies with WAI-ARIA Authoring Practices 1.2; audited with NVDA, JAWS, and VoiceOver.
-  - Automated `@axe-core/playwright` audits integrated directly into CI.
+Follow these steps to run DRISHTI completely on your local machine (`localhost`).
 
-### Global Keyboard Shortcuts
-- `Alt + H`: Accessibility Help & Shortcuts Guide
-- `Alt + A`: Accessibility Calibration Center (Display, Contrast, Audio, Voice)
-- `Alt + N`: Next Question (Auto-saves current response)
-- `Alt + P`: Previous Question
-- `Alt + M`: Mark / Unmark Question for Review
-- `Alt + C`: Clear Selected Answer
-- `Alt + L`: Read Question Aloud via Text-to-Speech
-- `Alt + S`: Submit Examination Confirmation Dialog
-- `1, 2, 3, 4`: Select Multiple Choice Options A, B, C, D
+### Prerequisites
+- **Python:** Version 3.11 or higher installed ([python.org](https://www.python.org/downloads/)).
+- **Node.js:** Version 18 or 20+ installed ([nodejs.org](https://nodejs.org/)).
+- **Git:** Installed and available on your PATH.
 
 ---
 
-## 6. Quick Start & Local Setup
+### Step 1: Backend Setup (FastAPI + SQLite)
 
-### Option A: Using Docker Compose (Recommended)
-```bash
-# Clone the repository
-git clone https://github.com/gowow/gowow-platform.git
-cd gowow-platform
+Open a terminal (PowerShell on Windows, or Bash on macOS/Linux) and navigate to the project root:
 
-# Start development stack (PostgreSQL + FastAPI Backend + React Client)
-docker compose up -d
-
-# Seed isolated demo data
-docker compose exec backend python scripts/seed_demo_data.py
-```
-Access the application:
-- Frontend: `http://localhost:5173`
-- Backend API Docs: `http://localhost:8000/api/v1/docs`
-- Health Endpoint: `http://localhost:8000/health/ready`
-
-### Option B: Native Local Setup
-
-#### 1. Backend Setup (FastAPI)
 ```bash
 cd backend
-python -m venv venv
-# Windows:
-.\venv\Scripts\activate
-# Linux/macOS:
+```
+
+#### 1.1 Virtual Environment on Windows & Linux
+
+> [!NOTE]
+> DRISHTI includes a pre-installed virtual environment in `backend/venv`. You can immediately run commands using the **Zero-Friction Method** without activation issues.
+
+##### Option 1: Zero-Friction Method (Recommended for Windows PowerShell & CMD)
+You do **not** need to activate the virtualenv or change PowerShell execution policies. Run commands directly using `.\venv\Scripts\`:
+
+```powershell
+# 1. Run migrations
+.\venv\Scripts\alembic.exe upgrade head
+
+# 2. Seed demo data & passes
+.\venv\Scripts\python.exe scripts/seed_demo_data.py
+.\venv\Scripts\python.exe scripts/seed_passes.py
+
+# 3. Start API server
+.\venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+```
+
+##### Option 2: Traditional Virtual Environment Activation
+
+**Windows (PowerShell):**
+```powershell
+# In PowerShell, always run .ps1 (do NOT use activate.bat in PowerShell):
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+.\venv\Scripts\Activate.ps1
+```
+
+**Windows (Command Prompt / CMD):**
+```cmd
+REM In classic Command Prompt only:
+.\venv\Scripts\activate.bat
+```
+
+**macOS / Linux:**
+```bash
 source venv/bin/activate
+```
 
+> [!WARNING]
+> **Encountered `Unable to copy ... venvlauncher.exe to ... python.exe`?**  
+> This error happens on Windows if:
+> 1. You try to recreate `venv` while a Python process or terminal is still running.
+> 2. OneDrive cloud sync has locked `python.exe`.
+> 
+> **Solution:** You do **not** need to recreate `venv`! The environment in `backend/venv` is already complete. Simply use **Option 1 (Zero-Friction Method)** above. If you ever must recreate it from scratch, terminate any running Python processes first, close VS Code terminals, delete `backend/venv`, and run `python -m venv venv`.
+
+#### 1.2 Install Python Dependencies
+```bash
+pip install --upgrade pip
 pip install -r requirements.txt
-cp .env.development.example .env
+```
 
-# Run database migrations
+#### 1.3 Setup Environment Variables
+Copy the development environment file:
+
+**Windows (PowerShell):**
+```powershell
+Copy-Item .env.development.example .env
+```
+
+**Windows (CMD):**
+```cmd
+copy .env.development.example .env
+```
+
+**macOS / Linux:**
+```bash
+cp .env.development.example .env
+```
+
+*(By default, `.env` is configured with `DATABASE_URL=sqlite:///./gowow.db` for instant local execution without needing Docker or PostgreSQL).*
+
+#### 1.4 Apply Migrations & Seed Demo Data
+```bash
+# Apply database schema migrations
 alembic upgrade head
 
-# Seed demo data
+# Seed full curriculum, demo users, questions, and mock tests
 python scripts/seed_demo_data.py
 
-# Start API server
+# Seed candidate access passes (for direct pass code testing)
+python scripts/seed_passes.py
+```
+
+#### 1.5 Start the Backend API Server
+```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-#### 2. Frontend Setup (React + Vite)
+Verify backend health:
+- **API Documentation (Swagger UI):** [http://localhost:8000/api/v1/docs](http://localhost:8000/api/v1/docs)
+- **Health Probe:** [http://localhost:8000/health/ready](http://localhost:8000/health/ready)
+
+---
+
+### Step 2: Frontend Setup (React 18 + Vite)
+
+Open a **new terminal tab or window**, navigate to the `client` directory:
+
 ```bash
 cd client
+```
+
+#### 2.1 Install Node Dependencies
+```bash
 npm install
+```
+
+#### 2.2 Setup Client Environment Variables
+
+**Windows (PowerShell):**
+```powershell
+Copy-Item .env.development.example .env.local
+```
+
+**Windows (CMD):**
+```cmd
+copy .env.development.example .env.local
+```
+
+**macOS / Linux:**
+```bash
 cp .env.development.example .env.local
+```
+
+Verify that `client/.env.local` contains:
+```env
+VITE_API_BASE_URL=http://localhost:8000/api/v1
+VITE_ENABLE_ANALYTICS=false
+VITE_APP_ENV=development
+```
+
+#### 2.3 Start the Vite Development Server
+```bash
 npm run dev
+```
+
+The frontend will start at:
+👉 **[http://localhost:5173](http://localhost:5173)**
+
+---
+
+## 6. Pre-Configured Demo Accounts & Roles
+
+The seeded database comes with ready-to-use accounts for all user personas:
+
+| Portal Role | Login Email / Access Code | Password | Portal Entry URL | Description & Key Features |
+| :--- | :--- | :--- | :--- | :--- |
+| **Candidate** *(Voice-First)* | `candidate1@gowow.org` | `CandidateSecure123!` | `http://localhost:5173/auth/login` | Voice-guided candidate portal with **Drishti Sarthi AI Tutor**, audio briefings, high contrast, and mock exams. |
+| **Candidate Quick Pass** | Pass Code: `DRISHTI-PASS-8842` | *(No password required)* | `http://localhost:5173/auth/quick-access` | Direct entry for visually impaired candidates with pre-calibrated accommodations. |
+| **Examiner (Teacher)** | `examiner@gowow.org` | `ExaminerSecure123!` | `http://localhost:5173/auth/login` | Silent studio for creating exams, publishing mock tests, assigning passes, and reviewing results. |
+| **Administrator** | `admin@gowow.org` | `AdminSecurePass123!` | `http://localhost:5173/auth/login` | Silent console for system telemetry, user management, and security audit logs. |
+
+*(Quick Demo buttons on the Login page allow one-click autofill for each of these accounts).*
+
+---
+
+## 7. Keyboard Shortcuts & Voice Navigation
+
+DRISHTI is 100% operable via keyboard and speech without requiring a mouse:
+
+| Key Combination | Function | Context |
+| :--- | :--- | :--- |
+| **Spacebar** | Toggle Microphone (Talk to Drishti Sarthi) | Candidate Portal (when not in text input) |
+| **Alt + B** | Replay Drishti Sarthi Spoken Audio Briefing & Study Plan | Candidate Dashboard |
+| **Alt + S** | Toggle Voice Input / Scribe | Candidate Portal & Exam Session |
+| **Alt + T** | Toggle Drishti Sarthi Chat Drawer | Candidate Portal |
+| **Alt + A** | Open Accessibility Calibration Center (Sensory, Audio, Contrast) | Candidate Portal |
+| **Alt + H** | Open Accessibility Help & Shortcuts Modal | Global |
+| **Alt + N** | Next Question (Auto-saves answer) | Live Exam / Mock Test Session |
+| **Alt + P** | Previous Question | Live Exam / Mock Test Session |
+| **Alt + M** | Mark / Unmark Current Question for Review | Live Exam / Mock Test Session |
+| **Alt + C** | Clear Selected Answer | Live Exam / Mock Test Session |
+| **1, 2, 3, 4** | Select Multiple Choice Option A, B, C, D | Live Exam / Mock Test Session |
+| **Escape** | Stop Sarthi Speaking / Close Modal | Global |
+
+---
+
+## 8. Common Localhost Troubleshooting
+
+### 1. "Fatal error in launcher: Unable to create process using python.exe..." or "Unable to copy ... venvlauncher.exe"
+- **Cause:**  
+  1. Python virtual environment `.exe` files contain old absolute paths after a folder rename.
+  2. Or Windows / OneDrive has locked `python.exe` while another terminal or background process is running.
+- **Immediate Zero-Friction Fix (No reinstall needed!):**  
+  Do **not** run `python -m venv venv` or `activate.bat`. Run the commands directly with:
+  ```powershell
+  cd backend
+  .\venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+  ```
+- **If you truly need to recreate the environment:**
+  1. Close any running Python or terminal sessions.
+  2. Run in PowerShell:
+     ```powershell
+     cd backend
+     Remove-Item -Recurse -Force venv
+     python -m venv venv
+     .\venv\Scripts\Activate.ps1
+     pip install -r requirements.txt
+     ```
+
+### 2. Port Already in Use (`8000` or `5173`)
+- **Fix for Port 8000 (Backend):**
+  ```powershell
+  # Windows PowerShell: Find and terminate process on port 8000
+  Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
+  ```
+- **Fix for Port 5173 (Frontend):**
+  ```powershell
+  Get-NetTCPConnection -LocalPort 5173 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
+  ```
+
+### 3. Browser Speech Synthesis Autoplay Throttling
+- **Cause:** Chromium-based browsers (Chrome, Edge, Brave) restrict unprompted audio autoplay until the user interacts with the page (click or keypress).
+- **Fix:** DRISHTI includes an automatic audio unlock listener. Simply click anywhere, press the **Spacebar**, or press **`Alt + B`** to trigger speech immediately.
+
+### 4. Switching to PostgreSQL (Optional Docker Setup)
+If you prefer running with PostgreSQL instead of SQLite:
+```bash
+# Start PostgreSQL via Docker Compose
+docker compose up -d db
+
+# Update backend/.env:
+# DATABASE_URL=postgresql://gowow_dev_user:gowow_dev_pass@localhost:5432/gowow_dev_db
+
+alembic upgrade head
+python scripts/seed_demo_data.py
 ```
 
 ---
 
-## 7. Environment Configuration
-
-GoWow separates configuration cleanly across deployment environments:
-
-- `.env.development.example`: Local development defaults (SQLite or local PostgreSQL).
-- `.env.test.example`: Automated testing configuration with relaxed rate limiting.
-- `.env.production.example`: Hardened production template (enforced strong keys, restricted CORS, SSL database connection).
-
-*Never commit `.env` files with real credentials to version control.*
-
----
-
-## 8. Automated Testing Suite
+## 9. Automated Testing Suite
 
 ```bash
-# 1. Frontend Lint & Strict Type Check
-cd client && npm run lint
+# 1. Frontend Typecheck and Production Build
+cd client
+npm run build
 
-# 2. Multilingual i18n Parity Check (184 keys, 100% 1:1 EN/HI)
-cd client && npm run test:i18n
+# 2. Frontend Lint
+npm run lint
 
-# 3. Client Production Bundle Build
-cd client && npm run build
+# 3. Multilingual i18n Key Parity Check
+npm run test:i18n
 
 # 4. Automated Axe-Core & WCAG 2.1 AA Tests (Playwright)
 npx playwright test tests/accessibility/
 
-# High Contrast Mode Emulation Test
-npx playwright test tests/accessibility/ --project=high-contrast-mode
-
-# 5. Full Backend & End-to-End Test Suite (run from project root)
+# 5. Full Backend Unit & Integration Tests (from project root)
 pytest tests/ -v
 ```
 
 ---
 
-## 9. Production Deployment & Security
-
-- **Containerization:** Multi-stage `backend/Dockerfile` runs as unprivileged `appuser`. `client/Dockerfile` serves static bundles via optimized Nginx with gzip and security headers.
-- **Security Headers:** Strict CSP, HSTS, X-Content-Type-Options: nosniff, X-Frame-Options: DENY, Referrer-Policy.
-- **Rate Limiting:** Protects `/login`, `/register`, `/forgot-password`, and exam submissions without throttling accessibility audio streams.
-- **Authoritative Timing:** Server computes and enforces `server_started_at` and `server_expires_at`. Client clock tampering has no effect.
-- **Full Deployment Guide:** See [docs/deployment.md](docs/deployment.md).
-
----
-
-## 10. Database Backups & Recovery
-
-- **Automated Backup:**
-  ```bash
-  python backend/scripts/backup.py
-  ```
-  Generates gzip-compressed archives with companion `.sha256` checksums and prunes archives older than 30 days.
-- **Restoration & Verification Drill:**
-  ```bash
-  python backend/scripts/restore.py backend/backups/<backup_file>.sql.gz
-  ```
-- **Disaster Recovery Playbook:** See [docs/incident-response.md](docs/incident-response.md).
-
----
-
-## 11. Documentation Directory
+## 10. Documentation Directory
 
 - [Architecture Specification](docs/architecture.md)
 - [Accessibility & WCAG Standards](docs/accessibility.md)
@@ -251,5 +365,6 @@ pytest tests/ -v
 
 ---
 
-## 12. License
+## 11. License
+
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

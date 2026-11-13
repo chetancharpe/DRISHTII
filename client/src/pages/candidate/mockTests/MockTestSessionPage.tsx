@@ -379,12 +379,35 @@ export const MockTestSessionPage: React.FC = () => {
       readActiveQuestion();
     };
 
+    const handleVoiceStatus = () => {
+      if (!currentQuestion || !test || !session) return;
+      const currentAns = session.answers[currentQuestion.id];
+      let selectedLabel = 'None';
+      if (currentAns && currentAns.selectedOptionIds && currentAns.selectedOptionIds.length > 0) {
+        const matches = currentQuestion.options
+          ?.filter((o) => currentAns.selectedOptionIds.includes(o.id))
+          .map((o) => o.label);
+        if (matches && matches.length > 0) selectedLabel = matches.join(', ');
+      }
+      const totalQ = test.totalQuestions || sectionQuestions.length;
+      const statusMsg = `Question ${globalQuestionNumber} of ${totalQ}. Selected option: ${selectedLabel}. Section: ${currentSection.name}.`;
+      speak(statusMsg);
+      announce(statusMsg, 'polite');
+    };
+
+    const handleVoiceConfirmSubmit = () => {
+      setIsSubmitModalOpen(false);
+      handleFinalSubmit();
+    };
+
     window.addEventListener('drishti:mock-select-option', handleVoiceSelectOption as EventListener);
     window.addEventListener('drishti:mock-next', handleVoiceNext);
     window.addEventListener('drishti:mock-previous', handleVoicePrevious);
     window.addEventListener('drishti:mock-mark-review', handleVoiceToggleMark);
     window.addEventListener('drishti:mock-clear', handleVoiceClear);
     window.addEventListener('drishti:mock-read-question', handleVoiceRead);
+    window.addEventListener('drishti:mock-status', handleVoiceStatus);
+    window.addEventListener('drishti:mock-confirm-submit', handleVoiceConfirmSubmit);
     window.addEventListener('drishti:mock-submit', handleVoiceSubmit);
 
     return () => {
@@ -394,6 +417,8 @@ export const MockTestSessionPage: React.FC = () => {
       window.removeEventListener('drishti:mock-mark-review', handleVoiceToggleMark);
       window.removeEventListener('drishti:mock-clear', handleVoiceClear);
       window.removeEventListener('drishti:mock-read-question', handleVoiceRead);
+      window.removeEventListener('drishti:mock-status', handleVoiceStatus);
+      window.removeEventListener('drishti:mock-confirm-submit', handleVoiceConfirmSubmit);
       window.removeEventListener('drishti:mock-submit', handleVoiceSubmit);
     };
   }, [currentQuestion, isPaused, readActiveQuestion]);

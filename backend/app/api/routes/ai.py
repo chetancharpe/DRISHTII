@@ -4,6 +4,7 @@ Provides secure LLM-assisted concept explanations, plain language simplification
 topic summaries, and alt-text generation with strict active exam isolation.
 """
 
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -11,10 +12,16 @@ from app.api.deps import get_current_user, get_db
 from app.models.exam_session import ExamSession, SessionStatus
 from app.models.user import User
 from app.schemas.ai import (
+    AITutorChatRequest,
+    AITutorChatResponse,
     AltTextGenerateRequest,
     AltTextGenerateResponse,
+    CandidateBriefingResponse,
+    CandidateProgressVoiceResponse,
     ConceptExplanationRequest,
     ConceptExplanationResponse,
+    NotificationAnnouncementResponse,
+    PlatformKnowledgeResponse,
     SimplifyTextRequest,
     SimplifyTextResponse,
     SummarizeTopicRequest,
@@ -111,3 +118,88 @@ def generate_alt_text(
         diagram_type=data.diagram_type,
         image_url=data.image_url,
     )
+
+
+@router.post("/tutor-chat", response_model=AITutorChatResponse)
+def tutor_chat(
+    data: AITutorChatRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Drishti Sarthi AI Tutor & Voice Companion for Candidate Portal.
+    Intelligent Mode-Aware Assistant:
+    - In Practice / Learning: Explains concepts, answers questions, guides candidate as a supportive friend.
+    - In Official Live Exam: Operates as strict Digital Scribe / Reader (reads questions, blocks exam answers).
+    """
+    candidate_first = (current_user.first_name or "").replace("[DEMO]", "").strip()
+    candidate_name = candidate_first or "Student"
+
+    # Server-authoritative check: active live examination session in database
+    active_session = (
+        db.query(ExamSession)
+        .filter(
+            ExamSession.candidate_id == current_user.id,
+            ExamSession.status.in_([SessionStatus.ACTIVE.value, SessionStatus.CREATED.value]),
+        )
+        .first()
+    )
+    context = data.context or {}
+    path = str(context.get("path") or "")
+    is_in_live_exam = ("/session" in path) or (data.mode == "exam_live") or bool(context.get("isLiveExam"))
+    effective_mode = "exam_live" if (is_in_live_exam and (data.mode == "exam_live" or active_session)) else data.mode
+
+    req = data.model_copy(update={"mode": effective_mode, "candidate_name": candidate_name})
+    return ai_service.chat_tutor(request=req, candidate_name=candidate_name, db=db)
+
+
+@router.get("/candidate-briefing", response_model=CandidateBriefingResponse, response_model_by_alias=True)
+def get_candidate_briefing(
+    language: Optional[str] = "hi",
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Generate personalized spoken onboarding briefing for visually impaired candidate upon login.
+    Greets candidate, announces teacher-uploaded exams/tests status, and initiates study plan dialogue.
+    """
+    return ai_service.generate_candidate_briefing(user=current_user, db=db, language=language or "hi")
+
+
+@router.get("/platform-knowledge", response_model=PlatformKnowledgeResponse, response_model_by_alias=True)
+def get_platform_knowledge(
+    language: Optional[str] = "hi",
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Provides real platform curriculum, available mock tests, and question inventory
+    for conversational voice discovery by visually impaired candidates.
+    """
+    return ai_service.get_platform_knowledge(db=db, language=language or "hi")
+
+
+@router.get("/notifications", response_model=NotificationAnnouncementResponse, response_model_by_alias=True)
+def get_notifications(
+    language: Optional[str] = "hi",
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Retrieves real platform announcements, uploaded test alerts, and published results
+    formatted as accessible voice announcements.
+    """
+    return ai_service.get_notifications_announcement(user=current_user, db=db, language=language or "hi")
+
+
+@router.get("/candidate-progress-summary", response_model=CandidateProgressVoiceResponse, response_model_by_alias=True)
+def get_candidate_progress_summary(
+    language: Optional[str] = "hi",
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Retrieves candidate's real diagnostic performance metrics and weak/strong topics
+    to formulate encouraging, supportive spoken feedback.
+    """
+    return ai_service.get_candidate_progress_summary(user=current_user, db=db, language=language or "hi")

@@ -40,7 +40,7 @@ export interface AccessibilityContextType {
   confirmReset: () => void;
 
   // Audio / Speech utilities
-  speak: (text: string) => void;
+  speak: (text: string, onEnd?: () => void) => void;
   stopSpeaking: () => void;
   isSpeaking: boolean;
   isSpeechSupported: boolean;
@@ -198,7 +198,13 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
   });
 
   const location = useLocation();
-  const isExaminerOrAdmin = location.pathname.startsWith('/examiner') || location.pathname.startsWith('/admin');
+  const storedUser = typeof window !== 'undefined' ? localStorage.getItem('drishti_current_user') : null;
+  const userRole = storedUser ? (() => { try { return JSON.parse(storedUser)?.role; } catch { return null; } })() : null;
+  const isExaminerOrAdmin =
+    location.pathname.startsWith('/examiner') ||
+    location.pathname.startsWith('/admin') ||
+    userRole === 'examiner' ||
+    userRole === 'admin';
 
   const [isCalibrationOpen, setIsCalibrationOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
@@ -266,9 +272,12 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [isSpeechSupported]);
 
   const speak = useCallback(
-    (text: string) => {
+    (text: string, onEnd?: () => void) => {
       if (isExaminerOrAdmin) return;
-      if (!isSpeechSupported || !text.trim()) return;
+      if (!isSpeechSupported || !text.trim()) {
+        onEnd?.();
+        return;
+      }
 
       if (speakTimeoutRef.current) {
         window.clearTimeout(speakTimeoutRef.current);
@@ -311,10 +320,18 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
       utterance.onend = () => {
         (window as any).__drishti_active_utterance = null;
         setIsSpeaking(false);
+        onEnd?.();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('drishti:speech-end'));
+        }
       };
       utterance.onerror = () => {
         (window as any).__drishti_active_utterance = null;
         setIsSpeaking(false);
+        onEnd?.();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('drishti:speech-end'));
+        }
       };
 
       // 40ms tick to allow Chromium speech engine cancel IPC to settle before speaking
