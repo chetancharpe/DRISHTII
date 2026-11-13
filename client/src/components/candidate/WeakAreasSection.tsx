@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { WeakAreaTopicItem } from '../../types/candidateDashboard';
 import { Target, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { useAccessibility } from '../../hooks/useAccessibility';
 
 export interface WeakAreasSectionProps {
   topics: WeakAreaTopicItem[];
@@ -9,6 +10,8 @@ export interface WeakAreasSectionProps {
 }
 
 export const WeakAreasSection: React.FC<WeakAreasSectionProps> = ({ topics, className = '' }) => {
+  const { preferences } = useAccessibility();
+  const isHindi = preferences?.language === 'hi' || (typeof document !== 'undefined' && document.documentElement.lang === 'hi');
   return (
     <section
       aria-labelledby="weak-areas-heading"
@@ -49,7 +52,7 @@ export const WeakAreasSection: React.FC<WeakAreasSectionProps> = ({ topics, clas
                 </div>
 
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="text-foreground-muted">Recent Accuracy:</span>
+                  <span className="text-foreground-muted">{isHindi ? 'हाल की सटीकता:' : 'Recent Accuracy:'}</span>
                   <span className="font-mono font-bold text-status-warning">
                     {item.accuracyPercent}%
                   </span>

@@ -22,7 +22,7 @@ import { useAccessibility } from '../../../contexts/AccessibilityContext';
 export const MockTestSessionPage: React.FC = () => {
   const { testId } = useParams<{ testId: string }>();
   const navigate = useNavigate();
-  const { openCalibration, announce, speak } = useAccessibility();
+  const { openCalibration, announce, speak, preferences } = useAccessibility();
 
   const [test, setTest] = useState<MockTest | null>(() => (testId ? findFallbackMockTest(testId) : null));
   const [session, setSession] = useState<MockTestSession | null>(null);
@@ -255,19 +255,26 @@ export const MockTestSessionPage: React.FC = () => {
   // Automated Spoken Question & Choices Readout
   const readActiveQuestion = useCallback(() => {
     if (!currentQuestion || isPaused) return;
-    const formulaText = currentQuestion.formula ? `Formula: ${currentQuestion.formula.accessibleText}. ` : '';
+    const isHindi = preferences?.language === 'hi' || /[\u0900-\u097F]/.test(currentQuestion.text);
+    const formulaText = currentQuestion.formula
+      ? `${isHindi ? 'फॉर्मूला: ' : 'Formula: '}${currentQuestion.formula.accessibleText}. `
+      : '';
     const tableText = currentQuestion.table
-      ? `Table: ${currentQuestion.table.caption}. Headers: ${currentQuestion.table.headers.join(', ')}. `
+      ? `${isHindi ? 'तालिका: ' : 'Table: '}${currentQuestion.table.caption}. `
       : '';
     const optionsText = (currentQuestion.options || [])
-      .map((o) => `Option ${o.label}: ${o.text}`)
+      .map((o) => `${isHindi ? 'विकल्प ' : 'Option '}${o.label}: ${o.text}`)
       .join('. ');
     const totalQ = test?.totalQuestions || sectionQuestions.length;
-    const secName = currentSection.name ? `Section ${currentSection.name}. ` : '';
-    const fullText = `Question ${globalQuestionNumber} of ${totalQ}. ${secName}${currentQuestion.text}. ${formulaText}${tableText} Choices: ${optionsText}. Say Option A, Option B, Option C, or Option D to answer. Say Next for next question.`;
+    const secName = currentSection.name ? `${isHindi ? 'सेक्शन ' : 'Section '}${currentSection.name}. ` : '';
+
+    const fullText = isHindi
+      ? `प्रश्न संख्या ${globalQuestionNumber}, कुल ${totalQ} में से। ${secName}${currentQuestion.text}। ${formulaText}${tableText} विकल्प: ${optionsText}। उत्तर देने के लिए विकल्प ए, बी, सी, या डी बोलें। अगले सवाल के लिए 'अगला' बोलें।`
+      : `Question ${globalQuestionNumber} of ${totalQ}. ${secName}${currentQuestion.text}. ${formulaText}${tableText} Choices: ${optionsText}. Say Option A, Option B, Option C, or Option D to answer. Say Next for next question.`;
+
     speak(fullText);
     announce(`Question ${globalQuestionNumber}: ${currentQuestion.text}`, 'polite');
-  }, [currentQuestion, isPaused, globalQuestionNumber, test?.totalQuestions, currentSection.name, sectionQuestions.length, speak, announce]);
+  }, [currentQuestion, isPaused, globalQuestionNumber, test?.totalQuestions, currentSection.name, sectionQuestions.length, speak, announce, preferences?.language]);
 
   const readActiveQuestionRef = useRef(readActiveQuestion);
   readActiveQuestionRef.current = readActiveQuestion;

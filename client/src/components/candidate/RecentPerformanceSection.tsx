@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { PerformanceRecordItem } from '../../types/candidateDashboard';
 import { BarChart3, CheckCircle2, ArrowRight } from 'lucide-react';
+import { useAccessibility } from '../../hooks/useAccessibility';
 
 export interface RecentPerformanceSectionProps {
   records: PerformanceRecordItem[];
@@ -12,6 +13,8 @@ export const RecentPerformanceSection: React.FC<RecentPerformanceSectionProps> =
   records,
   className = '',
 }) => {
+  const { preferences } = useAccessibility();
+  const isHindi = preferences?.language === 'hi' || (typeof document !== 'undefined' && document.documentElement.lang === 'hi');
   return (
     <section
       aria-labelledby="recent-performance-heading"
@@ -28,7 +31,7 @@ export const RecentPerformanceSection: React.FC<RecentPerformanceSectionProps> =
           to="/candidate/results"
           className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
         >
-          <span>All Results</span>
+          <span>{isHindi ? 'सभी परिणाम देखें' : 'All Results'}</span>
           <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
         </Link>
       </div>
@@ -41,11 +44,11 @@ export const RecentPerformanceSection: React.FC<RecentPerformanceSectionProps> =
           </caption>
           <thead>
             <tr className="border-b border-border text-xs font-mono font-bold text-foreground-muted uppercase">
-              <th scope="col" className="pb-3 pr-4">Test Name</th>
-              <th scope="col" className="pb-3 px-4">Score</th>
-              <th scope="col" className="pb-3 px-4">Evaluation</th>
-              <th scope="col" className="pb-3 px-4">Date</th>
-              <th scope="col" className="pb-3 pl-4 text-right">Review Action</th>
+              <th scope="col" className="pb-3 pr-4">{isHindi ? 'परीक्षा का नाम' : 'Test Name'}</th>
+              <th scope="col" className="pb-3 px-4">{isHindi ? 'प्राप्तांक' : 'Score'}</th>
+              <th scope="col" className="pb-3 px-4">{isHindi ? 'मूल्यांकन' : 'Evaluation'}</th>
+              <th scope="col" className="pb-3 px-4">{isHindi ? 'दिनांक' : 'Date'}</th>
+              <th scope="col" className="pb-3 pl-4 text-right">{isHindi ? 'समीक्षा' : 'Review Action'}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border text-sm">

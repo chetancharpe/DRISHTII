@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { UpcomingExamDashboardItem } from '../../types/candidateDashboard';
 import { Calendar, Clock, ArrowRight } from 'lucide-react';
+import { useAccessibility } from '../../hooks/useAccessibility';
 
 export interface UpcomingExamsSectionProps {
   exams: UpcomingExamDashboardItem[];
@@ -12,6 +13,8 @@ export const UpcomingExamsSection: React.FC<UpcomingExamsSectionProps> = ({
   exams,
   className = '',
 }) => {
+  const { preferences } = useAccessibility();
+  const isHindi = preferences?.language === 'hi' || (typeof document !== 'undefined' && document.documentElement.lang === 'hi');
   return (
     <section
       aria-labelledby="upcoming-exams-heading"
@@ -54,7 +57,7 @@ export const UpcomingExamsSection: React.FC<UpcomingExamsSectionProps> = ({
                   <span>•</span>
                   <div className="flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5 text-foreground-muted" aria-hidden="true" />
-                    <span>{exam.durationMinutes} Minutes Duration</span>
+                    <span>{exam.durationMinutes} {isHindi ? 'मिनट अवधि' : 'Minutes Duration'}</span>
                   </div>
                   {exam.registrationNumber && (
                     <>
@@ -73,7 +76,7 @@ export const UpcomingExamsSection: React.FC<UpcomingExamsSectionProps> = ({
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border bg-surface hover:bg-surface-elevated text-foreground text-xs font-bold transition-colors min-h-[40px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   aria-label={`View schedule details for ${exam.title} on ${exam.dateFormatted}`}
                 >
-                  <span>View Details</span>
+                  <span>{isHindi ? 'विवरण देखें' : 'View Details'}</span>
                   <ArrowRight className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
                 </Link>
               </div>

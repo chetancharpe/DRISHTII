@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAccessibility } from '../../hooks/useAccessibility';
 
 interface PersonalizedPracticeProps {
   topics: string[];
@@ -9,6 +10,8 @@ export const PersonalizedPractice: React.FC<PersonalizedPracticeProps> = ({
   topics = ['Probability', 'Percentages', 'Syllogisms'],
 }) => {
   const navigate = useNavigate();
+  const { preferences } = useAccessibility();
+  const isHindi = preferences?.language === 'hi' || (typeof document !== 'undefined' && document.documentElement.lang === 'hi');
 
   return (
     <div
@@ -18,10 +21,10 @@ export const PersonalizedPractice: React.FC<PersonalizedPracticeProps> = ({
     >
       <div className="space-y-2 max-w-xl">
         <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-semibold">
-          ✨ Practice for You
+          {isHindi ? '✨ आपके लिए विशेष अभ्यास' : '✨ Practice for You'}
         </div>
         <h3 id="personalized-practice-heading" className="text-xl font-bold text-white">
-          Adaptive 10-Question Reinforcement Set
+          {isHindi ? 'अनुकूली 10-प्रश्नों का सुदृढ़ीकरण सेट' : 'Adaptive 10-Question Reinforcement Set'}
         </h3>
         <p className="text-xs text-slate-300 leading-relaxed">
           Questions automatically selected based on your recent accuracy in{' '}
@@ -36,7 +39,7 @@ export const PersonalizedPractice: React.FC<PersonalizedPracticeProps> = ({
           onClick={() => navigate('/candidate/practice')}
           className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
-          Start Practice Set (10 Questions)
+          {isHindi ? 'अभ्यास सेट शुरू करें (10 प्रश्न)' : 'Start Practice Set (10 Questions)'}
         </button>
       </div>
     </div>

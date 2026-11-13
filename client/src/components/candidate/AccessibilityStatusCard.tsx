@@ -11,25 +11,26 @@ export const AccessibilityStatusCard: React.FC<AccessibilityStatusCardProps> = (
   className = '',
 }) => {
   const { preferences, openCalibration } = useAccessibility();
+  const isHindi = preferences?.language === 'hi' || (typeof document !== 'undefined' && document.documentElement.lang === 'hi');
 
   const activeSpecs = [
     {
-      label: 'Text Scale',
+      label: isHindi ? 'टेक्स्ट आकार' : 'Text Scale',
       val: preferences.fontSize.charAt(0).toUpperCase() + preferences.fontSize.slice(1),
       icon: <Type className="w-4 h-4 text-primary" aria-hidden="true" />,
     },
     {
-      label: 'Contrast',
+      label: isHindi ? 'कंट्रास्ट' : 'Contrast',
       val: preferences.contrast === 'high' ? 'High Contrast' : 'Standard',
       icon: <SunDim className="w-4 h-4 text-primary" aria-hidden="true" />,
     },
     {
-      label: 'Audio Feedback',
+      label: isHindi ? 'ऑडियो सहायता' : 'Audio Feedback',
       val: preferences.audioEnabled ? 'Active Voice' : 'Off (Screen Reader)',
       icon: <Volume2 className="w-4 h-4 text-primary" aria-hidden="true" />,
     },
     {
-      label: 'Navigation',
+      label: isHindi ? 'नेविगेशन मोड' : 'Navigation',
       val: preferences.keyboardFirst ? 'Keyboard-First' : 'Standard Pointer',
       icon: <Keyboard className="w-4 h-4 text-primary" aria-hidden="true" />,
     },

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { SubjectProgressItem } from '../../types/candidateDashboard';
 import { BookOpen, ArrowRight } from 'lucide-react';
+import { useAccessibility } from '../../hooks/useAccessibility';
 
 export interface SubjectProgressSectionProps {
   subjects: SubjectProgressItem[];
@@ -12,6 +13,8 @@ export const SubjectProgressSection: React.FC<SubjectProgressSectionProps> = ({
   subjects,
   className = '',
 }) => {
+  const { preferences } = useAccessibility();
+  const isHindi = preferences?.language === 'hi' || (typeof document !== 'undefined' && document.documentElement.lang === 'hi');
   return (
     <section
       aria-labelledby="subject-progress-heading"
@@ -39,7 +42,7 @@ export const SubjectProgressSection: React.FC<SubjectProgressSectionProps> = ({
               <div>
                 <span className="text-sm font-bold text-foreground">{subj.subject}</span>
                 <span className="text-xs text-foreground-muted ml-2">
-                  ({subj.masteredTopics} of {subj.totalTopics} topics mastered)
+                  {isHindi ? `(${subj.totalTopics} में से ${subj.masteredTopics} विषय तैयार)` : `(${subj.masteredTopics} of ${subj.totalTopics} topics mastered)`}
                 </span>
               </div>
 
@@ -52,7 +55,7 @@ export const SubjectProgressSection: React.FC<SubjectProgressSectionProps> = ({
                   className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-primary-hover hover:underline p-1 min-h-[36px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
                   aria-label={`Practice ${subj.subject} questions. Current mastery is ${subj.progressPercent}%.`}
                 >
-                  <span>Practice</span>
+                  <span>{isHindi ? 'अभ्यास' : 'Practice'}</span>
                   <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
                 </Link>
               </div>

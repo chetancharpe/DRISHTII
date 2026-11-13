@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { LearningProgressItem } from '../../types/candidateDashboard';
 import { Bookmark, ArrowRight, Play, BookOpen } from 'lucide-react';
+import { useAccessibility } from '../../hooks/useAccessibility';
 
 export interface ContinueLearningCardProps {
   learning: LearningProgressItem | null;
@@ -12,6 +13,8 @@ export const ContinueLearningCard: React.FC<ContinueLearningCardProps> = ({
   learning,
   className = '',
 }) => {
+  const { preferences } = useAccessibility();
+  const isHindi = preferences?.language === 'hi' || (typeof document !== 'undefined' && document.documentElement.lang === 'hi');
   return (
     <section
       aria-labelledby="continue-learning-heading"
@@ -36,12 +39,12 @@ export const ContinueLearningCard: React.FC<ContinueLearningCardProps> = ({
               </h3>
             </div>
             <div className="text-xs text-foreground-secondary font-mono">
-              {learning.completedLessons} of {learning.totalLessons} lessons completed
+              {isHindi ? `${learning.totalLessons} में से ${learning.completedLessons} पाठ पूर्ण` : `${learning.completedLessons} of ${learning.totalLessons} lessons completed`}
             </div>
           </div>
 
           <p className="text-xs text-foreground-muted leading-relaxed">
-            Next lesson: <strong className="text-foreground">{learning.nextLessonTitle}</strong>
+            {isHindi ? 'अगला पाठ:' : 'Next lesson:'} <strong className="text-foreground">{learning.nextLessonTitle}</strong>
           </p>
 
           {/* Progress bar */}

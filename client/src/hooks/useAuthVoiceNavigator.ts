@@ -88,6 +88,7 @@ export interface UseAuthVoiceNavigatorOptions {
   onNavigateLogin?: () => void;
   onNavigateSignup?: () => void;
   onNavigateForgotPassword?: () => void;
+  onStartFaceAccess?: () => void;
   currentEmail?: string;
   isPasswordSet?: boolean;
   currentName?: string;
@@ -130,6 +131,9 @@ export function useAuthVoiceNavigator(options: UseAuthVoiceNavigatorOptions): Au
   const recognitionRef = useRef<any>(null);
   const isListeningRef = useRef<boolean>(isListening);
   isListeningRef.current = isListening;
+  const restartTimerRef = useRef<any>(null);
+  const executeAuthCommandRef = useRef<(cmd: string) => void>(() => {});
+  const createAndStartRef = useRef<() => void>(() => {});
 
   const optionsRef = useRef(options);
   optionsRef.current = options;
@@ -413,6 +417,21 @@ export function useAuthVoiceNavigator(options: UseAuthVoiceNavigatorOptions): Au
             setLastActionFeedback('Password entered.');
             return;
           }
+        }
+
+        // Option Face Access: "face login", "face access", "camera login", "face authentication"
+        if (
+          /\b(face login|face access|camera login|face authentication|face scan|chehra login)\b/i.test(
+            cleanText
+          )
+        ) {
+          lastExecutedTextRef.current = cleanText;
+          lastExecutedTimeRef.current = now;
+          playEarcon('action');
+          speak('Opening Drishti FaceAccess AI camera guided authentication.');
+          announce('Opening FaceAccess AI.', 'polite');
+          if (opts.onStartFaceAccess) opts.onStartFaceAccess();
+          return;
         }
 
         // Option 4: Submit Sign In
@@ -781,6 +800,10 @@ export function useAuthVoiceNavigator(options: UseAuthVoiceNavigatorOptions): Au
     [speak, announce, speakCommandsHelp]
   );
 
+  useEffect(() => {
+    executeAuthCommandRef.current = executeAuthCommand;
+  }, [executeAuthCommand]);
+
   // Request explicit mic permission
   const requestMicPermission = useCallback(async (): Promise<boolean> => {
     try {
@@ -788,6 +811,12 @@ export function useAuthVoiceNavigator(options: UseAuthVoiceNavigatorOptions): Au
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         stream.getTracks().forEach((track) => track.stop());
         setHasPermissionError(false);
+        setIsListening(true);
+        isListeningRef.current = true;
+        try {
+          sessionStorage.setItem('drishti_auth_voice_active', 'true');
+        } catch {}
+        createAndStartRef.current?.();
         return true;
       }
       return false;
@@ -798,21 +827,33 @@ export function useAuthVoiceNavigator(options: UseAuthVoiceNavigatorOptions): Au
   }, []);
 
   // Toggle listening
-  const toggleListening = useCallback(() => {
+  const toggleListening = useCallback(async () => {
     if (isListeningRef.current) {
       setIsListening(false);
+      isListeningRef.current = false;
       try {
         sessionStorage.setItem('drishti_auth_voice_active', 'false');
       } catch {}
-      try {
-        recognitionRef.current?.abort();
-      } catch {}
+      clearTimeout(restartTimerRef.current);
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.onend = null;
+          recognitionRef.current.onerror = null;
+          recognitionRef.current.abort();
+        } catch {}
+        recognitionRef.current = null;
+      }
+      setIsActuallyRecognizing(false);
       playEarcon('pause');
       speak('Voice Assistant paused. Press Alt plus V or click to resume.');
       announce('Voice Assistant paused.', 'polite');
       setLastActionFeedback('Microphone paused.');
+      setLiveTranscript('');
     } else {
+      const granted = await requestMicPermission();
+      if (!granted) return;
       setIsListening(true);
+      isListeningRef.current = true;
       try {
         sessionStorage.setItem('drishti_auth_voice_active', 'true');
       } catch {}
@@ -820,17 +861,18 @@ export function useAuthVoiceNavigator(options: UseAuthVoiceNavigatorOptions): Au
       speak('Voice Assistant listening. Say Candidate to sign in, or say Help for commands.');
       announce('Voice Assistant active.', 'polite');
       setLastActionFeedback('Microphone listening.');
-      try {
-        recognitionRef.current?.start();
-      } catch {}
+      createAndStartRef.current?.();
     }
-  }, [speak, announce]);
+  }, [requestMicPermission, speak, announce]);
 
   // Speech Recognition Lifecycle
   useEffect(() => {
     if (!isEnabled || !isSupported) {
+      clearTimeout(restartTimerRef.current);
       if (recognitionRef.current) {
         try {
+          recognitionRef.current.onend = null;
+          recognitionRef.current.onerror = null;
           recognitionRef.current.abort();
         } catch {}
         recognitionRef.current = null;
@@ -839,93 +881,132 @@ export function useAuthVoiceNavigator(options: UseAuthVoiceNavigatorOptions): Au
       return;
     }
 
+    let isMounted = true;
     const SpeechClass = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechClass();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = 'en-IN';
-    recognitionRef.current = recognition;
+    if (!SpeechClass) return;
 
-    recognition.onstart = () => {
-      setIsActuallyRecognizing(true);
-      setHasPermissionError(false);
-    };
+    function createAndStart() {
+      if (!isMounted || !isListeningRef.current) return;
 
-    recognition.onresult = (event: any) => {
-      let interim = '';
-      let final = '';
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const piece = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          final += piece;
-        } else {
-          interim += piece;
-        }
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.onend = null;
+          recognitionRef.current.onerror = null;
+          recognitionRef.current.abort();
+        } catch {}
+        recognitionRef.current = null;
       }
 
-      const activeText = final.trim() || interim.trim();
-      setLiveTranscript(activeText);
+      try {
+        const recognition = new SpeechClass();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-IN';
 
-      if (final.trim()) {
-        setLastTranscript(final.trim());
-        executeAuthCommand(final.trim());
-      } else if (interim.trim().length > 2) {
-        // Also execute urgent single-word keywords even in interim mode for instant response
-        const lower = interim.trim().toLowerCase();
-        if (
-          lower === 'candidate' ||
-          lower === 'student' ||
-          lower === 'examiner' ||
-          lower === 'admin' ||
-          lower === 'option 1' ||
-          lower === 'option one' ||
-          lower === 'option 2' ||
-          lower === 'option two' ||
-          lower === 'option 3' ||
-          lower === 'option three' ||
-          lower === 'option 4' ||
-          lower === 'option four' ||
-          lower === 'option 5' ||
-          lower === 'option five' ||
-          lower === 'submit' ||
-          lower === 'help'
-        ) {
-          executeAuthCommand(lower);
+        recognition.onstart = () => {
+          if (!isMounted) return;
+          setIsActuallyRecognizing(true);
+          setHasPermissionError(false);
+        };
+
+        recognition.onresult = (event: any) => {
+          if (!isMounted) return;
+          let interim = '';
+          let final = '';
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const piece = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              final += piece;
+            } else {
+              interim += piece;
+            }
+          }
+
+          const activeText = final.trim() || interim.trim();
+          if (activeText) {
+            setLiveTranscript(activeText);
+          }
+
+          if (final.trim()) {
+            setLastTranscript(final.trim());
+            executeAuthCommandRef.current(final.trim());
+          } else if (interim.trim().length > 2) {
+            const lower = interim.trim().toLowerCase();
+            if (
+              lower === 'candidate' ||
+              lower === 'student' ||
+              lower === 'examiner' ||
+              lower === 'admin' ||
+              lower === 'option 1' ||
+              lower === 'option one' ||
+              lower === 'option 2' ||
+              lower === 'option two' ||
+              lower === 'option 3' ||
+              lower === 'option three' ||
+              lower === 'option 4' ||
+              lower === 'option four' ||
+              lower === 'option 5' ||
+              lower === 'option five' ||
+              lower === 'submit' ||
+              lower === 'help'
+            ) {
+              executeAuthCommandRef.current(lower);
+            }
+          }
+        };
+
+        recognition.onerror = (event: any) => {
+          if (!isMounted) return;
+          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+            setHasPermissionError(true);
+            setIsActuallyRecognizing(false);
+          }
+        };
+
+        recognition.onend = () => {
+          if (!isMounted) return;
+          setIsActuallyRecognizing(false);
+          if (isListeningRef.current && isEnabled) {
+            clearTimeout(restartTimerRef.current);
+            restartTimerRef.current = setTimeout(() => {
+              if (isMounted && isListeningRef.current) {
+                createAndStart();
+              }
+            }, 300);
+          }
+        };
+
+        recognition.start();
+        recognitionRef.current = recognition;
+      } catch (err: any) {
+        if (err?.name === 'NotAllowedError') {
+          setHasPermissionError(true);
         }
-      }
-    };
-
-    recognition.onerror = (event: any) => {
-      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-        setHasPermissionError(true);
         setIsActuallyRecognizing(false);
       }
-    };
+    }
 
-    recognition.onend = () => {
-      setIsActuallyRecognizing(false);
-      // Auto-restart if user still wants it active
-      if (isListeningRef.current && isEnabled) {
-        try {
-          recognition.start();
-        } catch {}
-      }
-    };
+    createAndStartRef.current = createAndStart;
 
     if (isListening) {
-      try {
-        recognition.start();
-      } catch {}
+      createAndStart();
     }
 
     return () => {
-      try {
-        recognition.abort();
-      } catch {}
-      recognitionRef.current = null;
+      isMounted = false;
+      clearTimeout(restartTimerRef.current);
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.onend = null;
+          recognitionRef.current.onerror = null;
+          recognitionRef.current.abort();
+        } catch {}
+        recognitionRef.current = null;
+      }
+      setIsActuallyRecognizing(false);
     };
-  }, [isEnabled, isSupported, isListening, executeAuthCommand]);
+  }, [isEnabled, isSupported, isListening]);
 
   // Global Keyboard Shortcuts (Alt+V toggles mic, Alt+H speaks commands, Alt+G speaks guidance)
   useEffect(() => {

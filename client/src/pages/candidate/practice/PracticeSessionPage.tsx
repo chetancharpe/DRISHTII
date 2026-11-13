@@ -19,7 +19,7 @@ import { useVoiceCommands } from '../../../hooks/useVoiceCommands';
 export const PracticeSessionPage: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
-  const { openCalibration, announce, speak } = useAccessibility();
+  const { openCalibration, announce, speak, preferences } = useAccessibility();
 
   const [session, setSession] = useState<PracticeSession | null>(null);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -121,15 +121,21 @@ export const PracticeSessionPage: React.FC = () => {
   // Automated Spoken Question & Choices Readout
   const readQuestionAloud = useCallback(() => {
     if (!currentQuestion) return;
+    const isHindi = preferences?.language === 'hi' || /[\u0900-\u097F]/.test(currentQuestion.questionText);
     const optLetters = ['A', 'B', 'C', 'D'];
     const opts = currentQuestion.options
-      .map((opt, i) => `Option ${opt.label || optLetters[i]}: ${opt.text}`)
+      .map((opt, i) => `${isHindi ? 'विकल्प ' : 'Option '}${opt.label || optLetters[i]}: ${opt.text}`)
       .join('. ');
     const qText = currentQuestion.audioDescription || currentQuestion.questionText;
-    const textToSpeak = `Question ${currentIdx + 1} of ${session?.totalQuestions || 5}: ${currentQuestion.topicName || ''}. ${qText}. ${opts}. Say Option A, Option B, Option C, or Option D to choose, or say Next Question.`;
+    const totalQ = session?.totalQuestions || 5;
+
+    const textToSpeak = isHindi
+      ? `प्रश्न संख्या ${currentIdx + 1}, कुल ${totalQ} में से। ${currentQuestion.topicName ? 'विषय: ' + currentQuestion.topicName + '। ' : ''}${qText}। ${opts}। उत्तर चुनने के लिए बोलिए: विकल्प ए, विकल्प बी, विकल्प सी, या विकल्प डी।`
+      : `Question ${currentIdx + 1} of ${totalQ}: ${currentQuestion.topicName || ''}. ${qText}. ${opts}. Say Option A, Option B, Option C, or Option D to choose, or say Next Question.`;
+
     speak(textToSpeak);
     announce(textToSpeak, 'polite');
-  }, [currentQuestion, currentIdx, session?.totalQuestions, speak, announce]);
+  }, [currentQuestion, currentIdx, session?.totalQuestions, speak, announce, preferences?.language]);
 
   // Auto-read question statement and choices on question load or question change
   useEffect(() => {

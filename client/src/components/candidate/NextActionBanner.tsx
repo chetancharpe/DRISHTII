@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { NextActionItem } from '../../types/candidateDashboard';
 import { ArrowRight, Clock, PlayCircle, Sparkles } from 'lucide-react';
+import { useAccessibility } from '../../hooks/useAccessibility';
 
 export interface NextActionBannerProps {
   action: NextActionItem;
@@ -9,6 +10,8 @@ export interface NextActionBannerProps {
 }
 
 export const NextActionBanner: React.FC<NextActionBannerProps> = ({ action, className = '' }) => {
+  const { preferences } = useAccessibility();
+  const isHindi = preferences?.language === 'hi' || (typeof document !== 'undefined' && document.documentElement.lang === 'hi');
   const percentCompleted = Math.round((action.completedQuestions / action.totalQuestions) * 100);
 
   return (
@@ -22,7 +25,7 @@ export const NextActionBanner: React.FC<NextActionBannerProps> = ({ action, clas
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
           <span className="text-xs font-mono font-bold uppercase tracking-wider text-primary">
-            Next Recommended Step
+            {isHindi ? 'अनुशंसित अगला कदम' : 'Next Recommended Step'}
           </span>
         </div>
         <div
@@ -30,7 +33,7 @@ export const NextActionBanner: React.FC<NextActionBannerProps> = ({ action, clas
           aria-label={`Estimated duration: ${action.estimatedMinutesRemaining} minutes remaining`}
         >
           <Clock className="w-3.5 h-3.5 text-primary shrink-0" aria-hidden="true" />
-          <span>~{action.estimatedMinutesRemaining} mins</span>
+          <span>~{action.estimatedMinutesRemaining} {isHindi ? 'मिनट' : 'mins'}</span>
         </div>
       </div>
 
@@ -50,7 +53,9 @@ export const NextActionBanner: React.FC<NextActionBannerProps> = ({ action, clas
           </div>
 
           <p className="text-xs sm:text-sm text-foreground-secondary leading-relaxed">
-            Complete {action.totalQuestions - action.completedQuestions} more questions to finish this scheduled {action.subject} practice session.
+            {isHindi
+              ? `इस अभ्यास सत्र को पूरा करने के लिए ${action.totalQuestions - action.completedQuestions} और प्रश्न हल करें।`
+              : `Complete ${action.totalQuestions - action.completedQuestions} more questions to finish this scheduled ${action.subject} practice session.`}
           </p>
         </div>
 
@@ -62,7 +67,7 @@ export const NextActionBanner: React.FC<NextActionBannerProps> = ({ action, clas
             aria-label={`${action.ctaLabel}: ${action.subject} - ${action.topic}. ${action.completedQuestions} of ${action.totalQuestions} questions completed.`}
           >
             <PlayCircle className="w-5 h-5 shrink-0" aria-hidden="true" />
-            <span>{action.ctaLabel}</span>
+            <span>{isHindi ? 'अभ्यास जारी रखें' : action.ctaLabel}</span>
           </Link>
 
           <Link
@@ -70,7 +75,7 @@ export const NextActionBanner: React.FC<NextActionBannerProps> = ({ action, clas
             className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg border border-border bg-surface hover:bg-surface-elevated text-foreground text-xs font-bold transition-colors min-h-[48px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             aria-label="View all available practice subjects and question banks"
           >
-            <span>View All Practice</span>
+            <span>{isHindi ? 'सभी अभ्यास देखें' : 'View All Practice'}</span>
             <ArrowRight className="w-3.5 h-3.5 text-foreground-muted shrink-0" aria-hidden="true" />
           </Link>
         </div>

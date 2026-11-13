@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { QuickActionItem } from '../../types/candidateDashboard';
 import { BookOpen, Award, Calendar, BarChart3, ArrowRight } from 'lucide-react';
+import { useAccessibility } from '../../hooks/useAccessibility';
 
 export interface QuickActionsGridProps {
   actions: QuickActionItem[];
@@ -9,6 +10,8 @@ export interface QuickActionsGridProps {
 }
 
 export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({ actions, className = '' }) => {
+  const { preferences } = useAccessibility();
+  const isHindi = preferences?.language === 'hi' || (typeof document !== 'undefined' && document.documentElement.lang === 'hi');
   const getIcon = (name: QuickActionItem['iconName']) => {
     switch (name) {
       case 'practice':
@@ -27,7 +30,7 @@ export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({ actions, cla
   return (
     <section aria-labelledby="quick-actions-heading" className={`flex flex-col gap-3 ${className}`}>
       <h2 id="quick-actions-heading" className="text-base sm:text-lg font-bold text-foreground">
-        Quick Actions
+        {isHindi ? 'त्वरित विकल्प' : 'Quick Actions'}
       </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5" role="list">
@@ -37,7 +40,14 @@ export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({ actions, cla
             to={act.route}
             role="listitem"
             className="group relative flex flex-col justify-between p-4 rounded-xl border border-border bg-surface hover:bg-surface-elevated hover:border-primary/50 transition-all duration-fast min-h-[110px] shadow-sm focus:outline-none focus-visible:ring-3 focus-visible:ring-primary focus-visible:ring-offset-2"
-            aria-label={`${act.title}: ${act.description}`}
+            aria-label={`${isHindi ? (
+                  act.title.includes('Curriculum') || act.title.includes('Learn') ? 'पाठ्यक्रम देखें' :
+                  act.title.includes('Practice') ? 'अभ्यास केंद्र' :
+                  act.title.includes('Mock') ? 'मॉक टेस्ट पोर्टल' :
+                  act.title.includes('Exam') ? 'आधिकारिक परीक्षाएं' :
+                  act.title.includes('Result') || act.title.includes('Score') ? 'परिणाम व स्कोरकार्ड' :
+                  act.title
+                ) : act.title}: ${act.description}`}
           >
             <div className="flex items-start justify-between gap-2">
               <div className="p-2 rounded-lg bg-surface-elevated border border-border group-hover:border-primary/40 transition-colors">
@@ -53,7 +63,14 @@ export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({ actions, cla
             <div className="mt-3 flex flex-col gap-1">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
-                  {act.title}
+                  {isHindi ? (
+                  act.title.includes('Curriculum') || act.title.includes('Learn') ? 'पाठ्यक्रम देखें' :
+                  act.title.includes('Practice') ? 'अभ्यास केंद्र' :
+                  act.title.includes('Mock') ? 'मॉक टेस्ट पोर्टल' :
+                  act.title.includes('Exam') ? 'आधिकारिक परीक्षाएं' :
+                  act.title.includes('Result') || act.title.includes('Score') ? 'परिणाम व स्कोरकार्ड' :
+                  act.title
+                ) : act.title}
                 </span>
                 <ArrowRight className="w-3.5 h-3.5 text-foreground-muted group-hover:text-primary transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
               </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { PerformanceTrendData } from '../../types/candidateDashboard';
 import { TrendingUp, Info } from 'lucide-react';
+import { useAccessibility } from '../../hooks/useAccessibility';
 
 export interface PerformanceTrendCardProps {
   trend: PerformanceTrendData;
@@ -11,6 +12,8 @@ export const PerformanceTrendCard: React.FC<PerformanceTrendCardProps> = ({
   trend,
   className = '',
 }) => {
+  const { preferences } = useAccessibility();
+  const isHindi = preferences?.language === 'hi' || (typeof document !== 'undefined' && document.documentElement.lang === 'hi');
   return (
     <section
       aria-labelledby="performance-trend-heading"
@@ -36,7 +39,7 @@ export const PerformanceTrendCard: React.FC<PerformanceTrendCardProps> = ({
       >
         <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
         <p>
-          <strong className="font-semibold text-foreground">Score Trend: </strong>
+          <strong className="font-semibold text-foreground">{isHindi ? 'स्कोर रुझान: ' : 'Score Trend: '}</strong>
           {trend.textAlternative} {trend.trendDescription}
         </p>
       </div>

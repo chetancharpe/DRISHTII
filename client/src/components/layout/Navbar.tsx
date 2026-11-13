@@ -15,7 +15,7 @@ export interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp }) => {
   const { user, isAuthenticated, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const { preferences, setHighContrast } = useAccessibility();
+  const { preferences, setHighContrast, setPreferredLanguage } = useAccessibility();
   const { t, language, setLanguage } = useTranslation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
@@ -31,9 +31,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
   const navLinks = [
     { label: 'Home', href: '/' },
     { label: 'Features', href: '/#features' },
-    { label: 'How It Works', href: '/#how-it-works' },
-    { label: 'Accessibility', href: '/#accessibility' },
-    { label: 'For Examiners', href: '/#examiners' },
+    { label: 'Exams', href: '/candidate/exams' },
+    { label: 'Resources', href: '/candidate/learning' },
+    { label: 'Community', href: '/about' },
     { label: 'About', href: '/about' },
   ];
 
@@ -54,41 +54,41 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
           >
             <BrandLogo variant="full" size="md" />
           </Link>
+        </div>
 
-          {/* Desktop Navigation Links (Landing Page Only) */}
-          {isLandingPage && (
-            <nav className="hidden lg:flex items-center gap-1" aria-label="Main Navigation">
-              {navLinks.map((link) => {
-                const isAnchor = link.href.startsWith('/#');
-                if (isAnchor) {
-                  return (
-                    <a
-                      key={link.label}
-                      href={link.href}
-                      className="px-3 py-1.5 rounded-md text-sm font-medium text-foreground-secondary hover:text-foreground hover:bg-surface-elevated transition-colors"
-                    >
-                      {link.label}
-                    </a>
-                  );
-                }
-                const isActive = location.pathname === link.href;
+        {/* Desktop Navigation Links (Landing Page Center Nav) */}
+        {isLandingPage && (
+          <nav className="hidden lg:flex items-center gap-7" aria-label="Main Navigation">
+            {navLinks.map((link) => {
+              const isAnchor = link.href.startsWith('/#');
+              const isActive = location.pathname === link.href || (link.href === '/' && location.pathname === '/');
+              if (isAnchor) {
                 return (
-                  <Link
+                  <a
                     key={link.label}
-                    to={link.href}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-surface-elevated text-primary font-semibold'
-                        : 'text-foreground-secondary hover:text-foreground hover:bg-surface-elevated'
-                    }`}
+                    href={link.href}
+                    className="text-sm font-medium text-slate-600 hover:text-slate-950 transition-colors"
                   >
                     {link.label}
-                  </Link>
+                  </a>
                 );
-              })}
-            </nav>
-          )}
-        </div>
+              }
+              return (
+                <Link
+                  key={link.label}
+                  to={link.href}
+                  className={`text-sm transition-colors relative py-1 ${
+                    isActive
+                      ? 'font-bold text-slate-950 after:absolute after:bottom-[-4px] after:left-0 after:right-0 after:h-[2.5px] after:bg-blue-600 after:rounded-full'
+                      : 'font-medium text-slate-600 hover:text-slate-950'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </nav>
+        )}
 
         {/* Right Side Controls & Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
@@ -123,7 +123,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
           {/* Quick Language Toggle */}
           <button
             type="button"
-            onClick={() => setLanguage(language === 'hi' ? 'en' : 'hi')}
+            onClick={() => {
+              const next = language === 'hi' ? 'en' : 'hi';
+              setLanguage(next);
+              setPreferredLanguage(next);
+            }}
             aria-label={language === 'hi' ? 'Switch interface language to English' : 'इंटरफ़ेस भाषा हिन्दी में बदलें'}
             className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-md border border-border bg-surface hover:bg-surface-elevated text-foreground cursor-pointer min-h-[44px]"
           >
@@ -181,10 +185,26 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAccessibility, onOpenHelp 
               <button
                 type="button"
                 onClick={logout}
-                className="px-3 py-2 text-xs font-semibold rounded-md bg-surface hover:bg-surface-elevated text-status-error border border-border cursor-pointer min-h-[44px]"
+                className="px-3.5 py-2 text-xs font-semibold rounded-full bg-surface hover:bg-surface-elevated text-status-error border border-border cursor-pointer min-h-[40px]"
               >
                 {t('nav.logout')}
               </button>
+            </div>
+          ) : isLandingPage ? (
+            <div className="flex items-center gap-2.5">
+              <Link
+                to="/auth/login"
+                className="inline-flex items-center justify-center px-5 py-2 text-sm font-semibold rounded-full border border-slate-700/80 bg-white/80 hover:bg-slate-100 text-slate-800 transition-colors shadow-xs"
+              >
+                {t('nav.login')}
+              </Link>
+              <Link
+                to="/auth/role-selection"
+                className="inline-flex items-center justify-center gap-1.5 px-5 py-2 text-sm font-bold rounded-full bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 hover:from-amber-700 hover:to-amber-900 text-white shadow-sm shadow-amber-700/20 active:scale-[0.98] transition-all"
+              >
+                <span>Get Started</span>
+                <span aria-hidden="true">→</span>
+              </Link>
             </div>
           ) : (
             <div className="flex items-center gap-2">

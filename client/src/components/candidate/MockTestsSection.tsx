@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { MockTestDashboardItem } from '../../types/candidateDashboard';
 import { Award, Clock, HelpCircle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { useAccessibility } from '../../hooks/useAccessibility';
 
 export interface MockTestsSectionProps {
   tests: MockTestDashboardItem[];
@@ -9,6 +10,8 @@ export interface MockTestsSectionProps {
 }
 
 export const MockTestsSection: React.FC<MockTestsSectionProps> = ({ tests, className = '' }) => {
+  const { preferences } = useAccessibility();
+  const isHindi = preferences?.language === 'hi' || (typeof document !== 'undefined' && document.documentElement.lang === 'hi');
   return (
     <section
       aria-labelledby="mock-tests-heading"
@@ -25,7 +28,7 @@ export const MockTestsSection: React.FC<MockTestsSectionProps> = ({ tests, class
           to="/candidate/mock-tests"
           className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
         >
-          <span>View All Mock Tests</span>
+          <span>{isHindi ? 'सभी मॉक टेस्ट देखें' : 'View All Mock Tests'}</span>
           <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
         </Link>
       </div>
@@ -43,7 +46,7 @@ export const MockTestsSection: React.FC<MockTestsSectionProps> = ({ tests, class
                 </h3>
                 {test.isNew && (
                   <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-primary/15 border border-primary/30 text-primary shrink-0">
-                    New Test
+                    {isHindi ? 'नया टेस्ट' : 'New Test'}
                   </span>
                 )}
               </div>
@@ -52,12 +55,12 @@ export const MockTestsSection: React.FC<MockTestsSectionProps> = ({ tests, class
               <div className="flex flex-wrap items-center gap-3 text-xs text-foreground-secondary font-mono">
                 <div className="flex items-center gap-1">
                   <HelpCircle className="w-3.5 h-3.5 text-foreground-muted" aria-hidden="true" />
-                  <span>{test.questionCount} Questions</span>
+                  <span>{test.questionCount} {isHindi ? 'प्रश्न' : 'Questions'}</span>
                 </div>
                 <span>•</span>
                 <div className="flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5 text-foreground-muted" aria-hidden="true" />
-                  <span>{test.durationMinutes} Minutes</span>
+                  <span>{test.durationMinutes} {isHindi ? 'मिनट' : 'Minutes'}</span>
                 </div>
                 <span>•</span>
                 <span>Difficulty: {test.difficulty}</span>

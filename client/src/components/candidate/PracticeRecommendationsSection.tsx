@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { PracticeRecommendationItem } from '../../types/candidateDashboard';
 import { Sparkles, Clock, ArrowRight } from 'lucide-react';
+import { useAccessibility } from '../../hooks/useAccessibility';
 
 export interface PracticeRecommendationsSectionProps {
   recommendations: PracticeRecommendationItem[];
@@ -12,6 +13,8 @@ export const PracticeRecommendationsSection: React.FC<PracticeRecommendationsSec
   recommendations,
   className = '',
 }) => {
+  const { preferences } = useAccessibility();
+  const isHindi = preferences?.language === 'hi' || (typeof document !== 'undefined' && document.documentElement.lang === 'hi');
   const getDifficultyBadge = (difficulty: PracticeRecommendationItem['difficulty']) => {
     switch (difficulty) {
       case 'Easy':
@@ -72,7 +75,7 @@ export const PracticeRecommendationsSection: React.FC<PracticeRecommendationsSec
                   <span>•</span>
                   <div className="flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5 text-foreground-muted" aria-hidden="true" />
-                    <span>~{rec.estimatedMinutes} mins</span>
+                    <span>~{rec.estimatedMinutes} {isHindi ? 'मिनट' : 'mins'}</span>
                   </div>
                 </div>
               </div>

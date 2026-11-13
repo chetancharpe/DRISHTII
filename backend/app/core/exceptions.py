@@ -37,6 +37,15 @@ class UnauthorizedException(GoWowAPIException):
         )
 
 
+class BadRequestException(GoWowAPIException):
+    def __init__(self, message: str = "Invalid request parameters.", code: str = "BAD_REQUEST"):
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code=code,
+            message=message,
+        )
+
+
 class ForbiddenException(GoWowAPIException):
     def __init__(self, message: str = "You do not have permission to perform this action."):
         super().__init__(

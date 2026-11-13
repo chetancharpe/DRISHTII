@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { DailyGoal } from '../../types/candidateDashboard';
 import { Target, Flame, ArrowRight } from 'lucide-react';
+import { useAccessibility } from '../../hooks/useAccessibility';
 
 export interface DailyGoalCardProps {
   goal: DailyGoal;
@@ -9,6 +10,8 @@ export interface DailyGoalCardProps {
 }
 
 export const DailyGoalCard: React.FC<DailyGoalCardProps> = ({ goal, className = '' }) => {
+  const { preferences } = useAccessibility();
+  const isHindi = preferences?.language === 'hi' || (typeof document !== 'undefined' && document.documentElement.lang === 'hi');
   const questionsPct = Math.min(100, Math.round((goal.questionsCompleted / goal.questionsTarget) * 100));
   const timePct = Math.min(100, Math.round((goal.timeMinutesPracticed / goal.targetMinutes) * 100));
   const topicsPct = Math.min(100, Math.round((goal.topicsCompleted / goal.topicsTarget) * 100));
@@ -22,7 +25,7 @@ export const DailyGoalCard: React.FC<DailyGoalCardProps> = ({ goal, className = 
         <div className="flex items-center gap-2">
           <Target className="w-5 h-5 text-primary shrink-0" aria-hidden="true" />
           <h2 id="daily-goal-heading" className="text-base sm:text-lg font-bold text-foreground">
-            Today's Goal
+            {isHindi ? 'आज का लक्ष्य' : "Today's Goal"}
           </h2>
         </div>
 
@@ -32,7 +35,7 @@ export const DailyGoalCard: React.FC<DailyGoalCardProps> = ({ goal, className = 
           aria-label={`Preparation streak: ${goal.streakDays} days. ${goal.streakSupportiveMessage}`}
         >
           <Flame className="w-4 h-4 text-status-warning shrink-0" aria-hidden="true" />
-          <span>Preparation streak: {goal.streakDays} days</span>
+          <span>{isHindi ? `तैयारी सिलसिला: ${goal.streakDays} दिन` : `Preparation streak: ${goal.streakDays} days`}</span>
         </div>
       </div>
 
@@ -45,7 +48,7 @@ export const DailyGoalCard: React.FC<DailyGoalCardProps> = ({ goal, className = 
         {/* Questions Goal */}
         <div className="p-3.5 rounded-lg border border-border bg-surface-elevated/50 flex flex-col gap-2">
           <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-foreground-secondary">Questions</span>
+            <span className="font-semibold text-foreground-secondary">{isHindi ? 'प्रश्न' : 'Questions'}</span>
             <span className="font-bold text-foreground font-mono">
               {goal.questionsCompleted} / {goal.questionsTarget}
             </span>
