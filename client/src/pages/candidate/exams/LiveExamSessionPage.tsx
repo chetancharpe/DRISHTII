@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Exam,
   ExamSession,
@@ -8,7 +8,7 @@ import {
 } from '../../../types/exam';
 import { examService } from '../../../services/examService';
 import { examinerService } from '../../../services/examinerService';
-import { DEMO_EXAM_01_CONFIG } from '../../../fixtures/examFixtures';
+import { DEMO_EXAMS, DEMO_EXAM_01_CONFIG } from '../../../fixtures/examFixtures';
 import { ExamHeader } from '../../../components/exam/ExamHeader';
 import { ExamSectionNavigation } from '../../../components/exam/ExamSectionNavigation';
 import { ExamQuestion } from '../../../components/exam/ExamQuestion';
@@ -24,11 +24,12 @@ import { LayoutGrid, Loader2, AlertTriangle, Keyboard, ShieldAlert } from 'lucid
 import { useAccessibility } from '../../../contexts/AccessibilityContext';
 import { VoiceCommandBar } from '../../../components/common/VoiceCommandBar';
 import { useVoiceCommands } from '../../../hooks/useVoiceCommands';
+import { playEarcon } from '../../../utils/soundEffects';
 
 export const LiveExamSessionPage: React.FC = () => {
   const { examId } = useParams<{ examId: string }>();
   const navigate = useNavigate();
-  const { announce, speak } = useAccessibility();
+  const { announce, speak, preferences, hasHindiVoice } = useAccessibility();
 
   // Core examination state
   const [exam, setExam] = useState<Exam | null>(null);
@@ -59,74 +60,66 @@ export const LiveExamSessionPage: React.FC = () => {
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [dismissedWarningMilestone, setDismissedWarningMilestone] = useState<number | null>(null);
 
+  const location = useLocation();
+  const isFreshLaunch = (location.state as any)?.freshLaunch === true;
+
   // Initialize or resume examination session
   useEffect(() => {
     async function initSession() {
       if (!examId) return;
       try {
         setIsLoading(true);
-        const examData = await examService.getExam(examId);
+        let examData = await examService.getExam(examId);
         if (!examData) {
-          navigate('/candidate/exams');
-          return;
+          examData = DEMO_EXAMS[0];
         }
         setExam(examData);
 
         // Check if an existing session exists
-        let currentSession = await examService.getExamSession(examId);
+        let currentSession = await examService.getExamSession(examData.id);
 
-        if (currentSession) {
-          if (currentSession.status === 'SUBMITTED') {
-            // Already submitted: go to status page
-            navigate(`/candidate/exams/${examId}/status`);
-            return;
-          }
-          if (currentSession.status === 'EXPIRED') {
-            setSession(currentSession);
-            setSessionStatus('EXPIRED');
-            setIsInterruptionModalOpen(true);
-            setIsLoading(false);
-            return;
-          }
-
-          // Check if this was a fresh start from verification page (within last 30s with no answers)
-          const isFreshLaunch =
-            Date.now() - (currentSession.serverStartTime || 0) < 30000 &&
-            Object.keys(currentSession.answers || {}).length === 0;
-
+        if (
+          isFreshLaunch ||
+          !currentSession ||
+          currentSession.status === 'SUBMITTED' ||
+          currentSession.status === 'EXPIRED'
+        ) {
+          await examService.discardExamSession(examData.id);
+          currentSession = await examService.createExamSession(examData.id);
+          setSession(currentSession);
+          setCurrentSectionId(examData.config.sections[0]?.id || '');
+          setCurrentQuestionId(examData.config.sections[0]?.questions[0]?.id || '');
+          setSessionStatus('ACTIVE');
+        } else {
           // Resume existing active session
           setSession(currentSession);
           setCurrentSectionId(currentSession.currentSectionId || examData.config.sections[0]?.id || '');
           setCurrentQuestionId(currentSession.currentQuestionId || examData.config.sections[0]?.questions[0]?.id || '');
           setSessionStatus('ACTIVE');
-          if (!isFreshLaunch) {
-            setIsInterruptionModalOpen(true); // Notify candidate only on genuine resumption after previous work
-          }
-        } else {
-          // Create new authoritative session
-          currentSession = await examService.createExamSession(examId);
-          setSession(currentSession);
-          setCurrentSectionId(examData.config.sections[0]?.id || '');
-          setCurrentQuestionId(examData.config.sections[0]?.questions[0]?.id || '');
-          setSessionStatus('ACTIVE');
         }
 
         // Synchronize exam sections from stored sections if available
-        const storedSections = examService.getStoredSections(examId);
+        const storedSections = examService.getStoredSections(examData.id);
         if (storedSections && storedSections.length > 0) {
           examData.config.sections = storedSections;
         }
         setExam(examData);
       } catch (err) {
         console.error('Failed to initialize live exam session', err);
-        setSessionStatus('ERROR');
+        const fallbackExam = DEMO_EXAMS[0];
+        setExam(fallbackExam);
+        const fallbackSession = await examService.createExamSession(fallbackExam.id);
+        setSession(fallbackSession);
+        setCurrentSectionId(fallbackExam.config.sections[0]?.id || '');
+        setCurrentQuestionId(fallbackExam.config.sections[0]?.questions[0]?.id || '');
+        setSessionStatus('ACTIVE');
       } finally {
         setIsLoading(false);
       }
     }
 
     initSession();
-  }, [examId, navigate]);
+  }, [examId, isFreshLaunch]);
 
   // Track remaining seconds from authoritative server timer
   useEffect(() => {
@@ -202,19 +195,103 @@ export const LiveExamSessionPage: React.FC = () => {
     return allQuestions.findIndex((q) => q.id === currentQuestionId);
   }, [allQuestions, currentQuestionId]);
 
-  // Screen reader announcement on question change (Polite Live Region)
-  useEffect(() => {
-    if (currentQuestion && currentQuestionIndex >= 0) {
-      announce(
-        `Question ${currentQuestionIndex + 1} of ${allQuestions.length}: ${currentQuestion.sectionTitle}. ${currentQuestion.prompt}`,
-        'polite'
-      );
-    }
-  }, [currentQuestionId, announce]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Authoritative Automated Spoken Question & Choices Readout (Dual Language)
+  const readFullQuestionAloud = useCallback(() => {
+    if (!currentQuestion) return;
 
-  // Handle option selection / change
+    const isHindi =
+      preferences?.language === 'hi' ||
+      /[\u0900-\u097F]/.test(currentQuestion.prompt || '') ||
+      (typeof document !== 'undefined' && document.documentElement.lang === 'hi');
+
+    const qNum = currentQuestionIndex + 1;
+    const totalQ = allQuestions.length;
+    const section = currentQuestion.sectionTitle || '';
+    const prompt = currentQuestion.prompt;
+
+    const optsHi = (currentQuestion.options || [])
+      .map((opt) => `ऑप्शन ${opt.label}: ${opt.text}`)
+      .join('। ');
+    const optsEn = (currentQuestion.options || [])
+      .map((opt) => `Option ${opt.label}: ${opt.text}`)
+      .join('. ');
+
+    let speechHi = `प्रश्न संख्या ${qNum}, कुल ${totalQ} में से। अनुभाग: ${section}। ${prompt}।`;
+    if (currentQuestion.formulaAriaLabel) {
+      speechHi += ` फॉर्मूला: ${currentQuestion.formulaAriaLabel}।`;
+    }
+    speechHi += ` विकल्प हैं: ${optsHi}। अपना उत्तर चुनने के लिए बोलिए ऑप्शन ए, बी, सी या डी।`;
+
+    let speechEn = `Question ${qNum} of ${totalQ}. Section: ${section}. ${prompt}.`;
+    if (currentQuestion.formulaAriaLabel) {
+      speechEn += ` Formula: ${currentQuestion.formulaAriaLabel}.`;
+    }
+    speechEn += ` Available options: ${optsEn}. Say Option A, B, C, or D to select your answer.`;
+
+    const textToSpeak = isHindi && hasHindiVoice ? speechHi : speechEn;
+
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    speak(textToSpeak, () => {
+      playEarcon('listen');
+    });
+    announce(isHindi ? speechHi : speechEn, 'assertive');
+  }, [currentQuestion, currentQuestionIndex, allQuestions.length, preferences?.language, hasHindiVoice, speak, announce]);
+
+  // Auto-read question statement and choices on question load or question change
+  const lastSpokenQKeyRef = useRef<string>('');
+  useEffect(() => {
+    if (isLoading || !currentQuestion || sessionStatus !== 'ACTIVE') return;
+
+    const key = `${examId}-${currentQuestion.id}-${currentQuestionIndex}`;
+    if (lastSpokenQKeyRef.current === key) return;
+
+    const timer = setTimeout(() => {
+      lastSpokenQKeyRef.current = key;
+      readFullQuestionAloud();
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [currentQuestion?.id, currentQuestionIndex, isLoading, sessionStatus, examId, readFullQuestionAloud]);
+
+  // Unlock browser speech synthesis on first user interaction if blocked by autoplay policy
+  useEffect(() => {
+    const handleUnlock = () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+        if (!window.speechSynthesis.speaking && currentQuestion && sessionStatus === 'ACTIVE') {
+          readFullQuestionAloud();
+        }
+      }
+    };
+
+    window.addEventListener('click', handleUnlock, { once: true });
+    window.addEventListener('keydown', handleUnlock, { once: true });
+    return () => {
+      window.removeEventListener('click', handleUnlock);
+      window.removeEventListener('keydown', handleUnlock);
+    };
+  }, [currentQuestion, sessionStatus, readFullQuestionAloud]);
+
+  // Handle option selection / change with authoritative spoken feedback
   const handleAnswerChange = useCallback(async (selectedOptions: string[]) => {
     if (!exam || !session || !currentQuestion) return;
+
+    // Immediately speak feedback of the selected option
+    const selectedOptObj = currentQuestion.options?.find((o) => selectedOptions.includes(o.id));
+    if (selectedOptObj) {
+      const isHindi = preferences?.language === 'hi' || /[\u0900-\u097F]/.test(currentQuestion.prompt || '');
+      const label = selectedOptObj.label;
+      const text = selectedOptObj.text;
+      const feedback = isHindi && hasHindiVoice
+        ? `विकल्प ${label} चुना गया: ${text}। अगले सवाल के लिए बोलिए 'अगला'।`
+        : `Option ${label} selected: ${text}. Say 'Next' for the next question.`;
+      speak(feedback, () => playEarcon('listen'));
+      announce(feedback, 'assertive');
+    }
 
     setSyncState('SAVING');
     try {
@@ -238,7 +315,7 @@ export const LiveExamSessionPage: React.FC = () => {
       setSyncState('SYNC_ERROR');
       announce('Saving to server failed, retrying automatically. Response safely preserved offline.', 'assertive');
     }
-  }, [exam, session, currentQuestion, announce]);
+  }, [exam, session, currentQuestion, preferences?.language, hasHindiVoice, speak, announce]);
 
   // Clear answer
   const handleClearAnswer = useCallback(async () => {
@@ -272,8 +349,15 @@ export const LiveExamSessionPage: React.FC = () => {
       const nextQ = allQuestions[currentQuestionIndex + 1];
       setCurrentQuestionId(nextQ.id);
       setCurrentSectionId(nextQ.sectionId);
+    } else {
+      const isHindi = preferences?.language === 'hi' || /[\u0900-\u097F]/.test(currentQuestion?.prompt || '');
+      const msg = isHindi && hasHindiVoice
+        ? 'यह परीक्षा का अंतिम प्रश्न है। अपने उत्तर सबमिट करने के लिए बोलिए "सबमिट"।'
+        : 'This is the final question of the examination. Say "Submit Exam" to review and conclude.';
+      speak(msg, () => playEarcon('listen'));
+      announce(msg, 'assertive');
     }
-  }, [currentQuestionIndex, allQuestions]);
+  }, [currentQuestionIndex, allQuestions, currentQuestion?.prompt, preferences?.language, hasHindiVoice, speak, announce]);
 
   // Question Navigation: Previous
   const handlePrevious = useCallback(() => {
@@ -411,12 +495,26 @@ export const LiveExamSessionPage: React.FC = () => {
   // Audio assistance: speak question stem only (Hotkey: Q)
   const handleListenQuestionOnly = useCallback(() => {
     if (!currentQuestion) return;
-    let textToSpeak = `Question ${currentQuestionIndex + 1} of ${allQuestions.length}. ${currentQuestion.prompt}`;
+    const isHindi = preferences?.language === 'hi' || /[\u0900-\u097F]/.test(currentQuestion.prompt || '');
+    const qNum = currentQuestionIndex + 1;
+    const totalQ = allQuestions.length;
+
+    let textHi = `प्रश्न संख्या ${qNum}, कुल ${totalQ} में से। ${currentQuestion.prompt}`;
     if (currentQuestion.formulaAriaLabel) {
-      textToSpeak += ` Formula: ${currentQuestion.formulaAriaLabel}.`;
+      textHi += ` फॉर्मूला: ${currentQuestion.formulaAriaLabel}।`;
     }
-    speak(textToSpeak);
-  }, [currentQuestion, currentQuestionIndex, allQuestions.length, speak]);
+    let textEn = `Question ${qNum} of ${totalQ}. ${currentQuestion.prompt}`;
+    if (currentQuestion.formulaAriaLabel) {
+      textEn += ` Formula: ${currentQuestion.formulaAriaLabel}.`;
+    }
+
+    const text = isHindi && hasHindiVoice ? textHi : textEn;
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    speak(text, () => playEarcon('listen'));
+    announce(text, 'assertive');
+  }, [currentQuestion, currentQuestionIndex, allQuestions.length, preferences?.language, hasHindiVoice, speak, announce]);
 
   // Audio assistance: speak all options (Hotkey: O)
   const handleListenOptions = useCallback(() => {
@@ -425,11 +523,24 @@ export const LiveExamSessionPage: React.FC = () => {
       speak('This question has no multiple choice options. Use subjective dictation or text input.');
       return;
     }
-    const optionsText = currentQuestion.options
+    const isHindi = preferences?.language === 'hi' || /[\u0900-\u097F]/.test(currentQuestion.prompt || '');
+    const optsHi = currentQuestion.options
+      .map((opt) => `ऑप्शन ${opt.label}: ${opt.text}`)
+      .join('। ');
+    const optsEn = currentQuestion.options
       .map((opt) => `Option ${opt.label}: ${opt.text}`)
       .join('. ');
-    speak(`Available answer choices: ${optionsText}`);
-  }, [currentQuestion, speak]);
+
+    const text = isHindi && hasHindiVoice
+      ? `विकल्प हैं: ${optsHi}। उत्तर देने के लिए बोलिए ऑप्शन ए, बी, सी या डी।`
+      : `Available answer choices: ${optsEn}. Say Option A, B, C, or D to select your answer.`;
+
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    speak(text, () => playEarcon('listen'));
+    announce(text, 'assertive');
+  }, [currentQuestion, preferences?.language, hasHindiVoice, speak, announce]);
 
   // Audio assistance: speak options slowly with deliberate pauses (Hotkey: Shift+O)
   const handleListenOptionsSlowly = useCallback(() => {
@@ -556,14 +667,14 @@ export const LiveExamSessionPage: React.FC = () => {
     onMarkReview: handleToggleReview,
     onClearAnswer: handleClearAnswer,
     onSubmit: () => setIsSubmitModalOpen(true),
-    onPlayAudio: handleListenFullQuestion,
+    onPlayAudio: readFullQuestionAloud,
     onPauseAudio: () => {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
     },
     onAnnounceTime: handleAnnounceRemainingTime,
-    onReadQuestion: handleListenQuestionOnly,
+    onReadQuestion: readFullQuestionAloud,
     onReadOptions: handleListenOptions,
     onStatus: () => {
       if (!currentQuestion || !exam) return;
@@ -599,8 +710,13 @@ export const LiveExamSessionPage: React.FC = () => {
   // Global event listeners for exam voice commands (bridged from HUD/voice)
   useEffect(() => {
     const handleExamSelect = (e: any) => {
-      const optIndex = e.detail?.index;
-      if (typeof optIndex === 'number' && currentQuestion && currentQuestion.options[optIndex]) {
+      let optIndex = e.detail?.index;
+      const label = e.detail?.label?.toUpperCase();
+      if (!currentQuestion || !currentQuestion.options) return;
+      if (typeof optIndex !== 'number' && label) {
+        optIndex = currentQuestion.options.findIndex((o) => o.label?.toUpperCase() === label);
+      }
+      if (typeof optIndex === 'number' && optIndex >= 0 && currentQuestion.options[optIndex]) {
         const optId = currentQuestion.options[optIndex].id;
         const currentAns = session?.answers[currentQuestion.id]?.selectedOptions || [];
         if (currentQuestion.type === 'multiple_choice') {
@@ -611,22 +727,30 @@ export const LiveExamSessionPage: React.FC = () => {
         } else {
           handleAnswerChange([optId]);
         }
-        announce(`Option ${currentQuestion.options[optIndex].label} selected`, 'polite');
       }
     };
     const handleExamNext = () => handleNext();
     const handleExamPrev = () => handlePrevious();
+    const handleExamReadQuestion = () => readFullQuestionAloud();
+    const handleExamReadOptions = () => handleListenOptions();
+    const handleExamSubmit = () => setIsSubmitModalOpen(true);
 
     window.addEventListener('drishti:exam-select-option', handleExamSelect);
     window.addEventListener('drishti:exam-next', handleExamNext);
     window.addEventListener('drishti:exam-previous', handleExamPrev);
+    window.addEventListener('drishti:exam-read-question', handleExamReadQuestion);
+    window.addEventListener('drishti:exam-read-options', handleExamReadOptions);
+    window.addEventListener('drishti:exam-submit', handleExamSubmit);
 
     return () => {
       window.removeEventListener('drishti:exam-select-option', handleExamSelect);
       window.removeEventListener('drishti:exam-next', handleExamNext);
       window.removeEventListener('drishti:exam-previous', handleExamPrev);
+      window.removeEventListener('drishti:exam-read-question', handleExamReadQuestion);
+      window.removeEventListener('drishti:exam-read-options', handleExamReadOptions);
+      window.removeEventListener('drishti:exam-submit', handleExamSubmit);
     };
-  }, [currentQuestion, session, handleAnswerChange, handleNext, handlePrevious, announce]);
+  }, [currentQuestion, session, handleAnswerChange, handleNext, handlePrevious, readFullQuestionAloud, handleListenOptions]);
 
   // Synchronize active dictatedText with question's stored text answer
   useEffect(() => {

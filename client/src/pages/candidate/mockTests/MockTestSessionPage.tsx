@@ -413,6 +413,7 @@ export const MockTestSessionPage: React.FC = () => {
     window.addEventListener('drishti:mock-mark-review', handleVoiceToggleMark);
     window.addEventListener('drishti:mock-clear', handleVoiceClear);
     window.addEventListener('drishti:mock-read-question', handleVoiceRead);
+    window.addEventListener('drishti:mock-read-options', handleVoiceRead);
     window.addEventListener('drishti:mock-status', handleVoiceStatus);
     window.addEventListener('drishti:mock-confirm-submit', handleVoiceConfirmSubmit);
     window.addEventListener('drishti:mock-submit', handleVoiceSubmit);
@@ -424,6 +425,7 @@ export const MockTestSessionPage: React.FC = () => {
       window.removeEventListener('drishti:mock-mark-review', handleVoiceToggleMark);
       window.removeEventListener('drishti:mock-clear', handleVoiceClear);
       window.removeEventListener('drishti:mock-read-question', handleVoiceRead);
+      window.removeEventListener('drishti:mock-read-options', handleVoiceRead);
       window.removeEventListener('drishti:mock-status', handleVoiceStatus);
       window.removeEventListener('drishti:mock-confirm-submit', handleVoiceConfirmSubmit);
       window.removeEventListener('drishti:mock-submit', handleVoiceSubmit);

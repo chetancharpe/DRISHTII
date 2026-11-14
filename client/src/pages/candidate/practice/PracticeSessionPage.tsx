@@ -118,16 +118,16 @@ export const PracticeSessionPage: React.FC = () => {
       const useHindiSpeech = hasHindiVoice && isHindi;
       if (res.isCorrect) {
         const feedback = useHindiSpeech
-          ? `बिल्कुल सही जवाब! आपका विकल्प ${userSelectedLabel} सही उत्तर है। ${res.explanation ? 'स्पष्टीकरण: ' + res.explanation + '। ' : ''}अगले सवाल के लिए बोलिए 'अगला'।`
-          : `Correct! Option ${userSelectedLabel}: ${userSelectedText} is the right answer. ${res.explanation ? 'Explanation: ' + res.explanation + '. ' : ''}Say 'Next' to continue to the next question.`;
+          ? `बिल्कुल सही जवाब! आपका विकल्प ${userSelectedLabel} सही उत्तर है। ${res.explanation ? 'स्पष्टीकरण: ' + res.explanation + '। ' : ''}अगले सवाल के लिए बोलिए 'अगला', या समझने के लिए बोलिए 'समझाओ'।`
+          : `Correct! Option ${userSelectedLabel}: ${userSelectedText} is the right answer. ${res.explanation ? 'Explanation: ' + res.explanation + '. ' : ''}Say 'Next' to proceed, or say 'Explain' to hear the explanation.`;
         speak(feedback, () => {
           playEarcon('listen');
         });
         announce(feedback, 'assertive');
       } else {
         const feedback = useHindiSpeech
-          ? `गलत उत्तर। आपने विकल्प ${userSelectedLabel} चुना, लेकिन सही उत्तर विकल्प ${correctLabel} है: ${correctText}। ${res.explanation ? 'स्पष्टीकरण: ' + res.explanation + '। ' : ''}अगले सवाल के लिए बोलिए 'अगला'।`
-          : `Incorrect. You chose Option ${userSelectedLabel}, but the correct answer is Option ${correctLabel}: ${correctText}. ${res.explanation ? 'Explanation: ' + res.explanation + '. ' : ''}Say 'Next' to proceed to the next question.`;
+          ? `गलत उत्तर। आपने विकल्प ${userSelectedLabel} चुना, लेकिन सही उत्तर विकल्प ${correctLabel} है: ${correctText}। ${res.explanation ? 'स्पष्टीकरण: ' + res.explanation + '। ' : ''}अगले सवाल के लिए बोलिए 'अगला', या समझने के लिए बोलिए 'समझाओ'।`
+          : `Incorrect. You chose Option ${userSelectedLabel}, but the correct answer is Option ${correctLabel}: ${correctText}. ${res.explanation ? 'Explanation: ' + res.explanation + '. ' : ''}Say 'Next' to proceed, or say 'Explain' to hear the explanation.`;
         speak(feedback, () => {
           playEarcon('listen');
         });
@@ -163,17 +163,85 @@ export const PracticeSessionPage: React.FC = () => {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (session && currentIdx < session.totalQuestions - 1) {
       setCurrentIdx((prev) => prev + 1);
+    } else if (session && currentIdx >= session.totalQuestions - 1) {
+      const isHindi =
+        preferences?.language === 'hi' ||
+        /[\u0900-\u097F]/.test(currentQuestion?.questionText || '');
+      const useHindiSpeech = hasHindiVoice && isHindi;
+      const finishMsg = useHindiSpeech
+        ? `यह इस अभ्यास का अंतिम सवाल था। अपना परिणाम देखने के लिए बोलिए 'सबमिट' या 'समाप्त'।`
+        : `This is the final question. To review your scorecard, say 'Submit' or 'Finish'.`;
+      speak(finishMsg, () => playEarcon('listen'));
+      announce(finishMsg, 'assertive');
     }
-  };
+  }, [
+    session,
+    currentIdx,
+    currentQuestion?.questionText,
+    preferences?.language,
+    hasHindiVoice,
+    speak,
+    announce,
+    playEarcon,
+  ]);
 
-  const handlePrevious = () => {
+  const handlePrevious = useCallback(() => {
     if (currentIdx > 0) {
       setCurrentIdx((prev) => prev - 1);
     }
-  };
+  }, [currentIdx]);
+
+  const handleExplain = useCallback(() => {
+    if (!currentQuestion) return;
+    const isHindi =
+      preferences?.language === 'hi' ||
+      /[\u0900-\u097F]/.test(currentQuestion.questionText);
+    const useHindiSpeech = hasHindiVoice && isHindi;
+
+    const explanation =
+      (session as any)?.explanations?.[currentQuestion.id] ||
+      currentQuestion.explanation;
+
+    if (explanation) {
+      const text = useHindiSpeech
+        ? `सवाल का स्पष्टीकरण: ${explanation}। अगले सवाल पर जाने के लिए बोलिए 'अगला'।`
+        : `Explanation: ${explanation}. Say 'Next' to proceed to the next question.`;
+      speak(text, () => playEarcon('listen'));
+      announce(text, 'assertive');
+    } else {
+      const notFound = useHindiSpeech
+        ? `इस सवाल का स्पष्टीकरण देखने के लिए पहले कोई विकल्प चुनकर उत्तर दें।`
+        : `Please select an option first to receive the detailed explanation.`;
+      speak(notFound, () => playEarcon('listen'));
+      announce(notFound, 'assertive');
+    }
+  }, [currentQuestion, session, preferences?.language, hasHindiVoice, speak, announce, playEarcon]);
+
+  const handleReadOptions = useCallback(() => {
+    if (!currentQuestion || !currentQuestion.options) return;
+    const isHindi =
+      preferences?.language === 'hi' ||
+      /[\u0900-\u097F]/.test(currentQuestion.questionText);
+    const useHindiSpeech = hasHindiVoice && isHindi;
+    const optLetters = ['A', 'B', 'C', 'D'];
+
+    const optsHi = currentQuestion.options
+      .map((opt, i) => `ऑप्शन ${opt.label || optLetters[i]}: ${opt.text}`)
+      .join('। ');
+    const optsEn = currentQuestion.options
+      .map((opt, i) => `Option ${opt.label || optLetters[i]}: ${opt.text}`)
+      .join('. ');
+
+    const textToSpeak = useHindiSpeech
+      ? `विकल्प हैं: ${optsHi}। अपना उत्तर चुनने के लिए बोलिए ऑप्शन ए, बी, सी या डी।`
+      : `The options are: ${optsEn}. Say Option A, B, C, or D to choose.`;
+
+    speak(textToSpeak, () => playEarcon('listen'));
+    announce(textToSpeak, 'assertive');
+  }, [currentQuestion, preferences?.language, hasHindiVoice, speak, announce, playEarcon]);
 
   const handleConfirmFinish = async () => {
     if (!session) return;
@@ -337,6 +405,8 @@ export const PracticeSessionPage: React.FC = () => {
       if (currentQuestion) handleSkipQuestion(currentQuestion.id);
     };
     const handleReadEvent = () => readQuestionAloud();
+    const handleReadOptionsEvent = () => handleReadOptions();
+    const handleExplainEvent = () => handleExplain();
     const handleSubmitEvent = () => setIsFinishModalOpen(true);
 
     window.addEventListener('drishti:practice-select-option', handleSelectEvent);
@@ -344,6 +414,8 @@ export const PracticeSessionPage: React.FC = () => {
     window.addEventListener('drishti:practice-previous', handlePrevEvent);
     window.addEventListener('drishti:practice-skip', handleSkipEvent);
     window.addEventListener('drishti:practice-read-question', handleReadEvent);
+    window.addEventListener('drishti:practice-read-options', handleReadOptionsEvent);
+    window.addEventListener('drishti:practice-explain', handleExplainEvent);
     window.addEventListener('drishti:practice-submit', handleSubmitEvent);
 
     return () => {
@@ -352,9 +424,11 @@ export const PracticeSessionPage: React.FC = () => {
       window.removeEventListener('drishti:practice-previous', handlePrevEvent);
       window.removeEventListener('drishti:practice-skip', handleSkipEvent);
       window.removeEventListener('drishti:practice-read-question', handleReadEvent);
+      window.removeEventListener('drishti:practice-read-options', handleReadOptionsEvent);
+      window.removeEventListener('drishti:practice-explain', handleExplainEvent);
       window.removeEventListener('drishti:practice-submit', handleSubmitEvent);
     };
-  }, [currentQuestion, handleNext, handlePrevious, handleSkipQuestion, readQuestionAloud]);
+  }, [currentQuestion, handleNext, handlePrevious, handleSkipQuestion, readQuestionAloud, handleExplain, handleReadOptions]);
 
   const voice = useVoiceCommands(
     {
@@ -370,6 +444,8 @@ export const PracticeSessionPage: React.FC = () => {
         }
       },
       onReadQuestion: readQuestionAloud,
+      onReadOptions: handleReadOptions,
+      onExplain: handleExplain,
       onSubmit: () => setIsFinishModalOpen(true),
       getCurrentOptions: () =>
         currentQuestion?.options?.map((o, idx) => ({

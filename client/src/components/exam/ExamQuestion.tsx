@@ -67,7 +67,7 @@ export const ExamQuestion: React.FC<ExamQuestionProps> = ({
   onConfirmDictation,
 }) => {
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const { speak, preferences } = useAccessibility();
+  const { speak, preferences, hasHindiVoice } = useAccessibility();
 
   const isMarked = answer?.isMarkedForReview || false;
   const selectedOptions = answer?.selectedOptions || [];
@@ -79,22 +79,34 @@ export const ExamQuestion: React.FC<ExamQuestionProps> = ({
 
   // Audio assistance: speak question stem
   const handleListenQuestion = () => {
-    let textToSpeak = `Question ${currentNumber} of ${totalQuestions}. Section: ${question.sectionTitle}. ${question.prompt}`;
+    const isHindi = preferences?.language === 'hi' || /[\u0900-\u097F]/.test(question.prompt || '');
+    let textHi = `प्रश्न संख्या ${currentNumber}, कुल ${totalQuestions} में से। अनुभाग: ${question.sectionTitle}। ${question.prompt}`;
     if (question.formulaAriaLabel) {
-      textToSpeak += ` Formula: ${question.formulaAriaLabel}.`;
+      textHi += ` फॉर्मूला: ${question.formulaAriaLabel}।`;
     }
     if (question.table) {
-      textToSpeak += ` Includes data table: ${question.table.caption || 'Table data'}.`;
+      textHi += ` तालिका: ${question.table.caption || 'डेटा'}.`;
     }
-    speak(textToSpeak);
+
+    let textEn = `Question ${currentNumber} of ${totalQuestions}. Section: ${question.sectionTitle}. ${question.prompt}`;
+    if (question.formulaAriaLabel) {
+      textEn += ` Formula: ${question.formulaAriaLabel}.`;
+    }
+    if (question.table) {
+      textEn += ` Includes data table: ${question.table.caption || 'Table data'}.`;
+    }
+    speak(isHindi && hasHindiVoice ? textHi : textEn);
   };
 
   // Audio assistance: speak all options
   const handleListenOptions = () => {
-    const optionsText = question.options
-      .map((opt) => `Option ${opt.label}: ${opt.text}`)
-      .join('. ');
-    speak(`Available answer choices: ${optionsText}`);
+    const isHindi = preferences?.language === 'hi' || /[\u0900-\u097F]/.test(question.prompt || '');
+    const optsHi = (question.options || []).map((opt) => `ऑप्शन ${opt.label}: ${opt.text}`).join('। ');
+    const optsEn = (question.options || []).map((opt) => `Option ${opt.label}: ${opt.text}`).join('. ');
+    const text = isHindi && hasHindiVoice
+      ? `विकल्प हैं: ${optsHi}`
+      : `Available answer choices: ${optsEn}`;
+    speak(text);
   };
 
   return (

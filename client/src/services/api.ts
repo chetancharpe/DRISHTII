@@ -173,6 +173,8 @@ export async function apiClient<T>(endpoint: string, options: ApiRequestOptions 
         !skipAuth &&
         !options.noRedirectOn401 &&
         !endpoint.startsWith('/mock-tests') &&
+        !endpoint.startsWith('/exams') &&
+        !endpoint.startsWith('/exam-sessions') &&
         !endpoint.includes('/auth/login') &&
         !endpoint.includes('/auth/refresh')
       ) {

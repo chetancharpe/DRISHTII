@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Exam, ExamSubmission } from '../../../types/exam';
 import { examService } from '../../../services/examService';
 import {
@@ -12,6 +12,7 @@ import {
 
 export const ExamStatusPage: React.FC = () => {
   const { examId } = useParams<{ examId: string }>();
+  const navigate = useNavigate();
   const [exam, setExam] = useState<Exam | null>(null);
   const [submission, setSubmission] = useState<ExamSubmission | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -178,16 +179,31 @@ export const ExamStatusPage: React.FC = () => {
           to="/candidate/dashboard"
           className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-surface hover:bg-surface-elevated border border-border text-foreground font-bold text-xs min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors"
         >
-          <span>Return to Candidate Dashboard</span>
+          <span>Return to Dashboard</span>
         </Link>
 
-        <Link
-          to="/candidate/exams"
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-hover text-primary-contrast font-bold text-xs min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-xs transition-colors"
-        >
-          <span>View All Examinations</span>
-          <ArrowRight className="w-4 h-4" aria-hidden="true" />
-        </Link>
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
+          <button
+            type="button"
+            onClick={async () => {
+              if (examId) {
+                await examService.discardExamSession(examId);
+                navigate(`/candidate/exams/${examId}/verify`);
+              }
+            }}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-surface hover:bg-surface-elevated border border-primary/30 text-primary font-bold text-xs min-h-[44px] transition-colors"
+          >
+            <span>Retake / Fresh Attempt</span>
+          </button>
+
+          <Link
+            to="/candidate/exams"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-hover text-primary-contrast font-bold text-xs min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-xs transition-colors"
+          >
+            <span>View All Examinations</span>
+            <ArrowRight className="w-4 h-4" aria-hidden="true" />
+          </Link>
+        </div>
       </div>
     </div>
   );

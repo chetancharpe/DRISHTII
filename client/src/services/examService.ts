@@ -8,7 +8,7 @@ import {
   ExamSection,
   ExamQuestion,
 } from '../types/exam';
-import { DEMO_EXAMS, DEMO_EXAM_01_CONFIG } from '../fixtures/examFixtures';
+import { DEMO_EXAMS, UPSC_CSE_PRELIMS_2026_CONFIG, SSC_CGL_TIER1_2026_CONFIG } from '../fixtures/examFixtures';
 import { apiClient } from './api';
 
 /**
@@ -128,7 +128,11 @@ class ExamService {
    */
   public async getExams(): Promise<Exam[]> {
     try {
-      const backendExams = await apiClient.get<BackendExamCandidateResponse[]>('/exams');
+      const backendExams = await apiClient.get<BackendExamCandidateResponse[]>('/exams', {
+        noRedirectOn401: true,
+        timeoutMs: 3000,
+        retries: 0,
+      });
       if (Array.isArray(backendExams) && backendExams.length > 0) {
         return backendExams.map((bExam) => this.mapBackendExam(bExam));
       }
@@ -151,11 +155,15 @@ class ExamService {
   }
 
   /**
-   * Retrieve a single examination by ID
+   * Retrieve a single examination by ID, slug, or exam code
    */
   public async getExam(examId: string): Promise<Exam | null> {
     try {
-      const bExam = await apiClient.get<BackendExamCandidateResponse>(`/exams/${examId}`);
+      const bExam = await apiClient.get<BackendExamCandidateResponse>(`/exams/${examId}`, {
+        noRedirectOn401: true,
+        timeoutMs: 3000,
+        retries: 0,
+      });
       if (bExam && bExam.id) {
         return this.mapBackendExam(bExam);
       }
@@ -163,13 +171,19 @@ class ExamService {
       console.warn(`Backend /exams/${examId} call failed, checking local fixtures:`, e);
     }
 
+    const cleanId = (examId || '').toLowerCase().trim();
     const exam = DEMO_EXAMS.find(
       (e) =>
-        e.id === examId ||
+        e.id.toLowerCase() === cleanId ||
+        e.examCode.toLowerCase() === cleanId ||
+        (cleanId.includes('upsc') && e.id === 'upsc-cse-prelims-2026') ||
+        (cleanId.includes('ssc') && e.id === 'ssc-cgl-tier1-2026') ||
+        (cleanId.includes('civil') && e.id === 'upsc-cse-prelims-2026') ||
         (examId === 'cds-mock-1' && e.id === 'upsc-cse-prelims-2026') ||
         (examId === 'ssc-tier1' && e.id === 'ssc-cgl-tier1-2026')
-    );
-    if (!exam) return null;
+    ) || DEMO_EXAMS[0];
+
+    if (!exam) return DEMO_EXAMS[0];
 
     const sub = this.getStoredSubmission(exam.id);
     if (sub) {
@@ -214,7 +228,15 @@ class ExamService {
 
     try {
       // 2. Call authoritative backend to start or resume session
-      const backendSession = await apiClient.post<BackendSessionResponse>(`/exams/${examId}/sessions`, {});
+      const backendSession = await apiClient.post<BackendSessionResponse>(
+        `/exams/${examId}/sessions`,
+        {},
+        {
+          noRedirectOn401: true,
+          timeoutMs: 3000,
+          retries: 0,
+        }
+      );
 
       const serverStartTime = new Date(backendSession.server_started_at).getTime();
       const serverEndTime = Date.now() + (backendSession.remaining_seconds * 1000);
@@ -301,16 +323,20 @@ class ExamService {
     } catch (e) {
       console.warn('Backend start_session error, initiating fallback session:', e);
       // Fallback if backend unreachable
-      const exam = await this.getExam(examId);
-      if (!exam) throw new Error(`Examination ${examId} not found.`);
+      const exam = (await this.getExam(examId)) || DEMO_EXAMS[0];
 
       const now = Date.now();
       const serverDurationMs = exam.config.durationMinutes * 60 * 1000;
       const serverEndTime = now + serverDurationMs;
 
+      // Ensure sections are stored locally for question rendering
+      if (exam.config.sections && exam.config.sections.length > 0) {
+        this.saveStoredSections(exam.id, exam.config.sections);
+      }
+
       const fallbackSession: ExamSession = {
-        sessionId: `sess-${examId}-${now}`,
-        examId,
+        sessionId: `sess-${exam.id}-${now}`,
+        examId: exam.id,
         candidateId: exam.eligibility.rollNumber,
         status: 'ACTIVE',
         serverStartTime: now,
@@ -320,6 +346,7 @@ class ExamService {
         answers: {},
         unsyncedQuestionIds: [],
         lastSyncTimestamp: now,
+        timeMultiplier: 1.0,
       };
 
       this.saveStoredSession(fallbackSession);
@@ -628,16 +655,19 @@ class ExamService {
 
     const cachedSections = this.getStoredSections(bExam.id);
 
+    const isSsc = (bExam.id || '').toLowerCase().includes('ssc') || (bExam.exam_code || '').toLowerCase().includes('ssc') || (bExam.title || '').toLowerCase().includes('ssc');
+    const baseConfig = isSsc ? SSC_CGL_TIER1_2026_CONFIG : UPSC_CSE_PRELIMS_2026_CONFIG;
+
     // Build configuration
     const config: ExamConfig = {
-      ...DEMO_EXAM_01_CONFIG,
+      ...baseConfig,
       id: bExam.id,
       title: bExam.title,
-      organization: bExam.organization_name || 'DRISHTI Inclusive Academy [DEMO]',
-      examCode: bExam.exam_code || `DR-${bExam.id.slice(-6).toUpperCase()}`,
-      durationMinutes: Math.round(bExam.duration_seconds / 60),
-      totalQuestions: bExam.total_questions || (cachedSections ? cachedSections.flatMap((s) => s.questions).length : 6),
-      sections: cachedSections || DEMO_EXAM_01_CONFIG.sections,
+      organization: bExam.organization_name || (isSsc ? 'Staff Selection Commission (SSC)' : 'Union Public Service Commission (UPSC)'),
+      examCode: bExam.exam_code || (isSsc ? 'SSC-CGL-2026-T1' : 'UPSC-CSE-2026-GS1'),
+      durationMinutes: Math.round(bExam.duration_seconds / 60) || baseConfig.durationMinutes,
+      totalQuestions: bExam.total_questions || (cachedSections ? cachedSections.flatMap((s) => s.questions).length : baseConfig.totalQuestions),
+      sections: cachedSections && cachedSections.length > 0 ? cachedSections : baseConfig.sections,
     };
 
     const instructionsSummary = bExam.instructions

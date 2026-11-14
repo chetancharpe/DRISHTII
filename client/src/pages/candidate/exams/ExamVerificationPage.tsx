@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Exam } from '../../../types/exam';
 import { examService } from '../../../services/examService';
 import { useAccessibility } from '../../../contexts/AccessibilityContext';
+import { useVoiceCommands } from '../../../hooks/useVoiceCommands';
+import { VoiceCommandBar } from '../../../components/common/VoiceCommandBar';
 import {
   ArrowLeft,
   ArrowRight,
@@ -18,15 +20,18 @@ import {
 export const ExamVerificationPage: React.FC = () => {
   const { examId } = useParams<{ examId: string }>();
   const navigate = useNavigate();
-  const { preferences, openCalibration, speak, announce } = useAccessibility();
+  const { preferences, openCalibration, speak, announce, hasHindiVoice } = useAccessibility();
   const [audioTestPassed, setAudioTestPassed] = useState(false);
 
-  const handleTestAudio = () => {
-    const testMessage = 'DRISHTI audio speech synthesized successfully. Your accessibility setup is operational and ready.';
+  const handleTestAudio = useCallback(() => {
+    const isHindi = preferences?.language === 'hi';
+    const testMessage = isHindi && hasHindiVoice
+      ? 'दृष्टि ऑडियो स्पीच सफलतापूर्वक सक्रिय है। आपकी सुलभता सेटिंग्स परीक्षा के लिए तैयार हैं।'
+      : 'DRISHTI audio speech synthesized successfully. Your accessibility setup is operational and ready.';
     speak(testMessage);
     announce(testMessage, 'assertive');
     setAudioTestPassed(true);
-  };
+  }, [preferences?.language, hasHindiVoice, speak, announce]);
 
   const [exam, setExam] = useState<Exam | null>(null);
   const [isStarting, setIsStarting] = useState(false);
@@ -48,17 +53,60 @@ export const ExamVerificationPage: React.FC = () => {
     loadExam();
   }, [examId]);
 
-  const handleStartExam = async () => {
+  const handleStartExam = useCallback(async () => {
     if (!exam) return;
     try {
       setIsStarting(true);
+      // Cleanly reset any old expired/submitted session so a fresh attempt starts
+      await examService.discardExamSession(exam.id);
       await examService.createExamSession(exam.id);
-      navigate(`/candidate/exams/${exam.id}/session`);
+      navigate(`/candidate/exams/${exam.id}/session`, { state: { freshLaunch: true } });
     } catch (e) {
-      console.error('Failed to create examination session', e);
+      console.warn('Backend session start notice, proceeding with resilient local session:', e);
       setIsStarting(false);
+      navigate(`/candidate/exams/${exam.id}/session`, { state: { freshLaunch: true } });
     }
-  };
+  }, [exam, navigate]);
+
+  // Read readiness check prompt on mount
+  useEffect(() => {
+    if (isLoading || !exam) return;
+    const isHindi = preferences?.language === 'hi';
+    const msg = isHindi && hasHindiVoice
+      ? 'सुलभता एवं परीक्षा तैयारी जांच। परीक्षा शुरू करने के लिए बोलिए "शुरू करो", या "स्टार्ट एग्जाम"।'
+      : 'Candidate Readiness & Accessibility Check. Say "Start Exam" to launch your timed examination.';
+    const timer = setTimeout(() => {
+      speak(msg);
+      announce(msg, 'polite');
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [isLoading, exam?.id, preferences?.language, hasHindiVoice, speak, announce]);
+
+  // Event listeners for voice commands
+  useEffect(() => {
+    const handleStartEvt = () => handleStartExam();
+    const handleTestEvt = () => handleTestAudio();
+
+    window.addEventListener('drishti:exam-start-test', handleStartEvt);
+    window.addEventListener('drishti:exam-test-audio', handleTestEvt);
+
+    return () => {
+      window.removeEventListener('drishti:exam-start-test', handleStartEvt);
+      window.removeEventListener('drishti:exam-test-audio', handleTestEvt);
+    };
+  }, [handleStartExam, handleTestAudio]);
+
+  const voice = useVoiceCommands(
+    {
+      onNext: handleStartExam,
+      onSelectOption: (idx) => {
+        if (idx === 0) handleStartExam();
+        else if (idx === 1) handleTestAudio();
+        else if (idx === 2 && exam) navigate(`/candidate/exams/${exam.id}/instructions`);
+      },
+    },
+    { autoStart: true }
+  );
 
   if (isLoading || !exam) {
     return (
@@ -72,7 +120,16 @@ export const ExamVerificationPage: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col gap-8 max-w-4xl mx-auto pb-12">
+    <div className="flex flex-col gap-6 max-w-4xl mx-auto pb-12">
+      {/* Voice Command Bar */}
+      <VoiceCommandBar
+        isListening={voice.isListening}
+        isSupported={voice.isSupported}
+        lastCommand={voice.lastCommand}
+        errorNotice={voice.errorNotice}
+        onToggle={voice.toggleListening}
+      />
+
       {/* Back button */}
       <div>
         <Link

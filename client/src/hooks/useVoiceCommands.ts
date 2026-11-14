@@ -23,6 +23,7 @@ export interface VoiceCommandHandlers {
   onAnnounceTime?: () => void;
   onReadQuestion?: () => void;
   onReadOptions?: () => void;
+  onExplain?: () => void;
   onStatus?: () => void;
   onNavigate?: (route: string) => void;
   // Scribe helper to read current question choices
@@ -64,81 +65,80 @@ export function matchOptionCommand(
     .replace(/\s+/g, ' ')
     .trim();
 
-  // Option A
+  // Action guard: If phrase is a navigation or command action, it is NOT an option selection!
   if (
-    /\b(option\s*[a1]|choose\s*[a1]|select\s*[a1]|answer\s*[a1]|mark\s*[a1]|[a1]\s*option|option\s*one|ans\s*[a1])\b/i.test(clean) ||
-    /^(a|one|ek|ए|pehla|ay|eh)$/i.test(clean) ||
-    /\b(a\s*option|option\s*a|vikalp\s*a|uttar\s*a|a\s*hoga|a\s*hai|a\s*lagao|a\s*chuno|a\s*lock|a\s*sahi)\b/i.test(clean) ||
+    /\b(next|agla|अगला|आगे|aage|previous|pichhla|pichla|पिछला|peeche|back|skip|chhod|छोड़|chhodo|chhor|explain|samjhao|समझाओ|vyakhya|व्याख्या|repeat|read\s*question|sawal\s*padho|सवाल\s*पढ़ो|read\s*options|options\s*padho|submit|finish|सबमिट|समाप्त)\b/i.test(clean)
+  ) {
+    return null;
+  }
+
+  // Option A / 1 / First
+  if (
+    /\b(option\s*[a1]|vikalp\s*[a1]|choice\s*[a1]|answer\s*[a1]|ans\s*[a1]|mark\s*[a1]|select\s*[a1]|choose\s*[a1]|[a1]\s*option|[a1]\s*vikalp|option\s*one|option\s*ek|pehla\s*option|first\s*option|ek\s*number)\b/i.test(clean) ||
+    /^(a|one|ek|ए|pehla|first|ay|eh)$/i.test(clean) ||
+    /\b(a|ए)\s*(lock|lagao|chuno|sahi|hai|hoga|batao|karo|chahiye)\b/i.test(clean) ||
+    /\b(pehla|पहला)\s*(wala|sahi|hai|hoga|lock|lagao|chuno)\b/i.test(clean) ||
     clean.includes('ऑप्शन ए') || clean.includes('ऑप्शन a') || clean.includes('ऑप्शन 1') || clean.includes('ऑप्शन एक') ||
-    clean.includes('विकल्प ए') || clean.includes('विकल्प a') || clean.includes('विकल्प 1') || clean.includes('विकल्प एक') || clean.includes('पहला विकल्प') ||
-    clean.includes('पहला ऑप्शन') || clean.includes('उत्तर ए') || clean.includes('ए ऑप्शन') || clean.includes('ए विकल्प') ||
-    clean.includes('पहला वाला') || clean.includes('पहला') ||
-    clean.includes('vikalp 1') || clean.includes('vikalp ek') || clean.includes('pehla vikalp') || clean.includes('pehla option') ||
-    clean.includes('first option') || clean.includes('1st option') || clean.includes('ek number') ||
-    clean.includes('option ek') || clean.includes('ए होगा') || clean.includes('ए है') ||
+    clean.includes('विकल्प ए') || clean.includes('विकल्प a') || clean.includes('विकल्प 1') || clean.includes('विकल्प एक') ||
+    clean.includes('पहला विकल्प') || clean.includes('पहला ऑप्शन') || clean.includes('उत्तर ए') || clean.includes('ए ऑप्शन') ||
+    clean.includes('ए विकल्प') || clean.includes('पहला वाला') || clean.includes('ए होगा') || clean.includes('ए है') ||
     clean.includes('ए लगाओ') || clean.includes('ए चुनो') || clean.includes('ए लॉक') || clean.includes('ए सही')
   ) {
     return { index: 0, label: 'A' };
   }
 
-  // Option B
+  // Option B / 2 / Second
   if (
-    /\b(option\s*[b2]|choose\s*[b2]|select\s*[b2]|answer\s*[b2]|mark\s*[b2]|[b2]\s*option|option\s*be|option\s*bee|option\s*two|ans\s*[b2])\b/i.test(clean) ||
-    /^(b|two|do|बी|be|bee|doosra|dusra)$/i.test(clean) ||
-    /\b(b\s*option|option\s*b|vikalp\s*b|uttar\s*b|b\s*hoga|b\s*hai|b\s*lagao|b\s*chuno|b\s*lock|b\s*sahi)\b/i.test(clean) ||
+    /\b(option\s*[b2]|vikalp\s*[b2]|choice\s*[b2]|answer\s*[b2]|ans\s*[b2]|mark\s*[b2]|select\s*[b2]|choose\s*[b2]|[b2]\s*option|[b2]\s*vikalp|option\s*two|option\s*do|option\s*be|option\s*bee|dusra\s*option|doosra\s*option|second\s*option|do\s*number)\b/i.test(clean) ||
+    /^(b|two|do|बी|be|bee|dusra|doosra|second)$/i.test(clean) ||
+    /\b(b|बी)\s*(lock|lagao|chuno|sahi|hai|hoga|batao|karo|chahiye)\b/i.test(clean) ||
+    /\b(dusra|doosra|दूसरा)\s*(wala|sahi|hai|hoga|lock|lagao|chuno)\b/i.test(clean) ||
     clean.includes('ऑप्शन बी') || clean.includes('ऑप्शन b') || clean.includes('ऑप्शन 2') || clean.includes('ऑप्शन दो') ||
-    clean.includes('विकल्प बी') || clean.includes('विकल्प b') || clean.includes('विकल्प 2') || clean.includes('विकल्प दो') || clean.includes('दूसरा विकल्प') ||
-    clean.includes('दूसरा ऑप्शन') || clean.includes('उत्तर बी') || clean.includes('बी ऑप्शन') || clean.includes('बी विकल्प') ||
-    clean.includes('दूसरा वाला') || clean.includes('दूसरा') ||
-    clean.includes('vikalp 2') || clean.includes('vikalp do') || clean.includes('doosra vikalp') || clean.includes('dusra option') || clean.includes('doosra option') ||
-    clean.includes('second option') || clean.includes('2nd option') || clean.includes('do number') ||
-    clean.includes('option do') || clean.includes('बी होगा') || clean.includes('बी है') ||
+    clean.includes('विकल्प बी') || clean.includes('विकल्प b') || clean.includes('विकल्प 2') || clean.includes('विकल्प दो') ||
+    clean.includes('दूसरा विकल्प') || clean.includes('दूसरा ऑप्शन') || clean.includes('उत्तर बी') || clean.includes('बी ऑप्शन') ||
+    clean.includes('बी विकल्प') || clean.includes('दूसरा वाला') || clean.includes('बी होगा') || clean.includes('बी है') ||
     clean.includes('बी लगाओ') || clean.includes('बी चुनो') || clean.includes('बी लॉक') || clean.includes('बी सही')
   ) {
     return { index: 1, label: 'B' };
   }
 
-  // Option C
+  // Option C / 3 / Third
   if (
-    /\b(option\s*[c3]|choose\s*[c3]|select\s*[c3]|answer\s*[c3]|mark\s*[c3]|[c3]\s*option|option\s*see|option\s*three|ans\s*[c3])\b/i.test(clean) ||
-    /^(c|three|teen|सी|see|sea|si|teesra|tisra)$/i.test(clean) ||
-    /\b(c\s*option|option\s*c|vikalp\s*c|uttar\s*c|c\s*hoga|c\s*hai|c\s*lagao|c\s*chuno|c\s*lock|c\s*sahi)\b/i.test(clean) ||
+    /\b(option\s*[c3]|vikalp\s*[c3]|choice\s*[c3]|answer\s*[c3]|ans\s*[c3]|mark\s*[c3]|select\s*[c3]|choose\s*[c3]|[c3]\s*option|[c3]\s*vikalp|option\s*three|option\s*teen|option\s*see|option\s*sea|teesra\s*option|third\s*option|teen\s*number)\b/i.test(clean) ||
+    /^(c|three|teen|सी|see|sea|teesra|tisra|third)$/i.test(clean) ||
+    /\b(c|सी)\s*(lock|lagao|chuno|sahi|hai|hoga|batao|karo|chahiye)\b/i.test(clean) ||
+    /\b(teesra|tisra|तीसरा)\s*(wala|sahi|hai|hoga|lock|lagao|chuno)\b/i.test(clean) ||
     clean.includes('ऑप्शन सी') || clean.includes('ऑप्शन c') || clean.includes('ऑप्शन 3') || clean.includes('ऑप्शन तीन') ||
-    clean.includes('विकल्प सी') || clean.includes('विकल्प c') || clean.includes('विकल्प 3') || clean.includes('विकल्प तीन') || clean.includes('तीसरा विकल्प') ||
-    clean.includes('तीसरा ऑप्शन') || clean.includes('उत्तर सी') || clean.includes('सी ऑप्शन') || clean.includes('सी विकल्प') ||
-    clean.includes('तीसरा वाला') || clean.includes('तीसरा') ||
-    clean.includes('vikalp 3') || clean.includes('vikalp teen') || clean.includes('teesra vikalp') || clean.includes('teesra option') ||
-    clean.includes('third option') || clean.includes('3rd option') || clean.includes('teen number') ||
-    clean.includes('option teen') || clean.includes('सी होगा') || clean.includes('सी है') ||
+    clean.includes('विकल्प सी') || clean.includes('विकल्प c') || clean.includes('विकल्प 3') || clean.includes('विकल्प तीन') ||
+    clean.includes('तीसरा विकल्प') || clean.includes('तीसरा ऑप्शन') || clean.includes('उत्तर सी') || clean.includes('सी ऑप्शन') ||
+    clean.includes('सी विकल्प') || clean.includes('तीसरा वाला') || clean.includes('सी होगा') || clean.includes('सी है') ||
     clean.includes('सी लगाओ') || clean.includes('सी चुनो') || clean.includes('सी लॉक') || clean.includes('सी सही')
   ) {
     return { index: 2, label: 'C' };
   }
 
-  // Option D
+  // Option D / 4 / Fourth
   if (
-    /\b(option\s*[d4]|choose\s*[d4]|select\s*[d4]|answer\s*[d4]|mark\s*[d4]|[d4]\s*option|option\s*four|ans\s*[d4])\b/i.test(clean) ||
-    /^(d|four|char|chaar|डी|dee|chautha)$/i.test(clean) ||
-    /\b(d\s*option|option\s*d|vikalp\s*d|uttar\s*d|d\s*hoga|d\s*hai|d\s*lagao|d\s*chuno|d\s*lock|d\s*sahi)\b/i.test(clean) ||
+    /\b(option\s*[d4]|vikalp\s*[d4]|choice\s*[d4]|answer\s*[d4]|ans\s*[d4]|mark\s*[d4]|select\s*[d4]|choose\s*[d4]|[d4]\s*option|[d4]\s*vikalp|option\s*four|option\s*char|option\s*chaar|option\s*dee|chautha\s*option|fourth\s*option|char\s*number|chaar\s*number)\b/i.test(clean) ||
+    /^(d|four|char|chaar|डी|dee|chautha|fourth)$/i.test(clean) ||
+    /\b(d|डी)\s*(lock|lagao|chuno|sahi|hai|hoga|batao|karo|chahiye)\b/i.test(clean) ||
+    /\b(chautha|चौथा)\s*(wala|sahi|hai|hoga|lock|lagao|chuno)\b/i.test(clean) ||
     clean.includes('ऑप्शन डी') || clean.includes('ऑप्शन d') || clean.includes('ऑप्शन 4') || clean.includes('ऑप्शन चार') ||
-    clean.includes('विकल्प डी') || clean.includes('विकल्प d') || clean.includes('विकल्प 4') || clean.includes('विकल्प चार') || clean.includes('चौथा विकल्प') ||
-    clean.includes('चौथा ऑप्शन') || clean.includes('उत्तर डी') || clean.includes('डी ऑप्शन') || clean.includes('डी विकल्प') ||
-    clean.includes('चौथा वाला') || clean.includes('चौथा') ||
-    clean.includes('vikalp 4') || clean.includes('vikalp char') || clean.includes('chautha vikalp') || clean.includes('chautha option') ||
-    clean.includes('fourth option') || clean.includes('4th option') || clean.includes('char number') || clean.includes('chaar number') ||
-    clean.includes('option char') || clean.includes('डी होगा') || clean.includes('डी है') ||
+    clean.includes('विकल्प डी') || clean.includes('विकल्प d') || clean.includes('विकल्प 4') || clean.includes('विकल्प चार') ||
+    clean.includes('चौथा विकल्प') || clean.includes('चौथा ऑप्शन') || clean.includes('उत्तर डी') || clean.includes('डी ऑप्शन') ||
+    clean.includes('डी विकल्प') || clean.includes('चौथा वाला') || clean.includes('डी होगा') || clean.includes('डी है') ||
     clean.includes('डी लगाओ') || clean.includes('डी चुनो') || clean.includes('डी लॉक') || clean.includes('डी सही')
   ) {
     return { index: 3, label: 'D' };
   }
 
-  // Fallback: If candidate speaks the text of the option
+  // Fallback: If candidate speaks the verbatim text of the option (only exact or strong match)
   if (optionsList && optionsList.length > 0) {
     for (let i = 0; i < optionsList.length; i++) {
       const opt = optionsList[i];
-      if (opt.text && opt.text.trim().length > 1) {
+      if (opt.text && opt.text.trim().length > 2) {
         const optClean = opt.text.toLowerCase().trim().replace(/[.,/#!$%^&*;:{}=\-_`~()।?]/g, '');
-        if (clean === optClean || clean.includes(optClean) || (clean.length > 3 && optClean.includes(clean))) {
+        if (clean === optClean || (optClean.length >= 6 && clean.includes(optClean))) {
           return { index: i, label: opt.label || ['A', 'B', 'C', 'D'][i] };
         }
       }
@@ -245,6 +245,9 @@ class GlobalVoiceRecognitionManager {
       recognition.interimResults = true;
       recognition.lang = this.currentLanguage === 'hi' ? 'hi-IN' : 'en-IN';
 
+      let pendingFinalizeTimer: any = null;
+      let lastInterimText = '';
+
       recognition.onstart = () => {
         this.notifyState({ isListening: true, lastCommand: null, errorNotice: null });
       };
@@ -262,9 +265,68 @@ class GlobalVoiceRecognitionManager {
           }
         }
 
-        const candidateText = final.trim() || interim.trim();
-        if (candidateText) {
-          this.dispatchTranscript(candidateText);
+        const trimmedFinal = final.trim();
+        const trimmedInterim = interim.trim();
+
+        // 1. Instant Barge-In on any candidate speech:
+        if (trimmedInterim || trimmedFinal) {
+          if (
+            typeof window !== 'undefined' &&
+            'speechSynthesis' in window &&
+            (window.speechSynthesis.speaking || window.speechSynthesis.pending)
+          ) {
+            try {
+              window.speechSynthesis.cancel();
+              (window as any).__drishti_active_utterance = null;
+            } catch {}
+          }
+        }
+
+        // 2. If browser emitted final recognized text, dispatch immediately!
+        if (trimmedFinal) {
+          if (pendingFinalizeTimer) {
+            clearTimeout(pendingFinalizeTimer);
+            pendingFinalizeTimer = null;
+          }
+          lastInterimText = '';
+          this.dispatchTranscript(trimmedFinal);
+          return;
+        }
+
+        // 3. For interim text:
+        if (trimmedInterim) {
+          lastInterimText = trimmedInterim;
+          // Live telemetry for visual HUD status
+          for (const sub of this.subscribers) {
+            sub.onStateChange({
+              isListening: this.isListening,
+              lastCommand: trimmedInterim,
+              errorNotice: null,
+            });
+          }
+
+          // If interim is simply the solitary prefix "option" or "vikalp", wait for the candidate to speak the letter/number
+          const singleWord = trimmedInterim.toLowerCase().trim();
+          if (
+            singleWord === 'option' ||
+            singleWord === 'ऑप्शन' ||
+            singleWord === 'vikalp' ||
+            singleWord === 'विकल्प'
+          ) {
+            return;
+          }
+
+          // Fallback silence settle timer (400ms) for browsers that don't emit isFinal reliably
+          if (pendingFinalizeTimer) {
+            clearTimeout(pendingFinalizeTimer);
+          }
+          pendingFinalizeTimer = setTimeout(() => {
+            if (lastInterimText && lastInterimText.trim()) {
+              const toDispatch = lastInterimText.trim();
+              lastInterimText = '';
+              this.dispatchTranscript(toDispatch);
+            }
+          }, 400);
         }
       };
 
@@ -279,6 +341,16 @@ class GlobalVoiceRecognitionManager {
       };
 
       recognition.onend = () => {
+        if (pendingFinalizeTimer) {
+          clearTimeout(pendingFinalizeTimer);
+          pendingFinalizeTimer = null;
+        }
+        if (lastInterimText && lastInterimText.trim()) {
+          const toDispatch = lastInterimText.trim();
+          lastInterimText = '';
+          this.dispatchTranscript(toDispatch);
+        }
+
         if (this.isListening) {
           clearTimeout(this.restartTimer);
           this.restartTimer = setTimeout(() => {
@@ -330,14 +402,20 @@ class GlobalVoiceRecognitionManager {
 
   /**
    * Detects if speech recognition output is acoustic speaker leakage from ongoing TTS playback
-   * (e.g. computer reading multiple options, question statement, or platform prompt aloud)
-   * vs an intentional, concise user command/barge-in.
+   * (e.g. computer reading multiple options aloud in sequence)
+   * vs an intentional candidate command/barge-in.
    */
   private isSpeakerAcousticEcho(rawText: string): boolean {
     const text = rawText.trim().toLowerCase();
     if (!text) return true;
 
-    // 1. Multiple options mentioned in the same phrase -> 100% choices prompt readout
+    // Never filter out short concise commands (<= 3 words, e.g. "next", "अगला", "option a", "skip", "explain")
+    const words = text.split(/\s+/).filter(Boolean);
+    if (words.length <= 3) {
+      return false;
+    }
+
+    // 1. Multiple options mentioned in the same phrase -> 100% computer reading options list aloud
     const hasA = /\b(option\s*[a1]|ऑप्शन\s*[एa1]|विकल्प\s*[एa1])\b/i.test(text);
     const hasB = /\b(option\s*[b2]|ऑप्शन\s*[बीb2]|विकल्प\s*[बीb2])\b/i.test(text);
     const hasC = /\b(option\s*[c3]|ऑप्शन\s*[सीc3]|विकल्प\s*[सीc3])\b/i.test(text);
@@ -347,40 +425,7 @@ class GlobalVoiceRecognitionManager {
       return true;
     }
 
-    // 2. Specific prompt phrases spoken by AI
-    const promptPhrases = [
-      'choose your answer',
-      'अपना उत्तर चुनिए',
-      'अपना उत्तर चुनें',
-      'the options are',
-      'विकल्प हैं',
-      'विकल्प इस प्रकार हैं',
-      'question number',
-      'प्रश्न संख्या',
-      'कुल 10 में से',
-      'say next to continue',
-      'say next to proceed',
-      'अगले सवाल के लिए बोलिए',
-      'say confirm or say change',
-      'पुष्टि के लिए',
-      'welcome to drishti',
-      'दृष्टि में आपका स्वागत',
-      'options available',
-      'विकल्प उपलब्ध हैं',
-      'you selected option',
-      'आपने विकल्प',
-      'say any option',
-      'bol sakte hain',
-      'बोल सकते हैं',
-    ];
-
-    for (const phrase of promptPhrases) {
-      if (text.includes(phrase)) {
-        return true;
-      }
-    }
-
-    // 3. Substring of currently spoken utterance (if long prose)
+    // 2. Substring of currently spoken utterance (long prose leakage >= 5 words)
     const activeUtterance =
       typeof window !== 'undefined'
         ? (window as any).__drishti_active_utterance?.text
@@ -391,9 +436,7 @@ class GlobalVoiceRecognitionManager {
       const textClean = text.replace(/[.,/#!$%^&*;:{}=\-_`~()।?]/g, ' ').trim();
       const wordCount = textClean.split(/\s+/).filter(Boolean).length;
 
-      // If mic hears a long phrase (> 4 words) that is directly inside active utterance text,
-      // it is acoustic leakage of the question or paragraph being read.
-      if (wordCount >= 4 && activeClean.includes(textClean)) {
+      if (wordCount >= 5 && activeClean.includes(textClean)) {
         return true;
       }
     }
@@ -405,8 +448,8 @@ class GlobalVoiceRecognitionManager {
     const text = rawText.trim().toLowerCase();
     const now = Date.now();
 
-    // Debounce duplicate commands within 1000ms
-    if (this.lastHandled.text === text && now - this.lastHandled.time < 1000) {
+    // Debounce duplicate commands within 400ms (reduced from 1000ms for fast responsive interaction)
+    if (this.lastHandled.text === text && now - this.lastHandled.time < 400) {
       return;
     }
 
@@ -416,13 +459,13 @@ class GlobalVoiceRecognitionManager {
       (window.speechSynthesis.speaking || window.speechSynthesis.pending);
 
     if (isSpeaking) {
-      // 1. Filter out microphone acoustic feedback / prompt echo:
+      // 1. Filter out true acoustic speaker leakage:
       if (this.isSpeakerAcousticEcho(text)) {
         return;
       }
 
       // 2. Candidate Voice Barge-In:
-      // Candidate is intentionally speaking a command/option/interruption while AI is talking.
+      // Candidate is speaking a command/option while AI is talking.
       // Immediately cancel speech synthesis so the candidate takes top priority:
       try {
         window.speechSynthesis.cancel();
@@ -664,8 +707,19 @@ export function useVoiceCommands(
       }
 
       // ==========================================
-      // 3. OPTION SELECTION (DIRECT OR CONFIRMATION)
+      // 3. SOLITARY OPTION PROMPT & OPTION SELECTION
       // ==========================================
+      // If user says ONLY the single word "option" or "vikalp" without choosing a letter/number:
+      if (text === 'option' || text === 'vikalp' || text === 'ऑप्शन' || text === 'विकल्प') {
+        const isHindi = preferences?.language === 'hi';
+        const msg = isHindi
+          ? 'आप कौन सा विकल्प चुनना चाहते हैं? कृपया विकल्प A, B, C या D बोलें।'
+          : 'Which option would you like to select? Please say Option A, B, C, or D.';
+        speak(msg);
+        announce(msg, 'polite');
+        return true;
+      }
+
       const optionsList = handlersRef.current.getCurrentOptions?.() || [];
       const matchedOpt = matchOptionCommand(text, optionsList);
 
@@ -722,7 +776,7 @@ export function useVoiceCommands(
       }
 
       // ==========================================
-      // 4. READ QUESTION / OPTIONS / REPEAT
+      // 4. READ QUESTION / OPTIONS / EXPLAIN / REPEAT
       // ==========================================
       if (
         text.includes('read question') ||
@@ -734,7 +788,8 @@ export function useVoiceCommands(
         text === 'padho' ||
         text.includes('repeat') ||
         text.includes('दोबारा') ||
-        text.includes('phir se padho')
+        text.includes('phir se padho') ||
+        text.includes('kya sawal hai')
       ) {
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
           window.speechSynthesis.cancel();
@@ -749,24 +804,108 @@ export function useVoiceCommands(
 
       if (
         text.includes('read options') ||
-        text.includes('options') ||
-        text.includes('vikalp') ||
+        text.includes('options padho') ||
+        text.includes('vikalp padho') ||
+        text.includes('options batao') ||
+        text.includes('vikalp batao') ||
+        text.includes('options kya') ||
+        text.includes('vikalp kya') ||
         text.includes('ऑप्शन बताओ') ||
-        text.includes('विकल्प पढ़ो')
+        text.includes('विकल्प पढ़ो') ||
+        text === 'options' ||
+        text === 'vikalp' ||
+        text === 'विकल्प' ||
+        text === 'ऑप्शन'
       ) {
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
           window.speechSynthesis.cancel();
         }
         handlersRef.current.onReadOptions?.();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('drishti:practice-read-options'));
+          window.dispatchEvent(new CustomEvent('drishti:mock-read-options'));
+          window.dispatchEvent(new CustomEvent('drishti:exam-read-options'));
+        }
+        return true;
+      }
+
+      // Pedagogical Explanation command ("Explain" / "समझाओ" / "व्याख्या")
+      if (
+        text.includes('explain') ||
+        text.includes('explanation') ||
+        text.includes('samjhao') ||
+        text.includes('samjhaiye') ||
+        text.includes('समझाओ') ||
+        text.includes('समझाइए') ||
+        text.includes('व्याख्या') ||
+        text.includes('vyakhya') ||
+        text.includes('detail') ||
+        text.includes('detail batao') ||
+        text.includes('why') ||
+        text.includes('kyun') ||
+        text.includes('kyu')
+      ) {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+        announce('Voice command: Explain', 'polite');
+        if (handlersRef.current.onExplain) {
+          handlersRef.current.onExplain();
+        }
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('drishti:practice-explain'));
+        }
         return true;
       }
 
       // ==========================================
       // 5. GENERAL NAVIGATION & TIME COMMANDS
       // ==========================================
+      // 5A. Explicit Start / Launch Examination or Test Command
       if (
-        text.includes('next') || text.includes('agla') || text.includes('अगला') || text.includes('आगे') ||
-        text === 'agla' || text === 'next question' || text === 'अगला सवाल'
+        text.includes('start exam') ||
+        text.includes('start examination') ||
+        text.includes('begin exam') ||
+        text.includes('begin examination') ||
+        text.includes('launch exam') ||
+        text.includes('take exam') ||
+        text.includes('pariksha shuru') ||
+        text.includes('परीक्षा शुरू') ||
+        text === 'start' ||
+        text === 'shuru karo' ||
+        text === 'शुरू करो' ||
+        text === 'आरंभ करो'
+      ) {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+        announce('Voice command: Start Examination', 'polite');
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('drishti:exam-start-test'));
+        }
+        if (handlersRef.current.onNext) {
+          handlersRef.current.onNext();
+          return true;
+        }
+      }
+
+      if (
+        text.includes('next') ||
+        text.includes('agla') ||
+        text.includes('अगला') ||
+        text.includes('आगे') ||
+        text.includes('aage') ||
+        text === 'next' ||
+        text === 'agla' ||
+        text.includes('next question') ||
+        text.includes('अगला सवाल') ||
+        text.includes('agla sawal') ||
+        text.includes('aage badho') ||
+        text.includes('aage chalo') ||
+        text.includes('next wala') ||
+        text.includes('continue') ||
+        text.includes('agle sawal') ||
+        text.includes('agle question')
       ) {
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
           window.speechSynthesis.cancel();
@@ -782,8 +921,18 @@ export function useVoiceCommands(
       }
 
       if (
-        text.includes('previous') || text.includes('back') || text.includes('pichhla') || text.includes('पिछला') || text.includes('पीछे') ||
-        text === 'pichhla' || text === 'previous question' || text === 'पिछला सवाल'
+        text.includes('previous') ||
+        text.includes('back') ||
+        text.includes('pichhla') ||
+        text.includes('pichla') ||
+        text.includes('पिछला') ||
+        text.includes('पीछे') ||
+        text.includes('peeche') ||
+        text === 'pichla' ||
+        text === 'pichhla' ||
+        text.includes('previous question') ||
+        text.includes('पिछला सवाल') ||
+        text.includes('pichla sawal')
       ) {
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
           window.speechSynthesis.cancel();
@@ -955,7 +1104,28 @@ export function useVoiceCommands(
           handlersRef.current.onNavigate('/candidate/mock-tests');
           return true;
         }
-        if (text.includes('exam') || text.includes('परीक्षा')) {
+        const hasStartAction =
+          text.includes('start') ||
+          text.includes('shuru') ||
+          text.includes('begin') ||
+          text.includes('launch') ||
+          text.includes('take') ||
+          text.includes('शुरू') ||
+          text.includes('session');
+
+        if (
+          !hasStartAction &&
+          (text.includes('exam directory') ||
+            text.includes('exam catalog') ||
+            text.includes('all exams') ||
+            text.includes('exams list') ||
+            text.includes('pariksha soochi') ||
+            text.includes('परीक्षा सूची') ||
+            text === 'exam' ||
+            text === 'exams' ||
+            text === 'examination' ||
+            text === 'परीक्षा')
+        ) {
           handlersRef.current.onNavigate('/candidate/exams');
           return true;
         }

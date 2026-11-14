@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Exam } from '../../../types/exam';
 import { examService } from '../../../services/examService';
 import {
@@ -9,10 +9,13 @@ import {
   Volume2,
 } from 'lucide-react';
 import { useAccessibility } from '../../../contexts/AccessibilityContext';
+import { useVoiceCommands } from '../../../hooks/useVoiceCommands';
+import { VoiceCommandBar } from '../../../components/common/VoiceCommandBar';
 
 export const ExamInstructionsPage: React.FC = () => {
   const { examId } = useParams<{ examId: string }>();
-  const { speak, preferences } = useAccessibility();
+  const navigate = useNavigate();
+  const { speak, announce, preferences, hasHindiVoice } = useAccessibility();
 
   const [exam, setExam] = useState<Exam | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,12 +36,91 @@ export const ExamInstructionsPage: React.FC = () => {
     loadExam();
   }, [examId]);
 
-  const handleReadSummary = () => {
+  const handleReadSummary = useCallback(() => {
     if (!exam) return;
-    speak(
-      `Before You Begin. Examination instructions for ${exam.title}. Conducted by ${exam.organization}. Total questions: ${exam.totalQuestions}. Duration: ${exam.durationMinutes} minutes. Correct answers receive 2 marks. Incorrect answers receive negative mark penalty of 0.66 marks. All interactive elements support standard keyboard and screen-reader interaction. Review your accessibility preferences before launching the examination.`
-    );
-  };
+    const isHindi = preferences?.language === 'hi' || /[\u0900-\u097F]/.test(exam.title);
+    const totalQ = exam.totalQuestions || exam.config?.totalQuestions || 16;
+    const duration = exam.durationMinutes || 120;
+    const correctMarks = exam.config?.markingScheme?.correctMarks || 2;
+    const incorrectPenalty = exam.config?.markingScheme?.incorrectPenalty || 0.66;
+
+    const speechHi = `परीक्षा निर्देश: ${exam.title}। आयोजक: ${exam.organization}। कुल प्रश्न: ${totalQ}। आवंटित समय: ${duration} मिनट। प्रत्येक सही उत्तर के लिए ${correctMarks} अंक मिलेंगे, और प्रत्येक गलत उत्तर के लिए ${incorrectPenalty} अंक काटे जाएंगे। सभी प्रश्न बहुविकल्पीय हैं। आगे बढ़ने के लिए बोलिए 'आगे बढ़ो', या 'शुरू करो'। दोबारा सुनने के लिए बोलिए 'निर्देश पढ़ो'।`;
+
+    const speechEn = `Before You Begin. Examination instructions for ${exam.title}. Conducted by ${exam.organization}. Total questions: ${totalQ}. Duration: ${duration} minutes. Correct answers receive ${correctMarks} marks. Incorrect answers receive negative mark penalty of ${incorrectPenalty} marks. All interactive elements support standard keyboard and voice commands. Say 'Proceed' or 'Start' to begin, or say 'Read Instructions' to hear these rules again.`;
+
+    const textToSpeak = isHindi && hasHindiVoice ? speechHi : speechEn;
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    speak(textToSpeak);
+    announce(isHindi ? speechHi : speechEn, 'assertive');
+  }, [exam, preferences?.language, hasHindiVoice, speak, announce]);
+
+  const handleProceed = useCallback(() => {
+    if (!exam) return;
+    navigate(`/candidate/exams/${exam.id}/verify`);
+  }, [exam, navigate]);
+
+  // Auto-read instructions upon page load
+  useEffect(() => {
+    if (isLoading || !exam) return;
+    const timer = setTimeout(() => {
+      handleReadSummary();
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [isLoading, exam?.id, handleReadSummary]);
+
+  // Unlock browser speech synthesis on first interaction if blocked by autoplay policy
+  useEffect(() => {
+    const handleUnlock = () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+        if (!window.speechSynthesis.speaking && exam) {
+          handleReadSummary();
+        }
+      }
+    };
+
+    window.addEventListener('click', handleUnlock, { once: true });
+    window.addEventListener('keydown', handleUnlock, { once: true });
+    return () => {
+      window.removeEventListener('click', handleUnlock);
+      window.removeEventListener('keydown', handleUnlock);
+    };
+  }, [exam, handleReadSummary]);
+
+  // Window event listeners for speech navigation
+  useEffect(() => {
+    const handleReadEvt = () => handleReadSummary();
+    const handleProceedEvt = () => handleProceed();
+
+    window.addEventListener('drishti:exam-read-instructions', handleReadEvt);
+    window.addEventListener('drishti:exam-start-test', handleProceedEvt);
+
+    return () => {
+      window.removeEventListener('drishti:exam-read-instructions', handleReadEvt);
+      window.removeEventListener('drishti:exam-start-test', handleProceedEvt);
+    };
+  }, [handleReadSummary, handleProceed]);
+
+  // Voice Command integration
+  const voice = useVoiceCommands(
+    {
+      onNext: handleProceed,
+      onPrevious: () => {
+        if (exam) navigate(`/candidate/exams/${exam.id}`);
+      },
+      onReadQuestion: handleReadSummary,
+      onSelectOption: (idx) => {
+        if (idx === 0) handleProceed();
+        else if (idx === 1) handleReadSummary();
+        else if (idx === 2 && exam) navigate(`/candidate/exams/${exam.id}`);
+      },
+    },
+    { autoStart: true }
+  );
 
   if (isLoading || !exam) {
     return (
@@ -52,7 +134,16 @@ export const ExamInstructionsPage: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col gap-8 max-w-4xl mx-auto pb-12">
+    <div className="flex flex-col gap-6 max-w-4xl mx-auto pb-12">
+      {/* Voice Command Bar */}
+      <VoiceCommandBar
+        isListening={voice.isListening}
+        isSupported={voice.isSupported}
+        lastCommand={voice.lastCommand}
+        errorNotice={voice.errorNotice}
+        onToggle={voice.toggleListening}
+      />
+
       {/* Back button */}
       <div>
         <Link

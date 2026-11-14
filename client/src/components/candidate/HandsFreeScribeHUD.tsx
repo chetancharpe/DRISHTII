@@ -327,15 +327,37 @@ export const HandsFreeScribeHUD: React.FC = () => {
         ]) || clean === '7' || clean === 'seven' || clean === 'सात'
       ) matchedIndex = 6;
 
-      if (matchedIndex !== -1 && currentSection.elements[matchedIndex]) {
-        const elem = currentSection.elements[matchedIndex];
-        playEarcon('action');
-        setLastActionFeedback(`Selected Option ${elem.number}: ${elem.label}`);
-        elem.action(getSectionContext());
-        if (elem.confirmSpeech) {
-          speakAssistance(elem.confirmSpeech, elem.confirmSpeech);
+      if (matchedIndex !== -1) {
+        const isSessionRoute =
+          location.pathname.includes('/practice/session') ||
+          location.pathname.includes('/mock-tests/session') ||
+          location.pathname.includes('/exams/session');
+
+        if (isSessionRoute && matchedIndex <= 3) {
+          const optionLabels = ['A', 'B', 'C', 'D'];
+          const chosenLabel = optionLabels[matchedIndex];
+          playEarcon('action');
+          setLastActionFeedback(`Selected Option ${chosenLabel}`);
+          if (location.pathname.includes('/practice/session')) {
+            window.dispatchEvent(new CustomEvent('drishti:practice-select-option', { detail: { label: chosenLabel, index: matchedIndex } }));
+          } else if (location.pathname.includes('/mock-tests/session')) {
+            window.dispatchEvent(new CustomEvent('drishti:mock-select-option', { detail: { label: chosenLabel, targetIndex: matchedIndex } }));
+          } else {
+            window.dispatchEvent(new CustomEvent('drishti:exam-select-option', { detail: { label: chosenLabel, index: matchedIndex } }));
+          }
+          return true;
         }
-        return true;
+
+        if (currentSection.elements[matchedIndex]) {
+          const elem = currentSection.elements[matchedIndex];
+          playEarcon('action');
+          setLastActionFeedback(`Selected Option ${elem.number}: ${elem.label}`);
+          elem.action(getSectionContext());
+          if (elem.confirmSpeech) {
+            speakAssistance(elem.confirmSpeech, elem.confirmSpeech);
+          }
+          return true;
+        }
       }
 
       // 9. SECTION ELEMENTS BY SPECIFIC ALIAS
@@ -349,6 +371,58 @@ export const HandsFreeScribeHUD: React.FC = () => {
           }
           return true;
         }
+      }
+
+      // 9.5 EXPLICIT EXAMINATION LAUNCH & ADVANCEMENT (Prevents collision with directory navigation)
+      const isStartExamAction = hasPhrase(clean, [
+        'start examination', 'start exam', 'begin examination', 'begin exam',
+        'launch examination', 'launch exam', 'take exam', 'start test', 'begin test',
+        'pariksha shuru', 'pariksha shuru karo', 'shuru karo', 'shuru kardo', 'परीक्षा शुरू', 'परीक्षा शुरू करो',
+        'start test session', 'open exam session', 'start upsc', 'start civil services', 'start ssc',
+        'आरंभ करो', 'परीक्षा आरंभ करो'
+      ]);
+
+      if (isStartExamAction) {
+        playEarcon('action');
+
+        // A. If already on verify page, trigger exam start directly into live session
+        if (location.pathname.includes('/candidate/exams/') && location.pathname.includes('/verify')) {
+          const match = location.pathname.match(/\/candidate\/exams\/([^/]+)\/verify/);
+          const slug = match ? match[1] : 'upsc-cse-prelims-2026';
+          window.dispatchEvent(new CustomEvent('drishti:exam-start-test'));
+          setLastActionFeedback(isHindi ? 'परीक्षा सत्र शुरू किया जा रहा है' : 'Starting Live Examination');
+          speakAssistance('Launching your live examination session now.', 'आपका लाइव परीक्षा सत्र शुरू किया जा रहा है।');
+          navigate(`/candidate/exams/${slug}/session`, { state: { freshLaunch: true } });
+          return true;
+        }
+
+        // B. If on instructions page, proceed to verify readiness check
+        if (location.pathname.includes('/candidate/exams/') && location.pathname.includes('/instructions')) {
+          const match = location.pathname.match(/\/candidate\/exams\/([^/]+)\/instructions/);
+          const slug = match ? match[1] : 'upsc-cse-prelims-2026';
+          setLastActionFeedback(isHindi ? 'तैयारी जांच पर आगे बढ़ रहे हैं' : 'Proceeding to Readiness Check');
+          speakAssistance('Proceeding to Candidate Readiness and Audio Check.', 'उम्मीदवार तैयारी एवं ऑडियो जांच पृष्ठ पर आगे बढ़ रहे हैं।');
+          navigate(`/candidate/exams/${slug}/verify`);
+          return true;
+        }
+
+        // C. If on exam overview page, advance to instructions or verify
+        if (location.pathname.startsWith('/candidate/exams/') && !location.pathname.includes('/session')) {
+          const match = location.pathname.match(/\/candidate\/exams\/([^/]+)/);
+          const slug = match ? match[1] : 'upsc-cse-prelims-2026';
+          setLastActionFeedback(isHindi ? 'परीक्षा तैयारी जांच खोली जा रही है' : 'Opening Examination Verification');
+          speakAssistance('Opening examination readiness check.', 'परीक्षा तैयारी जांच पृष्ठ खोला जा रहा है।');
+          navigate(`/candidate/exams/${slug}/verify`);
+          return true;
+        }
+
+        // D. If on examinations directory, dashboard, or elsewhere, launch UPSC or SSC
+        const targetSlug = clean.includes('ssc') ? 'ssc-cgl-tier1-2026' : 'upsc-cse-prelims-2026';
+        const targetName = clean.includes('ssc') ? 'SSC CGL Tier 1' : 'UPSC Civil Services';
+        setLastActionFeedback(isHindi ? `${targetName} शुरू किया जा रहा है` : `Starting ${targetName}`);
+        speakAssistance(`Starting ${targetName} examination readiness check.`, `${targetName} परीक्षा तैयारी जांच शुरू की जा रही है।`);
+        navigate(`/candidate/exams/${targetSlug}/verify`);
+        return true;
       }
 
       // 10. GLOBAL DESTINATION NAVIGATION WITH SPOKEN CONFIRMATION
@@ -384,11 +458,22 @@ export const HandsFreeScribeHUD: React.FC = () => {
         return true;
       }
 
-      // C. SCHEDULED EXAMINATIONS
+      // C. SCHEDULED EXAMINATIONS (Navigation only - strictly excludes start/launch actions)
+      const hasStartWord =
+        clean.includes('start') ||
+        clean.includes('begin') ||
+        clean.includes('shuru') ||
+        clean.includes('शुरू') ||
+        clean.includes('launch') ||
+        clean.includes('take') ||
+        clean.includes('आरंभ');
+
       if (
+        !hasStartWord &&
         hasPhrase(clean, [
-          'exam', 'exams', 'pariksha', 'examination', 'official exam', 'scheduled exam', 'meri pariksha', 'pariksha hall',
-          'परीक्षा', 'परीक्षाएं', 'मेरी परीक्षा', 'आधिकारिक परीक्षा', 'एग्जाम'
+          'exam portal', 'exams portal', 'all exams', 'exams list', 'exam list', 'pariksha soochi',
+          'scheduled exams', 'meri pariksha', 'pariksha hall', 'परीक्षाएं', 'मेरी परीक्षा',
+          'आधिकारिक परीक्षा', 'परीक्षा सूची'
         ])
       ) {
         playEarcon('action');
@@ -497,6 +582,22 @@ export const HandsFreeScribeHUD: React.FC = () => {
         ])
       ) {
         playEarcon('action');
+        const isSessionRoute =
+          location.pathname.includes('/practice/session') ||
+          location.pathname.includes('/mock-tests/session') ||
+          location.pathname.includes('/exams/session');
+
+        if (isSessionRoute) {
+          if (location.pathname.includes('/practice/session')) {
+            window.dispatchEvent(new CustomEvent('drishti:practice-read-options'));
+          } else if (location.pathname.includes('/mock-tests/session')) {
+            window.dispatchEvent(new CustomEvent('drishti:mock-read-question'));
+          } else {
+            window.dispatchEvent(new CustomEvent('drishti:exam-read-options'));
+          }
+          return true;
+        }
+
         const descriptor = resolveSectionDescriptor(location.pathname, getSectionContext());
         setLastActionFeedback(`Options: ${descriptor.name}`);
         speakAssistance(
@@ -507,6 +608,19 @@ export const HandsFreeScribeHUD: React.FC = () => {
       }
 
       // General Conversational Fallback:
+      const isSession =
+        location.pathname.includes('/practice/session') ||
+        location.pathname.includes('/mock-tests/session') ||
+        location.pathname.includes('/exams/session');
+
+      if (isSession) {
+        const sessionHelpEn = `You are in an active session. Say Option A, B, C, or D to answer, 'Next' for the next question, 'Explain' for explanation, or 'Read Question' to repeat.`;
+        const sessionHelpHi = `आप परीक्षा सत्र में हैं। उत्तर देने के लिए विकल्प A, B, C या D बोलें, अगले सवाल के लिए 'अगला', या स्पष्टीकरण के लिए 'समझाओ' बोलें।`;
+        setLastActionFeedback(isHindi ? `सत्र: "${rawTranscript}"` : `Session: "${rawTranscript}"`);
+        speakAssistance(sessionHelpEn, sessionHelpHi);
+        return true;
+      }
+
       const descriptor = resolveSectionDescriptor(location.pathname, getSectionContext());
       const fallbackEn = `I heard you say: "${rawTranscript}". On ${descriptor.name}, you have ${descriptor.elements.length} options available. ${descriptor.elementsSummary} Say any option number or feature name, or say 'Explain' to hear full details.`;
       const fallbackHi = `मैंने सुना: "${rawTranscript}"। ${descriptor.name} पर आपके पास ${descriptor.elements.length} विकल्प हैं। ${descriptor.elementsSummary} आप कोई भी विकल्प संख्या या नाम बोल सकते हैं, या पेज को दोबारा सुनने के लिए 'पेज समझाओ' बोलें।`;

@@ -123,13 +123,21 @@ export const ExamCard: React.FC<ExamCardProps> = ({ exam }) => {
         </span>
 
         {isSubmitted ? (
-          <Link
-            to={`/candidate/exams/${exam.id}/status`}
-            className="inline-flex items-center gap-1 text-xs font-bold text-foreground hover:text-primary min-h-[38px] px-3 rounded-lg hover:bg-surface-elevated transition-colors"
-          >
-            <span>View Status</span>
-            <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              to={`/candidate/exams/${exam.id}/status`}
+              className="inline-flex items-center gap-1 text-xs font-bold text-foreground hover:text-primary min-h-[38px] px-3 rounded-lg hover:bg-surface-elevated transition-colors"
+            >
+              <span>View Status</span>
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+            </Link>
+            <Link
+              to={`/candidate/exams/${exam.id}/verify`}
+              className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 min-h-[38px] transition-colors"
+            >
+              <span>Retake Exam</span>
+            </Link>
+          </div>
         ) : isInProgress ? (
           <Link
             to={`/candidate/exams/${exam.id}/session`}
@@ -139,13 +147,21 @@ export const ExamCard: React.FC<ExamCardProps> = ({ exam }) => {
             <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
           </Link>
         ) : (
-          <Link
-            to={`/candidate/exams/${exam.id}`}
-            className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-primary hover:from-indigo-600 hover:to-primary-hover text-white min-h-[40px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-glow-primary transition-all"
-          >
-            <span>{isAvailable ? 'Start Examination' : 'View Details'}</span>
-            <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              to={`/candidate/exams/${exam.id}`}
+              className="inline-flex items-center gap-1 text-xs font-medium text-foreground-secondary hover:text-foreground px-3 py-2 rounded-lg hover:bg-surface-elevated transition-colors"
+            >
+              <span>Details</span>
+            </Link>
+            <Link
+              to={`/candidate/exams/${exam.id}/verify`}
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-primary hover:from-indigo-600 hover:to-primary-hover text-white min-h-[40px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-glow-primary transition-all"
+            >
+              <span>{isAvailable ? 'Start Examination' : 'Begin Assessment'}</span>
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+            </Link>
+          </div>
         )}
       </div>
     </Card>

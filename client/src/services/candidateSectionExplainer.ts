@@ -270,7 +270,7 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
         number: 6,
         label: 'Next Question',
         description: 'Advance to the next question in this practice set',
-        aliases: ['next', 'agla sawal', 'next question', 'aage'],
+        aliases: ['next', 'agla sawal', 'next question', 'aage', 'अगला', 'आगे'],
         action: () => window.dispatchEvent(new CustomEvent('drishti:practice-next')),
         confirmSpeech: 'Next question.',
       },
@@ -279,9 +279,27 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
         number: 7,
         label: 'Finish Practice Session',
         description: 'Complete and review scorecard for this practice set',
-        aliases: ['finish', 'submit', 'khatam', 'complete practice'],
+        aliases: ['finish', 'submit', 'khatam', 'complete practice', 'सबमिट', 'समाप्त'],
         action: () => window.dispatchEvent(new CustomEvent('drishti:practice-submit')),
         confirmSpeech: 'Submitting practice session.',
+      },
+      {
+        id: 'explain-question',
+        number: 8,
+        label: 'Explain Solution',
+        description: 'Detailed voice explanation of the correct answer and concepts',
+        aliases: ['explain', 'samjhao', 'vyakhya', 'explanation', 'why', 'kyun', 'समझाओ', 'व्याख्या', 'विस्तार से बताओ'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:practice-explain')),
+        confirmSpeech: 'Explaining solution.',
+      },
+      {
+        id: 'read-options',
+        number: 9,
+        label: 'Read Options',
+        description: 'Read the choices A, B, C, and D aloud',
+        aliases: ['read options', 'options padho', 'vikalp padho', 'options', 'vikalp', 'विकल्प पढ़ो', 'ऑप्शन बताओ'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:practice-read-options')),
+        confirmSpeech: 'Reading options.',
       },
     ];
 
@@ -294,16 +312,16 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
       (typeof document !== 'undefined' && document.documentElement.getAttribute('lang') === 'hi');
 
     const introSpeechHi =
-      'इंटरैक्टिव अभ्यास सत्र। वर्तमान प्रश्न और विकल्पों को सुनने के लिए "प्रश्न पढ़ो" बोलें। उत्तर देने के लिए "ऑप्शन ए", "ऑप्शन बी", "ऑप्शन सी", या "ऑप्शन डी" बोलें। अगले सवाल के लिए "अगला" बोलें, या सत्र समाप्त करने के लिए "अभ्यास पूरा करें" बोलें।';
+      'इंटरैक्टिव अभ्यास सत्र। वर्तमान प्रश्न सुनने के लिए "प्रश्न पढ़ो" या विकल्प सुनने के लिए "विकल्प पढ़ो" बोलें। उत्तर देने के लिए "ऑप्शन ए", "ऑप्शन बी", "ऑप्शन सी", या "ऑप्शन डी" बोलें। समाधान समझने के लिए "समझाओ" बोलें, और अगले सवाल के लिए "अगला" बोलें।';
 
     const introSpeechEn =
-      'Interactive Practice Session. Say "Read Question" to hear the question and all choices. Say "Option A", "Option B", "Option C", or "Option D" to submit your answer. Say "Next" for the next question, or "Finish" to complete the session.';
+      'Interactive Practice Session. Say "Read Question" to hear the question, or "Read Options" for choices. Say "Option A", "Option B", "Option C", or "Option D" to submit your answer. Say "Explain" for explanation, "Next" for next question, or "Finish" to complete.';
 
     const elementsSummaryHi =
-      'सत्र विकल्प: विकल्प ए, बी, सी, डी बोलकर उत्तर दें, या अगला सवाल, या प्रश्न पढ़ो बोलें।';
+      'सत्र विकल्प: विकल्प ए, बी, सी, डी बोलकर उत्तर दें, समझने के लिए समझाओ बोलें, या अगला सवाल बोलें।';
 
     const elementsSummaryEn =
-      'Session options: Say Option A, B, C, or D to answer, or say Next Question, or Read Question.';
+      'Session options: Say Option A, B, C, or D to answer, say Explain for explanation, or say Next Question.';
 
     const introSpeech = isHindi ? introSpeechHi : introSpeechEn;
     const elementsSummary = isHindi ? elementsSummaryHi : elementsSummaryEn;
@@ -1185,8 +1203,255 @@ export function resolveSectionDescriptor(path: string, ctx: SectionContext): Sec
     };
   }
 
-  // 9. EXAMS PORTAL
-  if (path.startsWith('/candidate/exams')) {
+  // 9A. LIVE EXAM ACTIVE SESSION
+  if (path.includes('/candidate/exams/') && path.includes('/session')) {
+    const elements: SectionElement[] = [
+      {
+        id: 'read-question',
+        number: 1,
+        label: 'Read Current Question and Options',
+        description: 'Spoken readout of active exam question and choices A through D',
+        aliases: ['read question', 'repeat', 'sawal padho', 'question sunao', 'prashna padho', 'दोबारा पढ़ो', 'सवाल सुनाओ'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:exam-read-question')),
+        confirmSpeech: 'Reading examination question.',
+      },
+      {
+        id: 'select-option-a',
+        number: 2,
+        label: 'Select Option A',
+        description: 'Select choice A as your answer',
+        aliases: ['option a', 'a', 'first option', 'pehla option', 'vikalp a', 'विकल्प ए'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:exam-select-option', { detail: { label: 'A', index: 0 } })),
+        confirmSpeech: 'Selecting Option A.',
+      },
+      {
+        id: 'select-option-b',
+        number: 3,
+        label: 'Select Option B',
+        description: 'Select choice B as your answer',
+        aliases: ['option b', 'b', 'second option', 'dusra option', 'vikalp b', 'विकल्प बी'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:exam-select-option', { detail: { label: 'B', index: 1 } })),
+        confirmSpeech: 'Selecting Option B.',
+      },
+      {
+        id: 'select-option-c',
+        number: 4,
+        label: 'Select Option C',
+        description: 'Select choice C as your answer',
+        aliases: ['option c', 'c', 'third option', 'teesra option', 'vikalp c', 'विकल्प सी'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:exam-select-option', { detail: { label: 'C', index: 2 } })),
+        confirmSpeech: 'Selecting Option C.',
+      },
+      {
+        id: 'select-option-d',
+        number: 5,
+        label: 'Select Option D',
+        description: 'Select choice D as your answer',
+        aliases: ['option d', 'd', 'fourth option', 'chautha option', 'vikalp d', 'विकल्प डी'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:exam-select-option', { detail: { label: 'D', index: 3 } })),
+        confirmSpeech: 'Selecting Option D.',
+      },
+      {
+        id: 'read-options',
+        number: 6,
+        label: 'Read Options',
+        description: 'Read the available choices aloud',
+        aliases: ['read options', 'options padho', 'vikalp padho', 'options', 'vikalp', 'विकल्प पढ़ो', 'ऑप्शन बताओ'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:exam-read-options')),
+        confirmSpeech: 'Reading available options.',
+      },
+      {
+        id: 'next-question',
+        number: 7,
+        label: 'Next Question',
+        description: 'Advance to the next question',
+        aliases: ['next', 'next question', 'agla', 'agla sawal', 'aage', 'अगला', 'आगे'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:exam-next')),
+        confirmSpeech: 'Advancing to next question.',
+      },
+      {
+        id: 'previous-question',
+        number: 8,
+        label: 'Previous Question',
+        description: 'Return to previous question',
+        aliases: ['previous', 'previous question', 'pichhla', 'pichla', 'peeche', 'पिछला'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:exam-previous')),
+        confirmSpeech: 'Returning to previous question.',
+      },
+      {
+        id: 'submit-exam',
+        number: 9,
+        label: 'Submit Examination',
+        description: 'Open submission confirmation dialog to conclude examination',
+        aliases: ['submit', 'submit exam', 'finish exam', 'khatam karo', 'pariksha samapt', 'सबमिट', 'समाप्त'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:exam-submit')),
+        confirmSpeech: 'Opening examination submission dialog.',
+      },
+    ];
+
+    const isHindi = ctx.preferences?.language === 'hi';
+    const introSpeech = isHindi
+      ? 'लाइव परीक्षा सत्र। प्रश्न व विकल्प दोबारा सुनने के लिए "प्रश्न पढ़ो" या "विकल्प पढ़ो" बोलें। उत्तर देने के लिए "ऑप्शन ए", "बी", "सी", या "डी" बोलें। अगले सवाल के लिए "अगला" बोलें, और परीक्षा समाप्त करने के लिए "सबमिट" बोलें।'
+      : 'Live Examination Session. Say "Read Question" to hear the question, or "Read Options" for choices. Say "Option A", "Option B", "Option C", or "Option D" to answer. Say "Next" for next question, or "Submit Exam" to conclude.';
+
+    const elementsSummary = isHindi
+      ? 'परीक्षा सत्र: 1. प्रश्न पढ़ो, 2. ऑप्शन ए, 3. ऑप्शन बी, 4. ऑप्शन सी, 5. ऑप्शन डी, 6. विकल्प पढ़ो, 7. अगला सवाल, 8. पिछला सवाल, 9. सबमिट।'
+      : 'Exam Session: 1. Read Question, 2. Option A, 3. Option B, 4. Option C, 5. Option D, 6. Read Options, 7. Next Question, 8. Previous Question, 9. Submit Exam.';
+
+    return { id: 'exam-session', name: 'Live Examination Session', introSpeech, elementsSummary, elements };
+  }
+
+  // 9B. EXAM INSTRUCTIONS
+  if (path.includes('/candidate/exams/') && path.includes('/instructions')) {
+    const examMatch = path.match(/\/candidate\/exams\/([^/]+)\/instructions/);
+    const examSlug = examMatch ? examMatch[1] : 'upsc-cse-prelims-2026';
+
+    const elements: SectionElement[] = [
+      {
+        id: 'proceed-verification',
+        number: 1,
+        label: 'Proceed to Accessibility Verification',
+        description: 'Accept examination guidelines and proceed to readiness verification',
+        aliases: [
+          'proceed', 'continue', 'verify', 'start exam', 'start examination', 'begin exam',
+          'aage badho', 'nirdesh manzoor', 'shuru karo', 'option 1', 'pehla', 'आगे बढ़ो', 'शुरू करो'
+        ],
+        action: (c) => c.navigate(`/candidate/exams/${examSlug}/verify`),
+        confirmSpeech: 'Proceeding to accessibility readiness verification.',
+      },
+      {
+        id: 'read-instructions',
+        number: 2,
+        label: 'Listen to Instructions Summary',
+        description: 'Read out examination marking scheme, duration, and navigation rules',
+        aliases: ['read instructions', 'summary', 'listen summary', 'guidelines', 'nirdesh padho', 'nirdesh sunao', 'option 2', 'dusra'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:exam-read-instructions')),
+        confirmSpeech: 'Reading examination instructions summary.',
+      },
+      {
+        id: 'back-to-overview',
+        number: 3,
+        label: 'Back to Examination Overview',
+        description: 'Return to examination details specification',
+        aliases: ['back', 'overview', 'details', 'wapas', 'option 3', 'teesra'],
+        action: (c) => c.navigate(`/candidate/exams/${examSlug}`),
+        confirmSpeech: 'Returning to examination overview.',
+      },
+    ];
+
+    const isHindi = ctx.preferences?.language === 'hi';
+    const introSpeech = isHindi
+      ? 'परीक्षा निर्देश पृष्ठ। निर्देश सुनने के लिए "निर्देश पढ़ो" बोलें। आगे बढ़ने के लिए "आगे बढ़ो" या "विकल्प 1" बोलें, अथवा वापस जाने के लिए "वापस" बोलें।'
+      : 'Examination Instructions. Say "Read Instructions" or "Option 2" to hear guidelines summary, say "Proceed" or "Option 1" to continue, or say "Back" to return.';
+
+    const elementsSummary = isHindi
+      ? 'निर्देश विकल्प: 1. आगे बढ़ें, 2. निर्देश सुनें, 3. वापस जाएं।'
+      : 'Instructions options: 1. Proceed, 2. Listen Summary, 3. Back to Overview.';
+
+    return { id: 'exam-instructions', name: 'Examination Instructions', introSpeech, elementsSummary, elements };
+  }
+
+  // 9C. EXAM READINESS / VERIFY
+  if (path.includes('/candidate/exams/') && path.includes('/verify')) {
+    const examMatch = path.match(/\/candidate\/exams\/([^/]+)\/verify/);
+    const examSlug = examMatch ? examMatch[1] : 'upsc-cse-prelims-2026';
+
+    const elements: SectionElement[] = [
+      {
+        id: 'launch-exam',
+        number: 1,
+        label: 'Launch Examination Session',
+        description: 'Confirm readiness and begin timed examination',
+        aliases: [
+          'start', 'start exam', 'start examination', 'launch', 'shuru karo', 'begin exam',
+          'pariksha shuru', 'pariksha shuru karo', 'option 1', 'pehla', 'take exam',
+          'start test', 'begin test', 'शुरू करो', 'परीक्षा शुरू करो', 'परीक्षा शुरू', 'आरंभ करो'
+        ],
+        action: (c) => {
+          window.dispatchEvent(new CustomEvent('drishti:exam-start-test'));
+          c.navigate(`/candidate/exams/${examSlug}/session`);
+        },
+        confirmSpeech: 'Launching official examination session.',
+      },
+      {
+        id: 'test-audio',
+        number: 2,
+        label: 'Test Audio Speech',
+        description: 'Test text-to-speech audio synthesizer',
+        aliases: ['test audio', 'audio test', 'sound test', 'awaz check', 'option 2', 'dusra'],
+        action: () => window.dispatchEvent(new CustomEvent('drishti:exam-test-audio')),
+        confirmSpeech: 'Testing speech audio synthesizer.',
+      },
+      {
+        id: 'back-to-instructions',
+        number: 3,
+        label: 'Back to Instructions',
+        description: 'Return to examination instructions page',
+        aliases: ['back', 'instructions', 'wapas', 'option 3', 'teesra'],
+        action: (c) => c.navigate(`/candidate/exams/${examSlug}/instructions`),
+        confirmSpeech: 'Returning to examination instructions.',
+      },
+    ];
+
+    const isHindi = ctx.preferences?.language === 'hi';
+    const introSpeech = isHindi
+      ? 'सुलभता एवं परीक्षा तैयारी जांच। परीक्षा शुरू करने के लिए "शुरू करो" या "विकल्प 1" बोलें, आवाज़ की जांच के लिए "ऑडियो टेस्ट" बोलें, या वापस जाने के लिए "वापस" बोलें।'
+      : 'Candidate Readiness & Accessibility Check. Say "Start Exam" or "Option 1" to begin your exam, say "Test Audio" to verify speech, or say "Back" to review instructions.';
+
+    const elementsSummary = isHindi
+      ? 'जांच विकल्प: 1. परीक्षा शुरू करें, 2. ऑडियो टेस्ट, 3. वापस निर्देश पर जाएं।'
+      : 'Readiness options: 1. Launch Exam, 2. Test Audio, 3. Back to Instructions.';
+
+    return { id: 'exam-verify', name: 'Candidate Readiness Check', introSpeech, elementsSummary, elements };
+  }
+
+  // 9D. EXAM DETAILS / OVERVIEW
+  if (
+    path.startsWith('/candidate/exams/') &&
+    !path.includes('/session') &&
+    !path.includes('/instructions') &&
+    !path.includes('/verify') &&
+    !path.includes('/status') &&
+    !path.includes('/submission')
+  ) {
+    const examMatch = path.match(/\/candidate\/exams\/([^/]+)/);
+    const examSlug = examMatch ? examMatch[1] : 'upsc-cse-prelims-2026';
+
+    const elements: SectionElement[] = [
+      {
+        id: 'proceed-instructions',
+        number: 1,
+        label: 'Proceed to Instructions',
+        description: 'Read complete technical guidelines and examination rules',
+        aliases: ['instructions', 'proceed', 'continue', 'rules', 'start', 'nirdesh', 'aage', 'option 1', 'pehla'],
+        action: (c) => c.navigate(`/candidate/exams/${examSlug}/instructions`),
+        confirmSpeech: 'Proceeding to examination instructions.',
+      },
+      {
+        id: 'back-to-exams',
+        number: 2,
+        label: 'Back to Examinations Portal',
+        description: 'Return to available examinations registry',
+        aliases: ['back', 'all exams', 'exams list', 'wapas', 'option 2', 'dusra'],
+        action: (c) => c.navigate('/candidate/exams'),
+        confirmSpeech: 'Returning to examinations catalog.',
+      },
+    ];
+
+    const isHindi = ctx.preferences?.language === 'hi';
+    const introSpeech = isHindi
+      ? 'परीक्षा विवरण पृष्ठ। विस्तृत निर्देश पढ़ने के लिए "निर्देश" या "विकल्प 1" बोलें, या वापस जाने के लिए "वापस" बोलें।'
+      : 'Examination Overview. Say "Proceed to Instructions" or "Option 1" to review rules, or say "Back" to return to the catalog.';
+
+    const elementsSummary = isHindi
+      ? 'विवरण विकल्प: 1. निर्देश पढ़ें, 2. वापस जाएं।'
+      : 'Overview options: 1. Proceed to Instructions, 2. Back to Exams.';
+
+    return { id: 'exam-details', name: 'Examination Overview', introSpeech, elementsSummary, elements };
+  }
+
+  // 9E. EXAMS PORTAL DIRECTORY
+  if (path === '/candidate/exams' || path === '/candidate/exams/') {
     const elements: SectionElement[] = [
       {
         id: 'upsc-exam',

@@ -241,20 +241,29 @@ export const ExamDetailsPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-2xl border border-primary/30 bg-primary/5 mt-4">
         <div>
           <h3 className="text-sm font-bold text-foreground">
-            Ready to review full instructions?
+            Ready to review guidelines or start examination?
           </h3>
           <p className="text-xs text-foreground-secondary">
-            Read complete technical guidelines and verify your accessibility preferences.
+            Read complete technical guidelines or proceed directly to candidate readiness verification.
           </p>
         </div>
 
-        <Link
-          to={`/candidate/exams/${exam.id}/instructions`}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-hover text-primary-contrast font-bold text-xs min-h-[48px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-xs transition-colors flex-shrink-0"
-        >
-          <span>Proceed to Instructions</span>
-          <ArrowRight className="w-4 h-4" aria-hidden="true" />
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            to={`/candidate/exams/${exam.id}/instructions`}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-surface hover:bg-surface-elevated border border-border text-foreground font-bold text-xs min-h-[44px] transition-colors"
+          >
+            <span>Review Instructions</span>
+          </Link>
+
+          <Link
+            to={`/candidate/exams/${exam.id}/verify`}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-hover text-primary-contrast font-bold text-xs min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-xs transition-colors flex-shrink-0"
+          >
+            <span>Start Examination</span>
+            <ArrowRight className="w-4 h-4" aria-hidden="true" />
+          </Link>
+        </div>
       </div>
     </div>
   );
